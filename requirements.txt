@@ -1,0 +1,19 @@
+# Simulation
+numpy>=2.0
+scipy>=1.13
+
+# API
+fastapi>=0.115
+uvicorn[standard]>=0.30
+
+# Analysis and tests
+pandas>=2.2
+pyarrow>=17.0       # Parquet export of recorded runs
+plotly>=5.22
+pytest>=8.0
+
+# Generated artefacts. Both are documented in the README as things to run and
+# neither was listed here, so a fresh environment installed from this file could
+# not build either of them — `start.sh` installs exactly what is in here.
+reportlab>=4.0      # docs/build_handbook.py — the German handbook
+pillow>=10.0        # scripts/build_app.py — the Marktstadt.app icon

@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Market Ecology Simulator · Indizes</title>
+<style>
+:root{
+  --bg:#0d0f12; --panel:#14171c; --line:#22272f; --line2:#2c333d;
+  --ink:#ece6e0; --dim:#8d867d; --dimmer:#5d5952;
+  --up:#4fb8a0; --down:#d9584a; --warn:#e8814c; --gold:#c9a227; --blue:#7e9ee6;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:13px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.num,input,td.n,th.n{font-variant-numeric:tabular-nums;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+a{color:var(--blue)}
+header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+  padding:12px 18px;border-bottom:1px solid var(--line);background:#101318}
+h1{font-size:14px;margin:0;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+.sub{color:var(--dim);font-size:11px}
+.grow{flex:1}
+nav{display:flex;gap:2px}
+nav a{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;text-decoration:none;
+  color:var(--dim);border:1px solid transparent;border-radius:3px;padding:3px 9px}
+nav a:hover{color:var(--ink);border-color:var(--line2)}
+nav a.here{color:var(--warn);border-color:rgba(232,129,76,.5)}
+button{background:#1b2027;color:var(--ink);border:1px solid var(--line2);
+  border-radius:3px;padding:4px 10px;font-size:12px;cursor:pointer}
+button:hover{border-color:#3c4652;background:#212832}
+button.on{border-color:var(--warn);color:var(--warn)}
+button:disabled{opacity:.4;cursor:default}
+main{display:grid;grid-template-columns:1fr;gap:14px;padding:14px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:4px}
+.panel>h2{margin:0;padding:8px 12px;font-size:10.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--line);
+  font-weight:600;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.panel>h2 .grow{flex:1}
+.panel>.body{padding:12px}
+.hint{color:var(--dimmer);font-size:11px;line-height:1.55}
+.warnbox{border:1px solid rgba(232,129,76,.4);background:rgba(232,129,76,.07);
+  border-radius:3px;padding:8px 10px;color:var(--warn);font-size:11.5px;line-height:1.5}
+.bar{height:4px;background:#1e242c;border-radius:2px;overflow:hidden;margin-top:3px}
+.bar i{display:block;height:100%;background:var(--warn)}
+.err{color:var(--down);font-size:11.5px}
+.up{color:var(--up)} .down{color:var(--down)} .dim{color:var(--dim)}
+/* the chart */
+#chartwrap{position:relative}
+#chart{display:block;width:100%;height:340px;cursor:crosshair}
+#tip{position:absolute;pointer-events:none;display:none;z-index:3;
+  background:rgba(13,15,18,.94);border:1px solid var(--line2);border-radius:3px;
+  padding:6px 8px;font-size:11.5px;min-width:150px}
+#tip .r{display:flex;justify-content:space-between;gap:12px;padding:1px 0}
+#tip .sw{width:7px;height:7px;border-radius:1px;display:inline-block;margin-right:5px}
+.legend{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.chip{display:flex;align-items:center;gap:6px;border:1px solid var(--line2);
+  border-radius:12px;padding:2px 10px 2px 7px;font-size:11.5px;cursor:pointer;
+  background:#121519;user-select:none}
+.chip .sw{width:8px;height:8px;border-radius:2px}
+.chip.off{opacity:.35}
+.chip.focus{border-color:var(--ink)}
+.chip b{font-weight:600;letter-spacing:.06em}
+/* the table */
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;color:var(--dim);font-weight:500;font-size:10.5px;
+  letter-spacing:.1em;text-transform:uppercase;padding:3px 6px 3px 0;white-space:nowrap}
+th.n{text-align:right}
+td{padding:3px 6px 3px 0;border-top:1px solid #1b1f25}
+td.n{text-align:right}
+tr.row{cursor:pointer}
+tr.row:hover td{background:#181c22}
+tr.row.focus td{background:#1a2128}
+.tag{display:inline-flex;align-items:center;gap:5px}
+.tag .sw{width:8px;height:8px;border-radius:2px}
+.mini{display:block;width:70px;height:18px}
+footer{padding:10px 18px;border-top:1px solid var(--line);color:var(--dimmer);font-size:11px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Market Ecology · Indizes</h1>
+  <nav>
+    <a href="/" title="Die isometrische Stadt: dieselbe Simulation als Karte">Stadt</a>
+    <a href="/sectors" title="Sektoren, Korrelation, Validierung, A/B, Aufzeichnungen">Analyse</a>
+    <a href="/indices" class="here">Indizes</a>
+    <a href="/traders" title="Alle Trader: Kapital, Positionen, Hebel, Ergebnis">Trader</a>
+  </nav>
+  <span class="grow"></span>
+  <span class="sub">Schritt <b id="step" class="num">–</b></span>
+  <span class="sub">Tag <b id="day" class="num">–</b></span>
+  <button id="play" title="Denselben Markt anhalten, den die Stadtansicht zeigt">Pause</button>
+  <button data-speed="1x" class="spd" title="Echtzeit">1×</button>
+  <button data-speed="4x" class="spd" title="Vierfach">4×</button>
+  <button data-speed="16x" class="spd" title="Sechzehnfach">16×</button>
+</header>
+
+<p class="hint" style="margin:0;padding:8px 18px;border-bottom:1px solid var(--line)">
+  Ein Index ist hier eine <b>Messung</b>, kein zusätzlicher Markt: jeder Kurs entsteht
+  weiter in seinem eigenen Orderbuch. Gewichtet wird mit den Anteilen, die der
+  <a href="/traders?kind=passive">ETF</a> selbst kauft — Fundamentalwert geteilt durch
+  die Summe aller Fundamentalwerte — und verkettet, Schritt für Schritt.
+  Details unten.</p>
+
+<div id="warming" style="display:none;padding:10px 18px">
+  <div class="warnbox">Der Markt wird aufgewärmt — <span id="warmpct" class="num">0</span> %.
+    Vor 20 Handelstagen gibt es keine Volatilität und kein Beta.
+    <div class="bar"><i id="warmbar" style="width:0"></i></div>
+  </div>
+</div>
+
+<div id="broke" style="display:none;padding:10px 18px">
+  <div class="warnbox" style="border-color:rgba(217,88,74,.5);background:rgba(217,88,74,.08);
+    color:var(--down)">Die Simulation ist gestoppt: <b id="brokewhy">—</b>.
+    In der Stadtansicht setzt NEU STARTEN den Lauf zurück.</div>
+</div>
+
+<div id="stale" style="display:none;padding:10px 18px">
+  <div class="warnbox">Die Zahlen unten sind der letzte erfolgreiche Abruf —
+    die Verbindung antwortet gerade nicht (<span id="stalewhy">—</span>).</div>
+</div>
+
+<main>
+
+  <section class="panel">
+    <h2>
+      <span>Indexverlauf</span>
+      <span class="grow"></span>
+      <button class="win" data-win="day" title="Der laufende Handelstag">1 Tag</button>
+      <button class="win" data-win="week" title="Die letzten fünf Handelstage">5 Tage</button>
+      <button class="win" data-win="month" title="Die letzten 60 Handelstage, so weit der Schrittverlauf reicht">60 Tage</button>
+      <button class="win" data-win="all" title="Der ganze Lauf, aus den Tagesschlüssen">Ganzer Lauf</button>
+      <button id="rebase" title="Alle Linien auf den Anfang des Fensters normieren, damit sie vergleichbar sind">auf Fensterstart</button>
+      <button id="showfair" title="Den fairen Wert des hervorgehobenen Index als gestrichelte Linie zeichnen">fairer Wert</button>
+    </h2>
+    <div class="body">
+      <div class="legend" id="legend"></div>
+      <div id="chartwrap">
+        <canvas id="chart"></canvas>
+        <div id="tip"></div>
+      </div>
+      <p class="hint" id="chartnote"></p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Indizes im Vergleich</h2>
+    <div class="body">
+      <div style="overflow-x:auto"><table id="table"></table></div>
+      <p class="hint" id="tablenote"></p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Wie diese Indizes gebaut sind</h2>
+    <div class="body">
+      <p class="hint">
+        <b>Die Gewichte sind die des ETF.</b> <code>PassiveInvestor</code> kauft
+        <code>index_weight = Fundamentalwert / Summe der Fundamentalwerte</code>; genau
+        diese Gewichte stehen hier. Eine Gewichtung nach Marktkapitalisierung bräuchte
+        eine Stückzahl je Instrument — die Zahl umlaufender Aktien ist hier aber ein
+        Ergebnis dessen, was der Emittent verkauft hat, keine Eigenschaft des Papiers.
+      </p>
+      <p class="hint">
+        <b>Verkettet, nicht als Quotient von Summen.</b>
+        <code>I(t) = I(t−1) · Σ w(t−1) · P(t)/P(t−1)</code>. Die Gewichte wandern, weil
+        die Fundamentalwerte auseinanderlaufen; eine feste Summe würde stillschweigend
+        zu einem kursgewichteten Index werden, in dem der Sektor mit der größten Zahl
+        dominiert.
+      </p>
+      <p class="hint">
+        <b>Beta ist eine Behauptung, keine Einstellung.</b> <i>Beta&nbsp;Modell</i> ist
+        der Wert, den das Faktormodell dem <i>Fundamentalwert</i> dieses Sektors
+        mitgibt. <i>Beta gemessen</i> ist die Regression der Tagesrenditen des Index auf
+        die des Gesamtmarkts — das, was aus den Orderbüchern herauskommt. Über fünf
+        Seeds à 370 Handelstage: TECH 1,40 → 1,38, HLTH 0,70 → 0,66, CONS 0,80 → 0,87,
+        ENRG 0,90 → <b>1,19</b>, FINL 1,20 → <b>0,92</b> (± 0,41). Die <i>Spannweite</i>
+        überlebt den Weg in die Kurse fast unverändert (0,70 gegen 0,72) — anders als
+        die Korrelationen, die das README stark gedämpft findet. Die <i>Reihenfolge</i>
+        überlebt nicht: ENRG und FINL tauschen die Plätze, und FINL streut so weit, dass
+        auf einem einzelnen Lauf jede Aussage über sein Beta geraten wäre. Genau
+        deshalb steht hier auch die Streuung.
+      </p>
+      <p class="hint">
+        <b>Warum zwei Abweichungsspalten.</b> Ein verketteter Index summiert gewichtete
+        Renditen, also einen <i>arithmetischen</i> Mittelwert; die Kursreihen sind viel
+        unruhiger als die Fundamentalwerte und sammeln dabei die größere
+        Umschichtungsprämie an. Nach einem Jahr steht der Gesamtmarkt-Index deshalb
+        zweistellig über seinem Fair-Wert-Index, ohne dass ein einziges Mitglied so weit
+        entfernt wäre. <i>Abw.&nbsp;Mitglieder</i> ist die heute gemessene Antwort —
+        gewichtetes Kurs ÷ fairer Wert — und die beiden gehören nebeneinander, weil sonst
+        eine Zahl auf dem Bildschirm steht, die sich in keinem Instrument wiederfinden
+        lässt. Bei einem Index aus einem einzigen Instrument sind beide identisch.
+      </p>
+      <p class="hint">
+        <b>Nichts davon wirkt zurück.</b> Die Indizes lesen Kurse, die ohnehin entstanden
+        sind, ziehen keine Zufallszahlen und ändern keinen Zustand — derselbe Seed ergibt
+        mit und ohne diese Seite bitgenau denselben Lauf.
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<footer id="foot">–</footer>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const el = (tag, cls, text) => { const n = document.createElement(tag);
+  if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; };
+/* German number, with the project’s own thousands separator. `toLocaleString`
+   groups with a dot, and mes/city.py groups with a thin space (THIN, U+2009) —
+   so every four-figure price printed here disagreed with the same price in the
+   town. The decimal comma comes from the locale; only the grouping is swapped. */
+const de = (v, d = 2) => v === null || v === undefined || Number.isNaN(v) ? "–"
+  : Number(v).toLocaleString("de-DE", {minimumFractionDigits: d, maximumFractionDigits: d})
+      .replace(/\./g, "\u2009");
+const pct = (v, d = 1) => v === null || v === undefined ? "–" : (v >= 0 ? "+" : "") + de(v, d) + " %";
+const sign = v => v > 0 ? "up" : v < 0 ? "down" : "dim";
+
+async function api(path, options) {
+  const res = await fetch(path, options);
+  if (!res.ok) throw new Error((await res.text()).slice(0, 200));
+  return res.json();
+}
+const post = (path, body) => api(path, {method: "POST",
+  headers: {"content-type": "application/json"}, body: JSON.stringify(body || {})});
+
+/* The market index is the reference line and is drawn thicker; the sectors get their
+   own colour. Keyed by symbol so a sector keeps its colour between reloads, with a
+   fallback list for a configuration that trades other symbols. */
+const COLOUR = {MKT: "#ece6e0", TECH: "#7e9ee6", ENRG: "#e8814c", FINL: "#c9a227",
+  HLTH: "#4fb8a0", CONS: "#b07fd0"};
+const SPARE = ["#d9584a", "#8fbf6a", "#c98fb0", "#6fb5cf", "#bfa06a"];
+const colourOf = (key, i) => COLOUR[key] || SPARE[i % SPARE.length];
+
+/* Windows in trading days. "all" switches the request to daily closes, which is the
+   only series that reaches back further than the 60 days of step history the backend
+   keeps — see MAX_STEPS in mes/indices.py. */
+const WINDOWS = {
+  day:   {label: "1 Tag",       back: "vor einem Tag",   days: 1,    scale: "step"},
+  week:  {label: "5 Tage",      back: "vor 5 Tagen",     days: 5,    scale: "step"},
+  month: {label: "60 Tage",     back: "vor 60 Tagen",    days: 60,   scale: "step"},
+  all:   {label: "ganzer Lauf", back: "Beginn des Laufs", days: 4000, scale: "day"},
+};
+
+let win = "week", rebase = true, showFair = false;
+let hidden = new Set(), focus = null, hover = null;
+let DATA = null, SPD = 240, paused = false;
+
+try {
+  const saved = JSON.parse(localStorage.getItem("mes.indices") || "{}");
+  if (WINDOWS[saved.win]) win = saved.win;
+  if (typeof saved.rebase === "boolean") rebase = saved.rebase;
+  if (typeof saved.showFair === "boolean") showFair = saved.showFair;
+  if (Array.isArray(saved.hidden)) hidden = new Set(saved.hidden);
+} catch (_) { /* a browser that refuses storage still gets the defaults */ }
+
+function remember() {
+  try {
+    localStorage.setItem("mes.indices", JSON.stringify(
+      {win, rebase, showFair, hidden: [...hidden]}));
+  } catch (_) { /* nothing to do about it, and it must not break the page */ }
+}
+
+/* What the drawn line did, from its first sample to its last. */
+function windowChange(index) {
+  const s = index.series || [];
+  return s.length > 1 ? (s[s.length - 1] / s[0] - 1) * 100 : 0;
+}
+
+/* ------------------------------------------------------------------ legend */
+function renderLegend(data) {
+  const host = $("#legend");
+  host.innerHTML = "";
+  data.indices.forEach((index, i) => {
+    const chip = el("div", "chip"
+      + (hidden.has(index.key) ? " off" : "")
+      + (focus === index.key ? " focus" : ""));
+    const sw = el("span", "sw");
+    sw.style.background = colourOf(index.key, i);
+    chip.append(sw, el("b", "", index.key));
+    /* The change over the *window on screen*, not since the run started. A legend
+       that reports a different period from the line beside it is worse than no
+       legend: the eye reads the two together and believes the number. */
+    const change = windowChange(index);
+    chip.append(el("span", "num " + sign(change), pct(change, 1)));
+    chip.title = `${index.name} · ${index.members.length} Instrument(e) · `
+      + `${pct(index.changeTotal, 1)} seit Laufbeginn · `
+      + `Klick blendet die Linie aus, Zeigen hebt sie hervor`;
+    chip.onclick = () => {
+      if (hidden.has(index.key)) hidden.delete(index.key); else hidden.add(index.key);
+      remember(); renderLegend(DATA); draw();
+    };
+    chip.onmouseenter = () => { focus = index.key; renderLegend(DATA); draw(); };
+    chip.onmouseleave = () => { focus = null; renderLegend(DATA); draw(); };
+    host.append(chip);
+  });
+}
+
+/* ------------------------------------------------------------------- chart */
+/* One canvas, redrawn from DATA. Kept as a function of state only, so a resize, a
+   legend click and a fresh poll all go through exactly the same path. */
+const PAD = {l: 46, r: 12, t: 10, b: 22};
+
+function visible() {
+  if (!DATA) return [];
+  return DATA.indices
+    .map((index, i) => ({index, colour: colourOf(index.key, i)}))
+    .filter(entry => !hidden.has(entry.index.key));
+}
+
+/* Rebasing divides by the first point of the window rather than by the run start, so
+   the lines answer the question the window asks. Without it a one-day view stacks
+   five flat lines at different heights and the day itself is invisible.
+
+   The fair series is divided by the *price* base, not by its own. Dividing it by its
+   own start would put both lines at 100 and erase the gap between them, which is the
+   only reason to draw the fair value at all. */
+function seriesOf(index, key) {
+  const raw = (key === "fair" ? index.fairSeries : index.series) || [];
+  if (!rebase || !raw.length) return raw;
+  const base = (index.series && index.series.length) ? index.series[0] : raw[0];
+  if (!base) return raw;
+  return raw.map(v => v / base * 100);
+}
+
+function draw() {
+  const canvas = $("#chart");
+  const ratio = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth || 700, h = canvas.clientHeight || 340;
+  canvas.width = w * ratio; canvas.height = h * ratio;
+  const g = canvas.getContext("2d");
+  g.setTransform(ratio, 0, 0, ratio, 0, 0);
+  g.clearRect(0, 0, w, h);
+
+  const shown = visible();
+  if (!shown.length) {
+    /* Two different empty states, and saying the wrong one is misleading: before the
+       first response nothing is hidden, the data is simply not here yet. */
+    g.fillStyle = "#5d5952"; g.font = "12px -apple-system,sans-serif";
+    g.fillText(DATA === null
+      ? "lädt …"
+      : "Alle Linien ausgeblendet — im Legendenband wieder einschalten.", PAD.l, h / 2);
+    return;
+  }
+
+  const lines = [];
+  for (const entry of shown) {
+    const values = seriesOf(entry.index, "level");
+    if (values.length > 1) lines.push({...entry, values, dash: false});
+    if (showFair && (focus === null || focus === entry.index.key)) {
+      const fair = seriesOf(entry.index, "fair");
+      if (fair.length > 1) lines.push({...entry, values: fair, dash: true});
+    }
+  }
+  if (!lines.length) return;
+
+  const points = Math.max(...lines.map(l => l.values.length));
+  let lo = Infinity, hi = -Infinity;
+  for (const line of lines) for (const v of line.values) {
+    if (v < lo) lo = v; if (v > hi) hi = v;
+  }
+  if (!(hi > lo)) { hi = lo + 1; lo -= 1; }
+  const padding = (hi - lo) * 0.08;
+  lo -= padding; hi += padding;
+
+  const x = i => PAD.l + i / Math.max(points - 1, 1) * (w - PAD.l - PAD.r);
+  const y = v => PAD.t + (1 - (v - lo) / (hi - lo)) * (h - PAD.t - PAD.b);
+
+  // grid and the level axis
+  g.font = "10px ui-monospace,SFMono-Regular,Menlo,monospace";
+  g.textBaseline = "middle";
+  for (let i = 0; i <= 4; i++) {
+    const value = lo + (hi - lo) * i / 4;
+    const yy = Math.round(y(value)) + 0.5;
+    g.strokeStyle = "#1b1f25"; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(PAD.l, yy); g.lineTo(w - PAD.r, yy); g.stroke();
+    g.fillStyle = "#5d5952"; g.textAlign = "right";
+    g.fillText(de(value, 1), PAD.l - 6, yy);
+  }
+
+  // the base line, which is what every rebased curve started from
+  if (rebase && lo < 100 && hi > 100) {
+    g.strokeStyle = "#2c333d"; g.setLineDash([2, 3]); g.lineWidth = 1;
+    const yy = Math.round(y(100)) + 0.5;
+    g.beginPath(); g.moveTo(PAD.l, yy); g.lineTo(w - PAD.r, yy); g.stroke();
+    g.setLineDash([]);
+  }
+
+  for (const line of lines) {
+    const dim = focus !== null && focus !== line.index.key;
+    g.strokeStyle = line.colour;
+    g.globalAlpha = dim ? 0.18 : 1;
+    g.lineWidth = line.dash ? 1 : (line.index.kind === "market" ? 2 : 1.4);
+    g.setLineDash(line.dash ? [4, 3] : []);
+    g.beginPath();
+    line.values.forEach((v, i) => {
+      const px = x(i * (points - 1) / Math.max(line.values.length - 1, 1));
+      if (i) g.lineTo(px, y(v)); else g.moveTo(px, y(v));
+    });
+    g.stroke();
+  }
+  g.globalAlpha = 1; g.setLineDash([]);
+
+  // the crosshair, and the read-out beside it
+  if (hover !== null && points > 1) {
+    const i = Math.max(0, Math.min(points - 1, hover));
+    const px = Math.round(x(i)) + 0.5;
+    g.strokeStyle = "#3c4652"; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(px, PAD.t); g.lineTo(px, h - PAD.b); g.stroke();
+    showTip(i, px, lines, w);
+  } else {
+    $("#tip").style.display = "none";
+  }
+
+  // x axis: how far back the window reaches
+  g.fillStyle = "#5d5952"; g.textAlign = "left"; g.textBaseline = "alphabetic";
+  g.fillText(WINDOWS[win].back, PAD.l, h - 6);
+  g.textAlign = "right";
+  g.fillText("jetzt", w - PAD.r, h - 6);
+}
+
+function showTip(i, px, lines, w) {
+  const tip = $("#tip");
+  tip.innerHTML = "";
+  const rows = lines.filter(l => !l.dash).map(l => ({
+    key: l.index.key, colour: l.colour,
+    value: l.values[Math.max(0, Math.min(l.values.length - 1, i))],
+  })).sort((a, b) => b.value - a.value);
+
+  for (const row of rows) {
+    const line = el("div", "r");
+    const left = el("span", "");
+    const sw = el("span", "sw"); sw.style.background = row.colour;
+    left.append(sw, document.createTextNode(row.key));
+    line.append(left, el("span", "num", de(row.value, 2)));
+    tip.append(line);
+  }
+  tip.style.display = "block";
+  const box = tip.getBoundingClientRect();
+  tip.style.left = Math.min(px + 12, w - box.width - 8) + "px";
+  tip.style.top = "8px";
+}
+
+$("#chart").addEventListener("mousemove", event => {
+  const rect = event.currentTarget.getBoundingClientRect();
+  const shown = visible();
+  if (!shown.length) return;
+  const points = Math.max(...shown.map(e => (e.index.series || []).length), 1);
+  const inner = rect.width - PAD.l - PAD.r;
+  const frac = (event.clientX - rect.left - PAD.l) / Math.max(inner, 1);
+  hover = Math.round(frac * (points - 1));
+  if (frac < -0.02 || frac > 1.02) hover = null;
+  draw();
+});
+$("#chart").addEventListener("mouseleave", () => { hover = null; draw(); });
+
+/* ------------------------------------------------------------------- table */
+const COLUMNS = [
+  ["Index", "", "Kürzel und Name. Der Gesamtmarkt enthält alle Instrumente."],
+  ["Stand", "n", "Indexstand, 100 zu Beginn des Laufs"],
+  ["fair", "n", "Derselbe Index auf den Fundamentalwerten gerechnet"],
+  ["Abw.", "n", "Kursindex gegen Fair-Wert-Index. Bei einem Index aus einem "
+   + "einzigen Instrument ist das exakt dessen Abstand zum fairen Wert"],
+  ["Abw. Mitglieder", "n", "Gewichteter Mittelwert von Kurs ÷ fairer Wert der "
+   + "Mitglieder — heute gemessen statt aufgezinst. Siehe Erklärung unten"],
+  ["1 Tag", "n", "Veränderung über die letzten 240 Schritte"],
+  ["5 Tage", "n", "Veränderung über die letzten fünf Handelstage"],
+  ["seit Start", "n", "Veränderung seit Beginn des Laufs"],
+  ["Vola p.a.", "n", "Annualisierte Volatilität der Tagesrenditen, ab 20 Tagen"],
+  ["max. DD", "n", "Größter Rückgang vom Höchststand der Tagesschlüsse"],
+  ["Beta Modell", "n", "Was das Faktormodell dem Fundamentalwert mitgibt"],
+  ["Beta gemessen", "n", "Regression der Tagesrenditen auf den Gesamtmarkt"],
+  ["Korr.", "n", "Korrelation der Tagesrenditen mit dem Gesamtmarkt"],
+  ["Breite", "n", "Wie viele Mitglieder über ihrem eigenen fairen Wert stehen"],
+];
+
+function renderTable(data) {
+  const table = $("#table");
+  table.innerHTML = "";
+  const head = el("tr");
+  COLUMNS.forEach(([label, cls, title]) => {
+    const th = el("th", cls, label); th.title = title; head.append(th);
+  });
+  table.append(head);
+
+  data.indices.forEach((index, i) => {
+    const tr = el("tr", "row" + (focus === index.key ? " focus" : ""));
+    tr.onmouseenter = () => { focus = index.key; renderLegend(DATA); markRows(); draw(); };
+    tr.onmouseleave = () => { focus = null; renderLegend(DATA); markRows(); draw(); };
+    tr.onclick = () => {
+      if (hidden.has(index.key)) hidden.delete(index.key); else hidden.add(index.key);
+      remember(); renderLegend(DATA); draw();
+    };
+    tr.dataset.key = index.key;
+
+    const name = el("td");
+    const tag = el("span", "tag");
+    const sw = el("span", "sw"); sw.style.background = colourOf(index.key, i);
+    tag.append(sw, el("b", "", index.key),
+      el("span", "dim", " " + index.name + (index.kind === "market"
+        ? " · " + index.members.length + " Instrumente" : "")));
+    name.append(tag);
+    tr.append(name);
+
+    const cell = (text, cls) => tr.append(el("td", "n num " + (cls || ""), text));
+    cell(de(index.level, 2));
+    cell(de(index.fair, 2), "dim");
+    cell(pct(index.gap, 1), sign(index.gap));
+    cell(pct(index.gapMembers, 1), "dim");
+    cell(pct(index.changeDay, 2), sign(index.changeDay));
+    cell(pct(index.changeWeek, 2), sign(index.changeWeek));
+    cell(pct(index.changeTotal, 1), sign(index.changeTotal));
+    cell(index.vol === null ? "–" : de(index.vol * 100, 0) + " %");
+    cell(index.drawdown === null ? "–" : de(index.drawdown, 0) + " %", "down");
+    cell(de(index.betaSpec, 2), "dim");
+    cell(index.beta === null ? "–" : de(index.beta, 2));
+    cell(index.corr === null ? "–" : de(index.corr, 2), "dim");
+    cell(index.breadth + " / " + index.width,
+      index.breadth * 2 > index.width ? "up" : "down");
+    table.append(tr);
+  });
+}
+
+function markRows() {
+  document.querySelectorAll("#table tr.row").forEach(tr =>
+    tr.classList.toggle("focus", tr.dataset.key === focus));
+}
+
+/* ---------------------------------------------------------------- controls */
+function syncButtons() {
+  document.querySelectorAll(".win").forEach(b =>
+    b.classList.toggle("on", b.dataset.win === win));
+  $("#rebase").classList.toggle("on", rebase);
+  $("#showfair").classList.toggle("on", showFair);
+}
+
+document.querySelectorAll(".win").forEach(b => b.onclick = () => {
+  win = b.dataset.win; remember(); syncButtons(); refresh();
+});
+$("#rebase").onclick = () => {
+  rebase = !rebase; remember(); syncButtons(); draw(); note();
+};
+$("#showfair").onclick = () => { showFair = !showFair; remember(); syncButtons(); draw(); };
+
+async function drive(button, body, label) {
+  button.disabled = true;
+  try { await post("/api/control", body); }
+  catch (e) { $("#foot").textContent = `${label} fehlgeschlagen: ${e.message}`; }
+  finally { button.disabled = false; refresh(); }
+}
+$("#play").onclick = e =>
+  drive(e.currentTarget, {action: paused ? "play" : "pause"}, paused ? "Weiter" : "Pause");
+document.querySelectorAll(".spd").forEach(b => b.onclick = () =>
+  drive(b, {action: "speed", speed: b.dataset.speed}, "Tempo " + b.dataset.speed));
+
+function note() {
+  if (!DATA) return;
+  const spec = WINDOWS[win];
+  $("#chartnote").textContent =
+    (rebase
+      ? "Alle Linien auf 100 am Anfang des Fensters normiert — so ist vergleichbar, "
+        + "wer in diesem Zeitraum gelaufen ist. "
+      : "Absolute Indexstände, 100 zu Beginn des Laufs. ")
+    + `Fenster: ${spec.label} · ${DATA.points} Punkte aus ${DATA.window}`
+    + (spec.scale === "day" ? " (Tagesschlüsse)" : " (je ein Marktschritt)")
+    + (showFair
+       ? " · gestrichelt der faire Wert"
+         + (focus ? " von " + focus : " jedes sichtbaren Index")
+       : "");
+}
+
+/* -------------------------------------------------------------------- loop */
+async function refresh() {
+  const spec = WINDOWS[win];
+  /* `n` is how far back to look, `points` how many samples to draw with. Asking for
+     one number and meaning both is what made a five-day chart show the whole run. */
+  const back = spec.scale === "day" ? spec.days : spec.days * SPD;
+  try {
+    const [state, data] = await Promise.all([
+      api("/api/state"),
+      api(`/api/indices?n=${back}&points=500&scale=${spec.scale}`),
+    ]);
+    DATA = data;
+    SPD = data.steps_per_day || 240;
+
+    $("#step").textContent = data.step.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "\u2009");
+    $("#day").textContent = data.day;
+    paused = !state.running;
+    $("#play").textContent = paused ? "Weiter" : "Pause";
+    document.querySelectorAll(".spd").forEach(b =>
+      b.classList.toggle("on", b.dataset.speed === state.speed));
+
+    $("#warming").style.display = state.warming && !state.failure ? "" : "none";
+    if (state.warming) {
+      $("#warmpct").textContent = Math.round(state.warmProgress * 100);
+      $("#warmbar").style.width = (state.warmProgress * 100) + "%";
+    }
+    $("#broke").style.display = state.failure ? "" : "none";
+    if (state.failure) $("#brokewhy").textContent = state.failure;
+
+    renderLegend(data);
+    renderTable(data);
+    draw();
+    note();
+
+    const market = data.indices.find(index => index.kind === "market");
+    const best = data.indices.filter(index => index.kind === "sector")
+      .sort((a, b) => b.changeTotal - a.changeTotal);
+    $("#foot").textContent = market
+      ? `Gesamtmarkt ${de(market.level, 2)} (${pct(market.changeTotal, 1)} seit Start, `
+        + `${pct(market.gap, 1)} zum fairen Wert) · vorn ${best[0] ? best[0].key : "–"}, `
+        + `hinten ${best.length ? best[best.length - 1].key : "–"} · `
+        + `${data.indices.length - 1} Sektorindizes · Tag ${data.day}`
+      : "keine Indizes";
+    $("#tablenote").textContent = "Volatilität, Drawdown, Beta und Korrelation werden "
+      + "auf Tagesschlüssen gemessen und brauchen 20 Handelstage — vorher steht dort "
+      + "ein Strich statt einer Zahl aus zu wenig Daten.";
+    $("#stale").style.display = "none";
+  } catch (e) {
+    $("#foot").textContent = "Backend nicht erreichbar: " + e.message;
+    $("#stale").style.display = "";
+    $("#stalewhy").textContent = e.message;
+  }
+}
+
+let resizeQueued = false;
+window.addEventListener("resize", () => {
+  if (resizeQueued) return;
+  resizeQueued = true;
+  requestAnimationFrame(() => { resizeQueued = false; draw(); });
+});
+
+syncButtons();
+refresh();
+setInterval(refresh, 1500);
+</script>
+</body>
+</html>

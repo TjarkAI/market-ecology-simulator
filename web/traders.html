@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Market Ecology Simulator · Trader</title>
+<style>
+:root{
+  --bg:#0d0f12; --panel:#14171c; --line:#22272f; --line2:#2c333d;
+  --ink:#ece6e0; --dim:#8d867d; --dimmer:#5d5952;
+  --up:#4fb8a0; --down:#d9584a; --warn:#e8814c; --gold:#c9a227; --blue:#7e9ee6;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:13px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.num,input,td.n,th.n{font-variant-numeric:tabular-nums;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+a{color:var(--blue)}
+header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+  padding:12px 18px;border-bottom:1px solid var(--line);background:#101318}
+h1{font-size:14px;margin:0;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+.sub{color:var(--dim);font-size:11px}
+.grow{flex:1}
+nav{display:flex;gap:2px}
+nav a{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;text-decoration:none;
+  color:var(--dim);border:1px solid transparent;border-radius:3px;padding:3px 9px}
+nav a:hover{color:var(--ink);border-color:var(--line2)}
+nav a.here{color:var(--warn);border-color:rgba(232,129,76,.5)}
+button{background:#1b2027;color:var(--ink);border:1px solid var(--line2);
+  border-radius:3px;padding:4px 10px;font-size:12px;cursor:pointer}
+button:hover{border-color:#3c4652;background:#212832}
+button.on{border-color:var(--warn);color:var(--warn)}
+button:disabled{opacity:.4;cursor:default}
+input[type=text],select{background:#0f1216;color:var(--ink);border:1px solid var(--line2);
+  border-radius:3px;padding:4px 6px;font-size:12px}
+main{display:grid;grid-template-columns:1fr 300px;gap:14px;padding:14px;align-items:start}
+@media(max-width:1200px){main{grid-template-columns:1fr}}
+.stack{display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:4px;min-width:0}
+.panel>h2{margin:0;padding:8px 12px;font-size:10.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--line);
+  font-weight:600;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.panel>h2 .grow{flex:1}
+.panel>.body{padding:12px}
+.hint{color:var(--dimmer);font-size:11px;line-height:1.55}
+.warnbox{border:1px solid rgba(232,129,76,.4);background:rgba(232,129,76,.07);
+  border-radius:3px;padding:8px 10px;color:var(--warn);font-size:11.5px;line-height:1.5}
+.bar{height:4px;background:#1e242c;border-radius:2px;overflow:hidden;margin-top:3px}
+.bar i{display:block;height:100%;background:var(--warn)}
+.err{color:var(--down);font-size:11.5px}
+.up{color:var(--up)} .down{color:var(--down)} .dim{color:var(--dim)}
+/* summary tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.tile{border:1px solid var(--line2);border-radius:4px;padding:7px 9px;background:#121519}
+.tile .k{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--dimmer)}
+.tile .v{font-size:17px;line-height:1.3}
+.tile .s{font-size:10.5px;color:var(--dim)}
+/* group cards */
+.groups{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:8px}
+.gcard{border:1px solid var(--line2);border-radius:4px;padding:8px 10px;background:#121519;
+  cursor:pointer}
+.gcard:hover{border-color:#3c4652}
+.gcard.on{border-color:var(--warn)}
+.gcard .top{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.gcard b{font-size:12px}
+.gcard .note{font-size:10.5px;color:var(--dimmer);line-height:1.45;margin-top:4px}
+/* table */
+.scroll{overflow:auto;max-height:62vh}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;color:var(--dim);font-weight:500;font-size:10.5px;
+  letter-spacing:.1em;text-transform:uppercase;padding:4px 6px 4px 0;white-space:nowrap;
+  position:sticky;top:0;background:var(--panel);z-index:1;cursor:pointer;
+  border-bottom:1px solid var(--line)}
+th:hover{color:var(--ink)}
+th.n{text-align:right}
+th.sorted{color:var(--warn)}
+td{padding:2px 6px 2px 0;border-top:1px solid #1b1f25;white-space:nowrap}
+td.n{text-align:right}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:#181c22}
+tbody tr.sel td{background:#1d242c}
+.pill{display:inline-block;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;
+  border:1px solid var(--line2);border-radius:9px;padding:0 6px;color:var(--dim)}
+.pill.mom{color:var(--warn);border-color:rgba(232,129,76,.45)}
+.pill.val{color:var(--up);border-color:rgba(79,184,160,.45)}
+.pill.lev{color:var(--down);border-color:rgba(217,88,74,.45)}
+.pill.mkr{color:var(--blue);border-color:rgba(126,158,230,.45)}
+.pill.cmp{color:var(--gold);border-color:rgba(201,162,39,.45)}
+.deciles{display:flex;gap:2px;align-items:flex-end;height:40px;margin-top:6px}
+.deciles i{flex:1;background:#2c333d;border-radius:1px 1px 0 0;display:block}
+.deciles i:last-child{background:var(--warn)}
+footer{padding:10px 18px;border-top:1px solid var(--line);color:var(--dimmer);font-size:11px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Market Ecology · Trader</h1>
+  <nav>
+    <a href="/" title="Die isometrische Stadt: dieselbe Simulation als Karte">Stadt</a>
+    <a href="/sectors" title="Sektoren, Korrelation, Validierung, A/B, Aufzeichnungen">Analyse</a>
+    <a href="/indices" title="Alle Indizes live gegeneinander">Indizes</a>
+    <a href="/traders" class="here">Trader</a>
+  </nav>
+  <span class="grow"></span>
+  <span class="sub">Schritt <b id="step" class="num">–</b></span>
+  <span class="sub">Tag <b id="day" class="num">–</b></span>
+  <button id="play" title="Denselben Markt anhalten, den die Stadtansicht zeigt">Pause</button>
+  <button data-speed="1x" class="spd" title="Echtzeit">1×</button>
+  <button data-speed="4x" class="spd" title="Vierfach">4×</button>
+  <button data-speed="16x" class="spd" title="Sechzehnfach">16×</button>
+</header>
+
+<p class="hint" style="margin:0;padding:8px 18px;border-bottom:1px solid var(--line)">
+  Jede Zeile ist ein Agent aus derselben laufenden Simulation, die die
+  <a href="/">Stadt</a> zeichnet — zu den Preisen dieses Schritts bewertet. Die Stadt
+  zeigt einen Trader gründlich, diese Seite alle nebeneinander: wer Kapital hat, wer
+  am Hebel hängt und wer gerade verliert.</p>
+
+<div id="warming" style="display:none;padding:10px 18px">
+  <div class="warnbox">Der Markt wird aufgewärmt — <span id="warmpct" class="num">0</span> %.
+    <div class="bar"><i id="warmbar" style="width:0"></i></div>
+  </div>
+</div>
+
+<div id="broke" style="display:none;padding:10px 18px">
+  <div class="warnbox" style="border-color:rgba(217,88,74,.5);background:rgba(217,88,74,.08);
+    color:var(--down)">Die Simulation ist gestoppt: <b id="brokewhy">—</b>.
+    In der Stadtansicht setzt NEU STARTEN den Lauf zurück.</div>
+</div>
+
+<div id="stale" style="display:none;padding:10px 18px">
+  <div class="warnbox">Die Zahlen unten sind der letzte erfolgreiche Abruf —
+    die Verbindung antwortet gerade nicht (<span id="stalewhy">—</span>).</div>
+</div>
+
+<main>
+  <div class="stack">
+
+    <section class="panel">
+      <h2>Die Population</h2>
+      <div class="body">
+        <div class="tiles" id="tiles"></div>
+        <p class="hint" id="wealthnote" style="margin-bottom:2px"></p>
+        <div class="deciles" id="deciles" title="Vermögensanteil je Zehntel der Agenten,
+vom ärmsten links zum reichsten rechts"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Viertel — anklicken filtert die Liste</h2>
+      <div class="body"><div class="groups" id="groups"></div></div>
+    </section>
+
+    <section class="panel">
+      <h2>
+        <span>Alle Trader</span>
+        <span class="grow"></span>
+        <input type="text" id="search" placeholder="Nummer oder Typ …" style="width:150px"
+               title="Filtert nach Agentennummer, Typ oder Strategie">
+        <select id="symbol" title="Nur Trader, die dieses Instrument halten oder bedienen">
+          <option value="">alle Instrumente</option>
+        </select>
+        <select id="limit" title="Wie viele Zeilen je Seite">
+          <option value="50">50</option>
+          <option value="150" selected>150</option>
+          <option value="400">400</option>
+          <option value="2000">alle</option>
+        </select>
+        <button id="prev" title="eine Seite zurück">‹</button>
+        <span class="sub num" id="page">–</span>
+        <button id="next" title="eine Seite vor">›</button>
+      </h2>
+      <div class="body" style="padding:0">
+        <div class="scroll"><table id="table">
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+        </table></div>
+      </div>
+      <div class="body" style="padding-top:8px">
+        <p class="hint" id="tablenote"></p>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="stack">
+    <section class="panel">
+      <h2>Ausgewählter Trader</h2>
+      <div class="body" id="detail">
+        <p class="hint">Eine Zeile anklicken.</p>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer id="foot">–</footer>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const el = (tag, cls, text) => { const n = document.createElement(tag);
+  if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; };
+/* German number, with the project’s own thousands separator. `toLocaleString`
+   groups with a dot, and mes/city.py groups with a thin space (THIN, U+2009) —
+   so every four-figure price printed here disagreed with the same price in the
+   town. The decimal comma comes from the locale; only the grouping is swapped. */
+const de = (v, d = 2) => v === null || v === undefined || Number.isNaN(v) ? "–"
+  : Number(v).toLocaleString("de-DE", {minimumFractionDigits: d, maximumFractionDigits: d})
+      .replace(/\./g, "\u2009");
+const pct = (v, d = 1) => v === null || v === undefined ? "–" : (v >= 0 ? "+" : "") + de(v, d) + " %";
+/* Stück counts with the thin space mes/city.py uses, so the roster counts shares the
+   same way every other panel in the project does. */
+const thin = n => Math.round(Number(n) || 0).toString()
+  .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+const sign = v => v > 0 ? "up" : v < 0 ? "down" : "dim";
+/* Capital runs from a few thousand to hundreds of millions in the same column. Full
+   euros would be unreadable at both ends, so the magnitude carries a suffix and the
+   column stays scannable. */
+const money = v => {
+  const n = Number(v) || 0, a = Math.abs(n);
+  if (a >= 1e9) return de(n / 1e9, 2) + " Mrd";
+  if (a >= 1e6) return de(n / 1e6, 2) + " Mio";
+  if (a >= 1e3) return de(n / 1e3, 1) + " k";
+  return de(n, 0);
+};
+
+async function api(path, options) {
+  const res = await fetch(path, options);
+  if (!res.ok) throw new Error((await res.text()).slice(0, 200));
+  return res.json();
+}
+const post = (path, body) => api(path, {method: "POST",
+  headers: {"content-type": "application/json"}, body: JSON.stringify(body || {})});
+
+const PILL = {momentum: "mom", value: "val", leveraged: "lev", maker: "mkr",
+  company: "cmp"};
+
+/* ------------------------------------------------------------------- state */
+const params = new URLSearchParams(location.search);
+let query = {
+  sort: params.get("sort") || "equity",
+  order: params.get("order") || "desc",
+  kind: params.get("kind") || "",
+  strategy: params.get("strategy") || "",
+  symbol: params.get("symbol") || "",
+  q: params.get("q") || "",
+  limit: Number(params.get("limit")) || 150,
+  offset: 0,
+};
+let DATA = null, selected = Number(params.get("agent")) || null, paused = false;
+let symbolsFilled = false;
+
+/* ------------------------------------------------------------------- tiles */
+function renderTiles(s) {
+  const host = $("#tiles");
+  host.innerHTML = "";
+  const tile = (key, value, sub, cls) => {
+    const box = el("div", "tile");
+    box.append(el("div", "k", key));
+    box.append(el("div", "v num " + (cls || ""), value));
+    if (sub) box.append(el("div", "s", sub));
+    host.append(box);
+  };
+  tile("Agenten", thin(s.count), s.matched + " im Filter");
+  tile("Kapital", money(s.equity) + " €", "davon " + money(s.cash) + " € Bargeld");
+  tile("Median", money(s.median) + " €", "Mittel " + money(s.mean) + " €");
+  tile("Gini", de(s.gini, 3),
+    "oberste 10 % halten " + de(s.top10 * 100, 0) + " %");
+  tile("Im Plus", thin(s.winners), s.losers + " im Minus",
+    s.winners >= s.losers ? "up" : "down");
+  tile("Aktien", thin(s.shares), "über alle Depots");
+  tile("Margin Calls", thin(s.margin_calls),
+    s.wipeouts + " Fonds ausgelöscht", s.margin_calls ? "down" : "dim");
+  tile("Chartisten", de(s.chartist_share * 100, 0) + " %",
+    "der adaptiven Trader");
+
+  const bars = $("#deciles");
+  bars.innerHTML = "";
+  const top = Math.max(...s.deciles, 0.0001);
+  s.deciles.forEach(share => {
+    const bar = el("i");
+    bar.style.height = Math.max(2, share / top * 100) + "%";
+    bar.title = de(share * 100, 1) + " % des Vermögens";
+    bars.append(bar);
+  });
+  $("#wealthnote").textContent = "Vermögensverteilung: jedes Zehntel der Agenten, "
+    + "vom ärmsten links. Das reichste Zehntel hält "
+    + de(s.top10 * 100, 0) + " % des Kapitals.";
+}
+
+/* ------------------------------------------------------------------ groups */
+function renderGroups(groups) {
+  const host = $("#groups");
+  host.innerHTML = "";
+  for (const group of groups) {
+    const card = el("div", "gcard" + (query.strategy === group.group ? " on" : ""));
+    const top = el("div", "top");
+    top.append(el("b", "", group.name));
+    top.append(el("span", "num", money(group.equity) + " €"));
+    card.append(top);
+    const meta = el("div", "hint");
+    meta.textContent = `${group.count} Agenten · ${de(group.share, 1)} % des Kapitals · `
+      + `Mittel ${money(group.mean)} € · ${group.wins} im Plus`;
+    card.append(meta);
+    const bar = el("div", "bar");
+    const fill = el("i");
+    fill.style.width = Math.min(100, group.share) + "%";
+    bar.append(fill);
+    card.append(bar);
+    card.append(el("div", "note", group.note));
+    card.title = "Filtert die Liste auf dieses Viertel. Noch einmal klicken hebt "
+      + "den Filter auf.";
+    card.onclick = () => {
+      query.strategy = query.strategy === group.group ? "" : group.group;
+      query.kind = "";
+      query.offset = 0;
+      refresh();
+    };
+    host.append(card);
+  }
+}
+
+/* ------------------------------------------------------------------- table */
+/* One definition per column, used both to build a row and to update it in place. The
+   table is repainted every 1.5 s: rebuilding six hundred rows each time would drop
+   the hover, the selection and the scroll position on every poll. */
+const COLUMNS = [
+  {key: "aid", label: "#", cls: "n",
+   title: "Agentennummer — dieselbe wie in der Stadtansicht",
+   text: t => "#" + t.aid},
+  {key: "kind", label: "Typ", cls: "", title: "Was der Agent ist",
+   text: t => t.kindLabel + (t.symbol ? " " + t.symbol : "")},
+  {key: "strategy", label: "Regel", cls: "",
+   title: "Welche Regel er gerade fährt. Adaptive Trader wechseln zwischen zwei",
+   node: t => {
+     const pill = el("span", "pill " + (PILL[t.strategy] || ""), t.strategyLabel);
+     return pill;
+   },
+   update: (node, t) => {
+     node.textContent = t.strategyLabel;
+     node.className = "pill " + (PILL[t.strategy] || "");
+   }},
+  {key: "equity", label: "Kapital", cls: "n",
+   title: "Bargeld plus Positionen, zu den Kursen dieses Schritts",
+   text: t => money(t.equity)},
+  {key: "cash", label: "Bargeld", cls: "n",
+   title: "Negativ heißt geliehen — nur Hebel-Fonds dürfen das",
+   text: t => money(t.cash), cell: t => t.cash < 0 ? "down" : ""},
+  {key: "shares", label: "Stücke", cls: "n",
+   title: "Summe über alle Instrumente. Negativ ist der Emittent oder ein Maker",
+   text: t => thin(t.shares)},
+  {key: "leverage", label: "Hebel", cls: "n",
+   title: "Position geteilt durch Eigenkapital",
+   text: t => t.leverage === null ? "–" : de(t.leverage, 2) + "×",
+   cell: t => t.leverage !== null && t.leverage > 2 ? "down" : ""},
+  {key: "pnl", label: "Ergebnis", cls: "n",
+   title: "Kapital heute gegen Kapital beim Start des Laufs",
+   text: t => money(t.pnl), cell: t => sign(t.pnl)},
+  {key: "pnlPct", label: "%", cls: "n", title: "Dasselbe als Rendite",
+   text: t => t.pnlPct === null ? "–" : pct(t.pnlPct, 1), cell: t => sign(t.pnlPct)},
+  {key: "liquidations", label: "Zwangs-verkäufe", cls: "n",
+   title: "Wie oft dieser Fonds liquidiert wurde",
+   text: t => t.liquidations ? thin(t.liquidations) : "–",
+   cell: t => t.liquidations ? "down" : "dim"},
+  {key: null, label: "letzte Order", cls: "",
+   title: "Nur wenn sie aus diesem oder dem letzten Schritt stammt",
+   text: t => !t.order ? "—"
+     : (t.order.open ? "" : "vor " + thin(DATA.step - t.order.step) + " Schr. ")
+       + (t.order.side > 0 ? "kauft " : "verkauft ")
+       + thin(t.order.qty) + " " + t.order.symbol + " @ " + de(t.order.price),
+   cell: t => !t.order ? "dim" : t.order.open
+     ? (t.order.side > 0 ? "up" : "down") : "dim"},
+];
+
+function renderHead() {
+  const head = $("#thead");
+  head.innerHTML = "";
+  const tr = el("tr");
+  for (const column of COLUMNS) {
+    const th = el("th", column.cls + (query.sort === column.key ? " sorted" : ""),
+      column.label + (query.sort === column.key
+        ? (query.order === "asc" ? " ▲" : " ▼") : ""));
+    th.title = column.key
+      ? column.title + " — Klick sortiert"
+      : column.title;
+    if (column.key) th.onclick = () => {
+      if (query.sort === column.key) query.order = query.order === "asc" ? "desc" : "asc";
+      else { query.sort = column.key; query.order = "desc"; }
+      query.offset = 0;
+      refresh();
+    };
+    tr.append(th);
+  }
+  head.append(tr);
+}
+
+let rows = new Map(), signature = "";
+
+function renderRows(traders) {
+  const body = $("#tbody");
+  const keys = traders.map(t => t.aid).join(",");
+  if (keys !== signature) {
+    body.innerHTML = "";
+    rows = new Map();
+    for (const trader of traders) {
+      const tr = el("tr");
+      tr.dataset.aid = trader.aid;
+      const cells = COLUMNS.map(column => {
+        const td = el("td", column.cls);
+        if (column.node) td.append(column.node(trader));
+        else td.textContent = column.text(trader);
+        const extra = column.cell ? column.cell(trader) : "";
+        td.className = (column.cls + " " + extra).trim();
+        return td;
+      });
+      cells.forEach(td => tr.append(td));
+      tr.onclick = () => { selected = trader.aid; loadDetail(); markSelection(); };
+      body.append(tr);
+      rows.set(trader.aid, {tr, cells});
+    }
+    signature = keys;
+  } else {
+    for (const trader of traders) {
+      const row = rows.get(trader.aid);
+      if (!row) continue;
+      COLUMNS.forEach((column, i) => {
+        const td = row.cells[i];
+        if (column.update) column.update(td.firstChild, trader);
+        else td.textContent = column.text(trader);
+        const extra = column.cell ? column.cell(trader) : "";
+        td.className = (column.cls + " " + extra).trim();
+      });
+    }
+  }
+  markSelection();
+}
+
+function markSelection() {
+  for (const [aid, row] of rows) row.tr.classList.toggle("sel", aid === selected);
+}
+
+/* ------------------------------------------------------------------ detail */
+async function loadDetail() {
+  const host = $("#detail");
+  if (selected === null) {
+    host.innerHTML = "";
+    host.append(el("p", "hint", "Eine Zeile anklicken."));
+    return;
+  }
+  let trader;
+  try { trader = await api("/api/traders/" + selected); }
+  catch (e) {
+    host.innerHTML = "";
+    host.append(el("p", "err", "Trader nicht geladen: " + e.message));
+    return;
+  }
+  host.innerHTML = "";
+
+  const head = el("div");
+  head.style.cssText = "display:flex;justify-content:space-between;align-items:baseline;gap:8px";
+  head.append(el("b", "", "#" + trader.aid + " " + trader.kindLabel));
+  head.append(el("span", "pill " + (PILL[trader.strategy] || ""), trader.strategyLabel));
+  host.append(head);
+  host.append(el("p", "hint", trader.note));
+
+  const facts = [
+    ["Kapital", money(trader.equity) + " €", ""],
+    ["Bargeld", money(trader.cash) + " €", trader.cash < 0 ? "down" : ""],
+    ["Position", money(trader.exposure) + " €", ""],
+    ["Hebel", trader.leverage === null ? "–" : de(trader.leverage, 2) + "×", ""],
+    ["Ergebnis", money(trader.pnl) + " €", sign(trader.pnl)],
+    ["Rendite", trader.pnlPct === null ? "–" : pct(trader.pnlPct, 2), sign(trader.pnlPct)],
+    ["Erfolgs-EMA", de(trader.perf * 100, 3) + " %", sign(trader.perf)],
+    ["Zwangsverkäufe", thin(trader.liquidations), trader.liquidations ? "down" : "dim"],
+  ];
+  const table = el("table");
+  for (const [label, value, cls] of facts) {
+    const tr = el("tr");
+    tr.append(el("td", "dim", label));
+    tr.append(el("td", "n num " + cls, value));
+    table.append(tr);
+  }
+  host.append(table);
+
+  if (trader.book.length) {
+    host.append(el("p", "hint", "Depot, zu den Kursen dieses Schritts"));
+    const book = el("table");
+    const head2 = el("tr");
+    ["Instrument", "Stück", "Kurs", "Wert"].forEach((t, i) =>
+      head2.append(el("th", i ? "n" : "", t)));
+    book.append(head2);
+    for (const line of trader.book) {
+      const tr = el("tr");
+      tr.append(el("td", "", line.symbol));
+      tr.append(el("td", "n num " + (line.qty < 0 ? "down" : ""), thin(line.qty)));
+      tr.append(el("td", "n num dim", de(line.price)));
+      tr.append(el("td", "n num", money(line.value)));
+      tr.title = `fairer Wert ${de(line.fair)} · `
+        + `${pct((line.price / line.fair - 1) * 100, 1)} Abweichung`;
+      book.append(tr);
+    }
+    host.append(book);
+  } else {
+    host.append(el("p", "hint", "Hält gerade keine Position."));
+  }
+
+  if (trader.order) {
+    host.append(el("p", "hint",
+      `Letzte Order in Schritt ${thin(trader.order.step)}: `
+      + `${trader.order.side > 0 ? "kauft" : "verkauft"} ${thin(trader.order.qty)} `
+      + `${trader.order.symbol} zu ${de(trader.order.price)}`
+      + (trader.order.open ? " — noch offen" : "")));
+  }
+
+  const link = el("a", "", "in der Stadt ansehen ›");
+  link.href = "/?agent=" + trader.aid;
+  link.title = "Öffnet die Stadtansicht mit genau diesem Agenten in der Einheitenkarte";
+  host.append(link);
+}
+
+/* ---------------------------------------------------------------- controls */
+/* No repaint guard is needed for these: the poll never rebuilds the search box or the
+   two pickers — they are static markup, and the pickers are filled exactly once. The
+   analysis page needs one because it rebuilds its sliders on every poll. */
+const search = $("#search");
+search.value = query.q;
+let typing = null;
+search.oninput = () => {
+  clearTimeout(typing);
+  typing = setTimeout(() => { query.q = search.value; query.offset = 0; refresh(); }, 250);
+};
+$("#symbol").onchange = e => { query.symbol = e.target.value; query.offset = 0; refresh(); };
+$("#limit").onchange = e => { query.limit = Number(e.target.value); query.offset = 0; refresh(); };
+$("#prev").onclick = () => { query.offset = Math.max(0, query.offset - query.limit); refresh(); };
+$("#next").onclick = () => {
+  if (DATA && query.offset + query.limit < DATA.summary.matched) {
+    query.offset += query.limit;
+    refresh();
+  }
+};
+
+async function drive(button, body, label) {
+  button.disabled = true;
+  try { await post("/api/control", body); }
+  catch (e) { $("#foot").textContent = `${label} fehlgeschlagen: ${e.message}`; }
+  finally { button.disabled = false; refresh(); }
+}
+$("#play").onclick = e =>
+  drive(e.currentTarget, {action: paused ? "play" : "pause"}, paused ? "Weiter" : "Pause");
+document.querySelectorAll(".spd").forEach(b => b.onclick = () =>
+  drive(b, {action: "speed", speed: b.dataset.speed}, "Tempo " + b.dataset.speed));
+
+/* -------------------------------------------------------------------- loop */
+function url() {
+  const p = new URLSearchParams();
+  p.set("sort", query.sort);
+  p.set("order", query.order);
+  p.set("limit", String(query.limit));
+  p.set("offset", String(query.offset));
+  if (query.kind) p.set("kind", query.kind);
+  if (query.strategy) p.set("strategy", query.strategy);
+  if (query.symbol) p.set("symbol", query.symbol);
+  if (query.q) p.set("q", query.q);
+  return "/api/traders?" + p.toString();
+}
+
+async function refresh() {
+  try {
+    const [state, data] = await Promise.all([api("/api/state"), api(url())]);
+    DATA = data;
+
+    $("#step").textContent = thin(data.step);
+    $("#day").textContent = data.day;
+    paused = !state.running;
+    $("#play").textContent = paused ? "Weiter" : "Pause";
+    document.querySelectorAll(".spd").forEach(b =>
+      b.classList.toggle("on", b.dataset.speed === state.speed));
+
+    $("#warming").style.display = state.warming && !state.failure ? "" : "none";
+    if (state.warming) {
+      $("#warmpct").textContent = Math.round(state.warmProgress * 100);
+      $("#warmbar").style.width = (state.warmProgress * 100) + "%";
+    }
+    $("#broke").style.display = state.failure ? "" : "none";
+    if (state.failure) $("#brokewhy").textContent = state.failure;
+
+    if (!symbolsFilled) {
+      const picker = $("#symbol");
+      for (const symbol of data.symbols) {
+        const option = el("option", "", symbol);
+        option.value = symbol;
+        picker.append(option);
+      }
+      picker.value = query.symbol;
+      $("#limit").value = String(query.limit);
+      symbolsFilled = true;
+    }
+
+    renderTiles(data.summary);
+    renderGroups(data.groups);
+    renderHead();
+    renderRows(data.traders);
+
+    const from = data.summary.matched ? data.offset + 1 : 0;
+    $("#page").textContent = `${from}–${data.offset + data.summary.shown} / `
+      + `${data.summary.matched}`;
+    $("#prev").disabled = data.offset <= 0;
+    $("#next").disabled = data.offset + data.limit >= data.summary.matched;
+
+    const kindLabel = (data.kinds.find(k => k.key === query.kind) || {}).label;
+    const filters = [
+      query.kind && "Typ " + (kindLabel || query.kind),
+      query.strategy && "Viertel " + query.strategy,
+      query.symbol && "Instrument " + query.symbol,
+      query.q && "Suche " + query.q,
+    ].filter(Boolean);
+    $("#tablenote").textContent =
+      (filters.length ? "Gefiltert: " + filters.join(" · ") + ". " : "")
+      + "Sortiert nach " + query.sort + " " + (query.order === "asc" ? "aufsteigend" : "absteigend")
+      + ". Sortierung und Filter laufen im Backend — bei 600 Zeilen mit einer Position "
+      + "je Instrument ist die ganze Liste eine Nutzlast, die niemand braucht, um den "
+      + "größten Fonds zu finden.";
+
+    $("#foot").textContent = `${data.summary.count} Agenten · `
+      + `${money(data.summary.equity)} € Kapital · Gini ${de(data.summary.gini, 3)} · `
+      + `${data.summary.margin_calls} Margin Calls · Tag ${data.day}`;
+    $("#stale").style.display = "none";
+  } catch (e) {
+    $("#foot").textContent = "Backend nicht erreichbar: " + e.message;
+    $("#stale").style.display = "";
+    $("#stalewhy").textContent = e.message;
+  }
+}
+
+refresh().then(loadDetail);
+setInterval(refresh, 1500);
+</script>
+</body>
+</html>

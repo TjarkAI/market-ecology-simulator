@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+title: Market Ecology Simulator
+message: >-
+  An agent-based model of an equity market, validated against the
+  stylized facts of real return series. If you use it, please cite it.
+type: software
+authors:
+  - name: TjarkAI
+repository-code: https://github.com/TjarkAI/market-ecology-simulator
+abstract: >-
+  Several hundred heterogeneous agents trade five sector instruments in a
+  continuous double auction. No equation for the price exists anywhere in
+  the model. The project asks whether such a population reproduces the
+  statistical properties real return series share — fat tails, clustered
+  volatility, a tail index between 2 and 6, near-zero return
+  autocorrelation — when none of them are built in. Four of six criteria
+  hold across every one of 25 measurements; two fail, and the reason they
+  fail is reported rather than tuned away.
+keywords:
+  - agent-based model
+  - market microstructure
+  - stylized facts
+  - continuous double auction
+  - computational finance
+license: MIT

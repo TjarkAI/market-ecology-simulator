@@ -54,6 +54,10 @@ def main() -> int:
     ap.add_argument("--base", default="http://127.0.0.1:8000")
     ap.add_argument("--timeout", type=float, default=300.0, help="seconds to wait for the warm-up")
     ap.add_argument("--settle", type=float, default=6.0, help="seconds of live frames before each shot")
+    # The town is WebGL. Playwright's own headless Chromium draws it in software, which
+    # works; a local Chrome draws it on the GPU and is faster. Either is fine.
+    ap.add_argument("--chromium", default=None,
+                    help="path to a Chromium/Chrome executable instead of Playwright's own")
     args = ap.parse_args()
 
     try:
@@ -66,21 +70,23 @@ def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
 
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        browser = p.chromium.launch(executable_path=args.chromium) if args.chromium \
+            else p.chromium.launch()
         page = browser.new_page(viewport={"width": 1600, "height": 1000}, device_scale_factor=2)
 
         for path, name in VIEWS:
             page.goto(args.base + path, wait_until="networkidle")
             time.sleep(args.settle)
             page.keyboard.press("Escape")  # the town opens its explanation on a first visit
-            time.sleep(1.5)
+            # Give the 3D town a few frames to grow its buildings to their heights.
+            time.sleep(3.0 if name == "town" else 1.5)
             page.screenshot(path=str(OUT / f"{name}.png"))
             print(f"{name:<10} {(OUT / f'{name}.png').stat().st_size // 1024:>5} KB")
 
         # The validation panel is the scientific claim and sits below the fold.
         page.goto(args.base + "/sectors", wait_until="networkidle")
         time.sleep(args.settle)
-        page.locator("h2", has_text="Validierung").first.scroll_into_view_if_needed()
+        page.locator("h2", has_text="Validation").first.scroll_into_view_if_needed()
         time.sleep(1.5)
         page.screenshot(path=str(OUT / "validation.png"))
         print(f"{'validation':<10} {(OUT / 'validation.png').stat().st_size // 1024:>5} KB")

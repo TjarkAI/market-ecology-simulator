@@ -67,8 +67,8 @@ def test_stocks_in_a_sector_are_alike_but_not_identical():
     instruments = build(100.0, stocks_per_sector=3, rng=np.random.default_rng(2))
     tech = [i for i in instruments if i.sector == "TECH"]
     betas = [i.beta for i in tech]
-    assert len(set(betas)) == len(betas), "Aktien sind exakte Kopien"
-    assert max(betas) / min(betas) < 2.0, "Aktien eines Sektors zu unterschiedlich"
+    assert len(set(betas)) == len(betas), "the stocks are exact copies"
+    assert max(betas) / min(betas) < 2.0, "the stocks of one sector differ too much"
 
 
 # ------------------------------------------------------------ the shared shock
@@ -76,7 +76,7 @@ def test_one_shock_per_sector_shared_by_its_members():
     sim = Simulation(small(stocks_per_sector=3))
     sim.step()
     shocks = sim.factors.sector_shocks
-    assert set(shocks) == set(sim.sectors), "ein Schock je Sektor erwartet"
+    assert set(shocks) == set(sim.sectors), "one shock per sector expected"
     # Every member of a sector is hit by that sector's number, so there are five
     # distinct values for fifteen instruments.
     assert len(set(shocks.values())) == 5
@@ -87,11 +87,11 @@ def test_a_sector_headline_hits_every_stock_in_it():
     for _ in range(200):
         sim.step()
     before = {s: m.instrument.fundamental for s, m in sim.markets.items()}
-    sim.inject_news("Regulierer eröffnet Verfahren", -0.25, symbol="FINL")
+    sim.inject_news("Regulator opens proceedings", -0.25, symbol="FINL")
     after = {s: m.instrument.fundamental for s, m in sim.markets.items()}
 
     for symbol in sim.sectors["FINL"]:
-        assert after[symbol] < before[symbol] * 0.85, f"{symbol} nicht getroffen"
+        assert after[symbol] < before[symbol] * 0.85, f"{symbol} not hit"
     for symbol in sim.symbols:
         if sim.sector_of[symbol] != "FINL":
             assert after[symbol] == before[symbol]
@@ -103,13 +103,13 @@ def test_a_headline_can_name_one_stock():
         sim.step()
     target = sim.sectors["TECH"][0]
     before = {s: m.instrument.fundamental for s, m in sim.markets.items()}
-    sim.inject_news("Gewinnwarnung veröffentlicht", -0.30, symbol=target)
+    sim.inject_news("Profit warning issued", -0.30, symbol=target)
     after = {s: m.instrument.fundamental for s, m in sim.markets.items()}
 
     assert after[target] < before[target] * 0.8
     for symbol in sim.symbols:
         if symbol != target:
-            assert after[symbol] == before[symbol], f"{symbol} sollte unberührt sein"
+            assert after[symbol] == before[symbol], f"{symbol} should be untouched"
 
 
 # --------------------------------------------------- the measurable consequence
@@ -129,7 +129,7 @@ def test_stocks_in_a_sector_correlate_more_than_across_sectors(run):
     result = correlation_within_and_across(daily_fair(run), run.sector_of)
     assert result["pairs_within"] > 0 and result["pairs_across"] > 0
     assert result["within"] > result["across"], (
-        f"innerhalb {result['within']} nicht über sektorübergreifend {result['across']}"
+        f"within {result['within']} not above across sectors {result['across']}"
     )
 
 
@@ -153,7 +153,7 @@ def test_the_factor_structure_is_attenuated_in_prices(run):
     assert fair["within"] > fair["across"]
     fair_gap = fair["within"] - fair["across"]
     price_gap = price["within"] - price["across"]
-    assert price_gap < fair_gap, f"Kurs-Lücke {price_gap} nicht kleiner als {fair_gap}"
+    assert price_gap < fair_gap, f"price gap {price_gap} not smaller than {fair_gap}"
 
 
 def test_removing_the_shared_shock_shrinks_the_effect():
@@ -190,5 +190,5 @@ def test_prices_and_bars_stay_sane_with_stocks(run):
 
     for market in run.markets.values():
         assert market.price > 0 and math.isfinite(market.price)
-        assert market.bars, f"{market.symbol} ohne Tagesbars"
+        assert market.bars, f"{market.symbol} without daily bars"
         assert all(math.isfinite(r) for r in market.daily_returns)

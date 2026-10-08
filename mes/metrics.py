@@ -148,31 +148,31 @@ def check_stylized_facts(m: dict) -> list[dict]:
     checks = [
         {
             "name": "Fat Tails",
-            "detail": "Überschuss-Kurtosis > 1 (Normalverteilung = 0)",
+            "detail": "excess kurtosis > 1 (normal distribution = 0)",
             "value": m["excess_kurtosis"],
             "passed": m["excess_kurtosis"] > 1.0,
         },
         {
-            "name": "Keine Rendite-Autokorrelation",
-            "detail": "|ACF(1)| der Renditen < 0.1 — Markt nicht trivial prognostizierbar",
+            "name": "No Return Autocorrelation",
+            "detail": "|ACF(1)| of returns < 0.1: the market is not trivially predictable",
             "value": m["acf_returns"][0],
             "passed": abs(m["acf_returns"][0]) < 0.1,
         },
         {
             "name": "Volatility Clustering",
-            "detail": "mittlere ACF der |Renditen| (Lag 1–10) > 0.05",
+            "detail": "mean ACF of |returns| (lags 1–10) > 0.05",
             "value": m["acf_abs_mean_1_10"],
             "passed": m["acf_abs_mean_1_10"] > 0.05,
         },
         {
-            "name": "Nicht-Normalität",
-            "detail": "Jarque-Bera p < 0.05 — Normalverteilung verworfen",
+            "name": "Non-Normality",
+            "detail": "Jarque-Bera p < 0.05: normal distribution rejected",
             "value": m["jarque_bera_p"],
             "passed": m["jarque_bera_p"] < 0.05,
         },
         {
-            "name": "Tail-Index im Marktbereich",
-            "detail": "Hill-Schätzer zwischen 2 und 6",
+            "name": "Tail Index in Market Range",
+            "detail": "Hill estimator between 2 and 6",
             "value": m["hill_tail_index"],
             "passed": 2.0 < m["hill_tail_index"] < 6.0 if np.isfinite(m["hill_tail_index"]) else False,
         },
@@ -180,8 +180,8 @@ def check_stylized_facts(m: dict) -> list[dict]:
     if "volume_volatility_corr" in m:
         checks.append(
             {
-                "name": "Volumen-Volatilität-Kopplung",
-                "detail": "Korrelation von Volumen und |Rendite| > 0.1",
+                "name": "Volume-Volatility Coupling",
+                "detail": "correlation of volume and |return| > 0.1",
                 "value": m["volume_volatility_corr"],
                 "passed": m["volume_volatility_corr"] > 0.1,
             }

@@ -40,7 +40,7 @@ def test_every_sector_has_its_own_book_and_price(sim):
 
 def test_prices_differ_between_sectors(sim):
     prices = [m.price for m in sim.markets.values()]
-    assert len(set(round(p, 4) for p in prices)) > 1, "alle Sektoren identisch"
+    assert len(set(round(p, 4) for p in prices)) > 1, "all sectors identical"
 
 
 def test_a_single_symbol_gives_back_the_one_asset_market():
@@ -76,7 +76,7 @@ def test_sector_correlation_is_positive_but_not_perfect(sim):
 def test_agents_hold_portfolios_not_single_positions(sim):
     holders = [a for a in sim.agents if a.kind in ("adaptive", "noise", "passive", "leveraged")]
     spread = [a for a in holders if sum(1 for q in a.positions.values() if q != 0) > 1]
-    assert spread, "kein Agent hält mehr als ein Instrument"
+    assert spread, "no agent holds more than one instrument"
 
 
 def test_makers_and_issuers_stay_in_their_own_market(sim):
@@ -85,13 +85,13 @@ def test_makers_and_issuers_stay_in_their_own_market(sim):
             continue
         assert agent.symbol is not None
         held = {s for s, q in agent.positions.items() if q != 0}
-        assert held <= {agent.symbol}, f"{agent.kind} #{agent.aid} handelt fremde Märkte"
+        assert held <= {agent.symbol}, f"{agent.kind} #{agent.aid} trades markets that are not its own"
 
 
 def test_a_sector_shock_hits_that_sector_hardest(sim):
     """A headline naming one sector moves its fair value and not the others'."""
     before = {s: m.instrument.fundamental for s, m in sim.markets.items()}
-    sim.inject_news("Regulierer eröffnet Verfahren", -0.25, symbol="FINL")
+    sim.inject_news("Regulator opens proceedings", -0.25, symbol="FINL")
     after = {s: m.instrument.fundamental for s, m in sim.markets.items()}
     assert after["FINL"] < before["FINL"] * 0.85
     assert all(after[s] == before[s] for s in after if s != "FINL")
@@ -99,7 +99,7 @@ def test_a_sector_shock_hits_that_sector_hardest(sim):
 
 def test_market_wide_news_scales_with_beta(sim):
     before = {s: m.instrument.fundamental for s, m in sim.markets.items()}
-    sim.inject_news("Geopolitische Spannungen eskalieren", -0.10)
+    sim.inject_news("Geopolitical tensions escalate", -0.10)
     drop = {s: 1 - m.instrument.fundamental / before[s] for s, m in sim.markets.items()}
     assert drop["TECH"] > drop["HLTH"]  # beta 1.4 against 0.7
 
@@ -130,7 +130,7 @@ def test_forced_selling_spreads_across_sectors():
     # the one reading under which a per-instrument liquidation would also pass.
     shrunk = [s for s in sim.symbols if fund.position(s) < before[s]]
     assert len(shrunk) == len(sim.symbols), \
-        f"nur {len(shrunk)} von {len(sim.symbols)} Sektoren verkauft: {fund.positions}"
+        f"only {len(shrunk)} of {len(sim.symbols)} sectors sold: {fund.positions}"
     assert sim.margin_calls > 0
 
 
@@ -153,5 +153,5 @@ def test_correlation_rises_when_leverage_is_present():
     # mechanism working in reverse — the one outcome it exists to catch. Measured:
     # 0.38 with, 0.07 without, over these two seeds.
     assert np.mean(with_leverage) > np.mean(without), (
-        f"mit Hebel {np.mean(with_leverage):.3f}, ohne {np.mean(without):.3f}"
+        f"with leverage {np.mean(with_leverage):.3f}, without {np.mean(without):.3f}"
     )

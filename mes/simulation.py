@@ -117,6 +117,9 @@ class Simulation:
         self.activity = cfg.activation_rate
         self.step_orders = 0
         self.step_orders_by_group: dict[str, int] = {}
+        # Of those, how many were buy orders. The town colours the crates its
+        # figures carry from this, so it has to be the side the orders really had.
+        self.step_buys_by_group: dict[str, int] = {}
         self.last_orders: dict[int, dict] = {}
 
         # The aggregate view. Built after the markets exist and before the first
@@ -250,6 +253,7 @@ class Simulation:
         self.step_margin_calls = 0
         self.step_orders = 0
         self.step_orders_by_group = {}
+        self.step_buys_by_group = {}
 
         # Computed once. It used to be computed here and again twenty lines down
         # from the identical expression, which reads as though the second one had a
@@ -380,6 +384,8 @@ class Simulation:
         market.step_orders += 1
         group = self.group_of(agent)
         self.step_orders_by_group[group] = self.step_orders_by_group.get(group, 0) + 1
+        if side > 0:
+            self.step_buys_by_group[group] = self.step_buys_by_group.get(group, 0) + 1
         self.last_orders[agent.aid] = {
             "ts": self.t, "symbol": symbol, "side": side, "qty": qty,
             "price": round(price if price is not None else reference, 2),
@@ -432,7 +438,7 @@ class Simulation:
                 self.wipeouts += 1
                 self.step_margin_calls += 1
                 self._liquidate(agent, 1.0)
-                self._log(f"Fonds #{agent.aid} ausgelöscht", "wipeout", 1.0)
+                self._log(f"Fund #{agent.aid} wiped out", "wipeout", 1.0)
                 continue
 
             if equity / exposure < cfg.maintenance_margin:
@@ -460,7 +466,7 @@ class Simulation:
                 self._settle(market, trade)
                 sold += trade.qty
         if sold:
-            self._log(f"Margin Call: Fonds #{agent.aid} liquidiert {sold} Stück", "margin_call", 0.8)
+            self._log(f"Margin call: fund #{agent.aid} liquidates {sold:,} shares", "margin_call", 0.8)
 
     # ------------------------------------------------------------ learning
     def _score_strategies(self) -> None:
@@ -518,7 +524,7 @@ class Simulation:
 
         self.switched_last_review = switched
         if switched > len(self.agents) * 0.08:
-            self._log(f"Strategiewechsel-Welle: {switched} Trader drehen", "switch_wave", 0.6)
+            self._log(f"Strategy switch wave: {switched:,} traders turn", "switch_wave", 0.6)
 
     # ----------------------------------------------------------- scenarios
     def load_scenario(self, scenario) -> None:
@@ -530,7 +536,7 @@ class Simulation:
             [(offset * day, action) for offset, action in scenario.timeline],
             key=scenario.key,
         )
-        self._log(f"Szenario geladen: {scenario.name}", "scenario", 0.5)
+        self._log(f"Scenario loaded: {scenario.name}", "scenario", 0.5)
 
     def install_script(self, entries, key: str | None = None) -> None:
         """Queue a timeline of scheduled events, keeping a copy of it.
@@ -556,12 +562,12 @@ class Simulation:
             elif "params" in action:
                 applied = self.cfg.update_live(action["params"])
                 if applied:
-                    self._log("Rahmenbedingungen geändert: " + ", ".join(applied), "scenario", 0.4)
+                    self._log("Conditions changed: " + ", ".join(applied), "scenario", 0.4)
             elif "inflation" in action:
                 # Push the macro state, not the rate. What the bank then does is
                 # its own decision, and the overshoot is the interesting part.
                 self.bank.inflation = float(action["inflation"])
-                self._log(f"Inflation springt auf {self.bank.inflation * 100:.1f} %",
+                self._log(f"Inflation jumps to {self.bank.inflation * 100:.1f}%",
                           "scenario", 0.6)
             elif "note" in action:
                 self._log(action["note"], "scenario", 0.3)

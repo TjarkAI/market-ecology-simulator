@@ -138,8 +138,8 @@ def test_depth_counter_matches_a_full_recount():
 
         for side in (BUY, SELL):
             assert book.resting_qty(side) == _true_resting(book, side), (
-                f"Schritt {step}, Seite {side}: Zaehler {book.resting_qty(side)} "
-                f"gegen Nachzaehlung {_true_resting(book, side)}"
+                f"step {step}, side {side}: counter {book.resting_qty(side)} "
+                f"against recount {_true_resting(book, side)}"
             )
 
 
@@ -150,5 +150,5 @@ def test_heaps_do_not_grow_without_bound():
     for step in range(1, 3000):
         book.submit(step, 1, BUY, 10, 99.0, lifetime=10_000)
         book.cancel_agent(1)
-    assert len(book._bids) < 500, f"Heap wuchs auf {len(book._bids)} Eintraege"
+    assert len(book._bids) < 500, f"heap grew to {len(book._bids)} entries"
     assert book.resting_qty(BUY) == 0

@@ -32,18 +32,18 @@ OUT = Path(__file__).resolve().parent.parent / "runs"
 # Each entry switches off exactly one mechanism. Anything that changes the
 # result identifies a cause; anything that does not, rules one out.
 ABLATIONS: dict[str, dict] = {
-    "baseline":            {},
-    "ohne Market Maker":   {"n_makers": 0},
-    "ohne MM-Bestandsscheu": {"mm_skew": 0.0},
-    "ohne Emittent":       {"n_companies": 0},
-    "ohne Value-Preisanker": {"value_price_pull": 0.0},
-    "ohne Value-Sizing":   {"fundamental_aggression": 0.0},
-    "ohne Trendfolge":     {"chartist_aggression": 0.0},
-    "ohne Herdentrieb":    {"herd_strength": 0.0},
-    "ohne Strategiewechsel": {"switch_rate": 0.0},
-    "ohne ETF-Zufluss":    {"passive_inflow": 0.0},
-    "ohne Hebel":          {"n_leveraged": 0},
-    "ohne Rausch-Händler": {"n_noise": 0},
+    "baseline":              {},
+    "no market makers":      {"n_makers": 0},
+    "no MM inventory skew":  {"mm_skew": 0.0},
+    "no issuer":             {"n_companies": 0},
+    "no value price anchor": {"value_price_pull": 0.0},
+    "no value sizing":       {"fundamental_aggression": 0.0},
+    "no trend following":    {"chartist_aggression": 0.0},
+    "no herding":            {"herd_strength": 0.0},
+    "no strategy switching": {"switch_rate": 0.0},
+    "no ETF inflow":         {"passive_inflow": 0.0},
+    "no leverage":           {"n_leveraged": 0},
+    "no noise traders":      {"n_noise": 0},
 }
 
 FIELDS = ["variant", "seed", "days", "acf1", "acf2", "acf3", "kurtosis",
@@ -60,7 +60,7 @@ def measure(cfg: Config, steps: int) -> dict:
     volumes = np.array([bar["v"] for bar in sim.bars[WARMUP_DAYS + 1:]])
     report = analyse(returns, volumes)
     if report.get("insufficient"):
-        raise SystemExit(f"Zu wenige Tage ({len(returns)}) — mehr Schritte nötig.")
+        raise SystemExit(f"Too few days ({len(returns)}). More steps needed.")
 
     warm = WARMUP_DAYS * cfg.steps_per_day
     share = np.array(sim.chartist_share_hist[warm:])
@@ -85,8 +85,8 @@ def measure(cfg: Config, steps: int) -> dict:
 
 
 def header() -> None:
-    print(f"{'Variante':<24}{'ACF1':>8}{'ACF2':>7}{'Kurt':>7}{'Clu':>7}"
-          f"{'Hill':>7}{'VolK':>7}{'Vola':>7}{'Chart':>13}{'Abw':>7}{'MC':>5}{'ok':>5}")
+    print(f"{'Variant':<24}{'ACF1':>8}{'ACF2':>7}{'Kurt':>7}{'Clu':>7}"
+          f"{'Hill':>7}{'VolC':>7}{'Vol':>7}{'Chart':>13}{'Gap':>7}{'MC':>5}{'ok':>5}")
     print("-" * 105)
 
 
@@ -127,7 +127,7 @@ def run_ablation(steps: int, seeds: list[int]) -> list[dict]:
 
 def run_param(name: str, values: list[float], steps: int, seeds: list[int]) -> list[dict]:
     if name not in Config().to_dict():
-        raise SystemExit(f"Unbekannter Parameter: {name}")
+        raise SystemExit(f"Unknown parameter: {name}")
     caster = type(getattr(Config(), name))
     header()
     rows = []
@@ -149,25 +149,25 @@ def main() -> int:
     ap.add_argument("mode", choices=["ablate", "param"])
     ap.add_argument("--steps", type=int, default=80_000)
     ap.add_argument("--seeds", type=int, default=1)
-    ap.add_argument("--name", help="Parametername für den param-Modus")
-    ap.add_argument("--values", help="Kommagetrennte Werte für den param-Modus")
+    ap.add_argument("--name", help="parameter name for param mode")
+    ap.add_argument("--values", help="comma-separated values for param mode")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
     seeds = [1000 + i * 137 for i in range(args.seeds)]
-    print(f"{args.steps} Schritte, {len(seeds)} Seed(s)\n")
+    print(f"{args.steps:,} steps, {len(seeds)} seed(s)\n")
 
     if args.mode == "ablate":
         rows = run_ablation(args.steps, seeds)
         name = args.out or "ablation.csv"
     else:
         if not args.name or not args.values:
-            raise SystemExit("param-Modus braucht --name und --values")
+            raise SystemExit("param mode needs --name and --values")
         values = [float(v) for v in args.values.split(",")]
         rows = run_param(args.name, values, args.steps, seeds)
         name = args.out or f"sweep_{args.name}.csv"
 
-    print(f"\nGeschrieben: {write_csv(rows, name)}")
+    print(f"\nWritten: {write_csv(rows, name)}")
     return 0
 
 

@@ -1,62 +1,75 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Market Ecology Simulator · Indizes</title>
+<title>Market Ecology Simulator · Indices</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+/* Look A, "Diorama": the light palette of the town page. The token names are the
+   ones this page always used; only the values changed. */
 :root{
-  --bg:#0d0f12; --panel:#14171c; --line:#22272f; --line2:#2c333d;
-  --ink:#ece6e0; --dim:#8d867d; --dimmer:#5d5952;
-  --up:#4fb8a0; --down:#d9584a; --warn:#e8814c; --gold:#c9a227; --blue:#7e9ee6;
+  --bg:#e9eef5; --panel:#ffffff; --sunken:#f1f4f9; --line:#e2e8f0; --line2:#d3dbe6;
+  --ink:#172033; --dim:#65728a; --dimmer:#94a0b4;
+  --accent:#2f5bea; --accent-soft:#e8eeff;
+  --up:#1c9a52; --up-soft:#e3f5ea; --down:#d43f3f; --down-soft:#fde8e8;
+  --warn:#b7791f; --warn-soft:#fdf3dc; --gold:#b7791f; --blue:#2f5bea;
+  --shadow:0 8px 28px rgba(28,48,92,.10);
+  --r-card:14px; --r-ctl:8px;
+  --sans:'IBM Plex Sans',system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);
-  font:13px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-.num,input,td.n,th.n{font-variant-numeric:tabular-nums;
-  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-a{color:var(--blue)}
+body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.45 var(--sans)}
+.num,input,td.n,th.n{font-variant-numeric:tabular-nums;font-family:var(--mono)}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.95em;background:var(--sunken);border-radius:4px;padding:0 3px}
 header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
-  padding:12px 18px;border-bottom:1px solid var(--line);background:#101318}
+  padding:12px 18px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.92)}
 h1{font-size:14px;margin:0;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
 .sub{color:var(--dim);font-size:11px}
 .grow{flex:1}
 nav{display:flex;gap:2px}
 nav a{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;text-decoration:none;
-  color:var(--dim);border:1px solid transparent;border-radius:3px;padding:3px 9px}
+  color:var(--dim);border:1px solid transparent;border-radius:var(--r-ctl);padding:3px 9px}
 nav a:hover{color:var(--ink);border-color:var(--line2)}
-nav a.here{color:var(--warn);border-color:rgba(232,129,76,.5)}
-button{background:#1b2027;color:var(--ink);border:1px solid var(--line2);
-  border-radius:3px;padding:4px 10px;font-size:12px;cursor:pointer}
-button:hover{border-color:#3c4652;background:#212832}
-button.on{border-color:var(--warn);color:var(--warn)}
+nav a.here{color:var(--accent);border-color:rgba(47,91,234,.35);background:var(--accent-soft)}
+button{background:#fff;color:var(--ink);border:1px solid var(--line2);font-family:var(--sans);
+  border-radius:var(--r-ctl);padding:4px 10px;font-size:12px;cursor:pointer}
+button:hover{border-color:#c3ccda;background:var(--sunken)}
+button.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 button:disabled{opacity:.4;cursor:default}
 main{display:grid;grid-template-columns:1fr;gap:14px;padding:14px;align-items:start}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:4px}
-.panel>h2{margin:0;padding:8px 12px;font-size:10.5px;letter-spacing:.16em;
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-card);
+  box-shadow:var(--shadow)}
+.panel>h2{margin:0;padding:9px 14px;font-size:10.5px;letter-spacing:.16em;
   text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--line);
   font-weight:600;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .panel>h2 .grow{flex:1}
-.panel>.body{padding:12px}
-.hint{color:var(--dimmer);font-size:11px;line-height:1.55}
-.warnbox{border:1px solid rgba(232,129,76,.4);background:rgba(232,129,76,.07);
-  border-radius:3px;padding:8px 10px;color:var(--warn);font-size:11.5px;line-height:1.5}
-.bar{height:4px;background:#1e242c;border-radius:2px;overflow:hidden;margin-top:3px}
-.bar i{display:block;height:100%;background:var(--warn)}
+.panel>.body{padding:12px 14px}
+.hint{color:var(--dim);font-size:11px;line-height:1.55}
+.warnbox{border:1px solid rgba(183,121,31,.35);background:var(--warn-soft);
+  border-radius:var(--r-ctl);padding:8px 10px;color:var(--warn);font-size:11.5px;line-height:1.5}
+.warnbox.bad{border-color:rgba(212,63,63,.35);background:var(--down-soft);color:var(--down)}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:3px}
+.bar i{display:block;height:100%;background:var(--accent)}
+.warnbox .bar i{background:var(--warn)}
 .err{color:var(--down);font-size:11.5px}
 .up{color:var(--up)} .down{color:var(--down)} .dim{color:var(--dim)}
 /* the chart */
 #chartwrap{position:relative}
 #chart{display:block;width:100%;height:340px;cursor:crosshair}
 #tip{position:absolute;pointer-events:none;display:none;z-index:3;
-  background:rgba(13,15,18,.94);border:1px solid var(--line2);border-radius:3px;
-  padding:6px 8px;font-size:11.5px;min-width:150px}
+  background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:var(--r-ctl);
+  box-shadow:var(--shadow);padding:6px 8px;font-size:11.5px;min-width:150px}
 #tip .r{display:flex;justify-content:space-between;gap:12px;padding:1px 0}
 #tip .sw{width:7px;height:7px;border-radius:1px;display:inline-block;margin-right:5px}
 .legend{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
 .chip{display:flex;align-items:center;gap:6px;border:1px solid var(--line2);
-  border-radius:12px;padding:2px 10px 2px 7px;font-size:11.5px;cursor:pointer;
-  background:#121519;user-select:none}
+  border-radius:var(--r-ctl);padding:2px 10px 2px 7px;font-size:11.5px;cursor:pointer;
+  background:#fff;user-select:none}
 .chip .sw{width:8px;height:8px;border-radius:2px}
 .chip.off{opacity:.35}
 .chip.focus{border-color:var(--ink)}
@@ -66,73 +79,72 @@ table{width:100%;border-collapse:collapse;font-size:12px}
 th{text-align:left;color:var(--dim);font-weight:500;font-size:10.5px;
   letter-spacing:.1em;text-transform:uppercase;padding:3px 6px 3px 0;white-space:nowrap}
 th.n{text-align:right}
-td{padding:3px 6px 3px 0;border-top:1px solid #1b1f25}
+td{padding:3px 6px 3px 0;border-top:1px solid var(--line)}
 td.n{text-align:right}
 tr.row{cursor:pointer}
-tr.row:hover td{background:#181c22}
-tr.row.focus td{background:#1a2128}
+tr.row:hover td{background:var(--sunken)}
+tr.row.focus td{background:var(--accent-soft)}
 .tag{display:inline-flex;align-items:center;gap:5px}
 .tag .sw{width:8px;height:8px;border-radius:2px}
 .mini{display:block;width:70px;height:18px}
-footer{padding:10px 18px;border-top:1px solid var(--line);color:var(--dimmer);font-size:11px}
+footer{padding:10px 18px;border-top:1px solid var(--line);color:var(--dim);font-size:11px}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Market Ecology · Indizes</h1>
+  <h1>Market Ecology · Indices</h1>
   <nav>
-    <a href="/" title="Die isometrische Stadt: dieselbe Simulation als Karte">Stadt</a>
-    <a href="/sectors" title="Sektoren, Korrelation, Validierung, A/B, Aufzeichnungen">Analyse</a>
-    <a href="/indices" class="here">Indizes</a>
-    <a href="/traders" title="Alle Trader: Kapital, Positionen, Hebel, Ergebnis">Trader</a>
+    <a href="/" title="The isometric town: the same simulation as a map">Town</a>
+    <a href="/sectors" title="Sectors, correlation, validation, A/B, recordings">Analysis</a>
+    <a href="/indices" class="here">Indices</a>
+    <a href="/traders" title="All traders: capital, positions, leverage, result">Traders</a>
   </nav>
   <span class="grow"></span>
-  <span class="sub">Schritt <b id="step" class="num">–</b></span>
-  <span class="sub">Tag <b id="day" class="num">–</b></span>
-  <button id="play" title="Denselben Markt anhalten, den die Stadtansicht zeigt">Pause</button>
-  <button data-speed="1x" class="spd" title="Echtzeit">1×</button>
-  <button data-speed="4x" class="spd" title="Vierfach">4×</button>
-  <button data-speed="16x" class="spd" title="Sechzehnfach">16×</button>
+  <span class="sub">Step <b id="step" class="num">–</b></span>
+  <span class="sub">Day <b id="day" class="num">–</b></span>
+  <button id="play" title="Pause the same market the town view shows">Pause</button>
+  <button data-speed="1x" class="spd" title="Real time">1×</button>
+  <button data-speed="4x" class="spd" title="Four times as fast">4×</button>
+  <button data-speed="16x" class="spd" title="Sixteen times as fast">16×</button>
 </header>
 
 <p class="hint" style="margin:0;padding:8px 18px;border-bottom:1px solid var(--line)">
-  Ein Index ist hier eine <b>Messung</b>, kein zusätzlicher Markt: jeder Kurs entsteht
-  weiter in seinem eigenen Orderbuch. Gewichtet wird mit den Anteilen, die der
-  <a href="/traders?kind=passive">ETF</a> selbst kauft — Fundamentalwert geteilt durch
-  die Summe aller Fundamentalwerte — und verkettet, Schritt für Schritt.
-  Details unten.</p>
+  An index here is a <b>measurement</b>, not an additional market: every price is still
+  formed in its own order book. The weights are the ones the
+  <a href="/traders?kind=passive">ETF</a> itself buys: fundamental value divided by the
+  sum of all fundamental values. The index is chained, step by step.
+  Details below.</p>
 
 <div id="warming" style="display:none;padding:10px 18px">
-  <div class="warnbox">Der Markt wird aufgewärmt — <span id="warmpct" class="num">0</span> %.
-    Vor 20 Handelstagen gibt es keine Volatilität und kein Beta.
+  <div class="warnbox">The market is warming up: <span id="warmpct" class="num">0</span>%.
+    Before 20 trading days there is no volatility and no beta.
     <div class="bar"><i id="warmbar" style="width:0"></i></div>
   </div>
 </div>
 
 <div id="broke" style="display:none;padding:10px 18px">
-  <div class="warnbox" style="border-color:rgba(217,88,74,.5);background:rgba(217,88,74,.08);
-    color:var(--down)">Die Simulation ist gestoppt: <b id="brokewhy">—</b>.
-    In der Stadtansicht setzt NEU STARTEN den Lauf zurück.</div>
+  <div class="warnbox bad">The simulation has stopped: <b id="brokewhy">—</b>.
+    RESTART in the town view resets the run.</div>
 </div>
 
 <div id="stale" style="display:none;padding:10px 18px">
-  <div class="warnbox">Die Zahlen unten sind der letzte erfolgreiche Abruf —
-    die Verbindung antwortet gerade nicht (<span id="stalewhy">—</span>).</div>
+  <div class="warnbox">The figures below are from the last successful request.
+    The connection is not answering right now (<span id="stalewhy">—</span>).</div>
 </div>
 
 <main>
 
   <section class="panel">
     <h2>
-      <span>Indexverlauf</span>
+      <span>Index history</span>
       <span class="grow"></span>
-      <button class="win" data-win="day" title="Der laufende Handelstag">1 Tag</button>
-      <button class="win" data-win="week" title="Die letzten fünf Handelstage">5 Tage</button>
-      <button class="win" data-win="month" title="Die letzten 60 Handelstage, so weit der Schrittverlauf reicht">60 Tage</button>
-      <button class="win" data-win="all" title="Der ganze Lauf, aus den Tagesschlüssen">Ganzer Lauf</button>
-      <button id="rebase" title="Alle Linien auf den Anfang des Fensters normieren, damit sie vergleichbar sind">auf Fensterstart</button>
-      <button id="showfair" title="Den fairen Wert des hervorgehobenen Index als gestrichelte Linie zeichnen">fairer Wert</button>
+      <button class="win" data-win="day" title="The current trading day">1 day</button>
+      <button class="win" data-win="week" title="The last five trading days">5 days</button>
+      <button class="win" data-win="month" title="The last 60 trading days, as far as the step history reaches">60 days</button>
+      <button class="win" data-win="all" title="The whole run, from the daily closes">Whole run</button>
+      <button id="rebase" title="Normalise every line to the start of the window so they can be compared">to window start</button>
+      <button id="showfair" title="Draw the fair value of the highlighted index as a dashed line">fair value</button>
     </h2>
     <div class="body">
       <div class="legend" id="legend"></div>
@@ -145,7 +157,7 @@ footer{padding:10px 18px;border-top:1px solid var(--line);color:var(--dimmer);fo
   </section>
 
   <section class="panel">
-    <h2>Indizes im Vergleich</h2>
+    <h2>Indices compared</h2>
     <div class="body">
       <div style="overflow-x:auto"><table id="table"></table></div>
       <p class="hint" id="tablenote"></p>
@@ -153,50 +165,48 @@ footer{padding:10px 18px;border-top:1px solid var(--line);color:var(--dimmer);fo
   </section>
 
   <section class="panel">
-    <h2>Wie diese Indizes gebaut sind</h2>
+    <h2>How these indices are built</h2>
     <div class="body">
       <p class="hint">
-        <b>Die Gewichte sind die des ETF.</b> <code>PassiveInvestor</code> kauft
-        <code>index_weight = Fundamentalwert / Summe der Fundamentalwerte</code>; genau
-        diese Gewichte stehen hier. Eine Gewichtung nach Marktkapitalisierung bräuchte
-        eine Stückzahl je Instrument — die Zahl umlaufender Aktien ist hier aber ein
-        Ergebnis dessen, was der Emittent verkauft hat, keine Eigenschaft des Papiers.
+        <b>The weights are the ETF's.</b> <code>PassiveInvestor</code> buys
+        <code>index_weight = fundamental value / sum of fundamental values</code>, and
+        exactly these weights are used here. A market-capitalisation weighting would need
+        a share count per instrument. Here, though, the number of shares outstanding is a
+        result of what the issuer has sold, not a property of the security.
       </p>
       <p class="hint">
-        <b>Verkettet, nicht als Quotient von Summen.</b>
-        <code>I(t) = I(t−1) · Σ w(t−1) · P(t)/P(t−1)</code>. Die Gewichte wandern, weil
-        die Fundamentalwerte auseinanderlaufen; eine feste Summe würde stillschweigend
-        zu einem kursgewichteten Index werden, in dem der Sektor mit der größten Zahl
-        dominiert.
+        <b>Chained, not a ratio of sums.</b>
+        <code>I(t) = I(t−1) · Σ w(t−1) · P(t)/P(t−1)</code>. The weights drift because the
+        fundamental values diverge. A fixed sum would silently turn into a price-weighted
+        index in which the sector with the largest number dominates.
       </p>
       <p class="hint">
-        <b>Beta ist eine Behauptung, keine Einstellung.</b> <i>Beta&nbsp;Modell</i> ist
-        der Wert, den das Faktormodell dem <i>Fundamentalwert</i> dieses Sektors
-        mitgibt. <i>Beta gemessen</i> ist die Regression der Tagesrenditen des Index auf
-        die des Gesamtmarkts — das, was aus den Orderbüchern herauskommt. Über fünf
-        Seeds à 370 Handelstage: TECH 1,40 → 1,38, HLTH 0,70 → 0,66, CONS 0,80 → 0,87,
-        ENRG 0,90 → <b>1,19</b>, FINL 1,20 → <b>0,92</b> (± 0,41). Die <i>Spannweite</i>
-        überlebt den Weg in die Kurse fast unverändert (0,70 gegen 0,72) — anders als
-        die Korrelationen, die das README stark gedämpft findet. Die <i>Reihenfolge</i>
-        überlebt nicht: ENRG und FINL tauschen die Plätze, und FINL streut so weit, dass
-        auf einem einzelnen Lauf jede Aussage über sein Beta geraten wäre. Genau
-        deshalb steht hier auch die Streuung.
+        <b>Beta is a claim, not a setting.</b> <i>Beta&nbsp;model</i> is the value the
+        factor model gives this sector's <i>fundamental value</i>. <i>Beta measured</i>
+        is the regression of the index's daily returns on those of the total market:
+        what comes out of the order books. Over five seeds of 370 trading days each:
+        TECH 1.40 → 1.38, HLTH 0.70 → 0.66, CONS 0.80 → 0.87, ENRG 0.90 → <b>1.19</b>,
+        FINL 1.20 → <b>0.92</b> (± 0.41). The <i>range</i> survives the passage into
+        prices almost unchanged (0.70 against 0.72), unlike the correlations, which the
+        README finds strongly damped. The <i>order</i> does not survive: ENRG and FINL
+        swap places, and FINL scatters so widely that on a single run any statement
+        about its beta would be a guess. That is exactly why the scatter is shown here
+        as well.
       </p>
       <p class="hint">
-        <b>Warum zwei Abweichungsspalten.</b> Ein verketteter Index summiert gewichtete
-        Renditen, also einen <i>arithmetischen</i> Mittelwert; die Kursreihen sind viel
-        unruhiger als die Fundamentalwerte und sammeln dabei die größere
-        Umschichtungsprämie an. Nach einem Jahr steht der Gesamtmarkt-Index deshalb
-        zweistellig über seinem Fair-Wert-Index, ohne dass ein einziges Mitglied so weit
-        entfernt wäre. <i>Abw.&nbsp;Mitglieder</i> ist die heute gemessene Antwort —
-        gewichtetes Kurs ÷ fairer Wert — und die beiden gehören nebeneinander, weil sonst
-        eine Zahl auf dem Bildschirm steht, die sich in keinem Instrument wiederfinden
-        lässt. Bei einem Index aus einem einzigen Instrument sind beide identisch.
+        <b>Why two gap columns.</b> A chained index sums weighted returns, so it is an
+        <i>arithmetic</i> mean. The price series are much noisier than the fundamental
+        values and accumulate the larger rebalancing premium along the way. After a year
+        the total-market index therefore stands double digits above its fair-value index,
+        without a single member being that far away. <i>Gap&nbsp;members</i> is the answer
+        measured today, weighted price ÷ fair value. The two belong side by side, because
+        otherwise the screen shows a number that cannot be found in any instrument. For
+        an index of a single instrument both are identical.
       </p>
       <p class="hint">
-        <b>Nichts davon wirkt zurück.</b> Die Indizes lesen Kurse, die ohnehin entstanden
-        sind, ziehen keine Zufallszahlen und ändern keinen Zustand — derselbe Seed ergibt
-        mit und ohne diese Seite bitgenau denselben Lauf.
+        <b>None of this feeds back.</b> The indices read prices that were formed anyway,
+        draw no random numbers and change no state. The same seed gives a bit-identical
+        run with and without this page.
       </p>
     </div>
   </section>
@@ -210,14 +220,14 @@ footer{padding:10px 18px;border-top:1px solid var(--line);color:var(--dimmer);fo
 const $ = s => document.querySelector(s);
 const el = (tag, cls, text) => { const n = document.createElement(tag);
   if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; };
-/* German number, with the project’s own thousands separator. `toLocaleString`
-   groups with a dot, and mes/city.py groups with a thin space (THIN, U+2009) —
-   so every four-figure price printed here disagreed with the same price in the
-   town. The decimal comma comes from the locale; only the grouping is swapped. */
-const de = (v, d = 2) => v === null || v === undefined || Number.isNaN(v) ? "–"
-  : Number(v).toLocaleString("de-DE", {minimumFractionDigits: d, maximumFractionDigits: d})
-      .replace(/\./g, "\u2009");
-const pct = (v, d = 1) => v === null || v === undefined ? "–" : (v >= 0 ? "+" : "") + de(v, d) + " %";
+/* Numbers in en-US, the convention of the whole project: comma thousands, point
+   decimal, "2.35%". The backend formats the same way, so a price printed here
+   matches the same price in the town. */
+const fmt = (v, d = 2) => v === null || v === undefined || Number.isNaN(Number(v)) ? "–"
+  : Number(v).toLocaleString("en-US", {minimumFractionDigits: d, maximumFractionDigits: d});
+const pct = (v, d = 1) => v === null || v === undefined ? "–" : (v >= 0 ? "+" : "") + fmt(v, d) + "%";
+/* Whole counts. A string from the API is already formatted and is shown as it came. */
+const count = n => typeof n === "string" ? n : Math.round(Number(n) || 0).toLocaleString("en-US");
 const sign = v => v > 0 ? "up" : v < 0 ? "down" : "dim";
 
 async function api(path, options) {
@@ -230,20 +240,26 @@ const post = (path, body) => api(path, {method: "POST",
 
 /* The market index is the reference line and is drawn thicker; the sectors get their
    own colour. Keyed by symbol so a sector keeps its colour between reloads, with a
-   fallback list for a configuration that trades other symbols. */
-const COLOUR = {MKT: "#ece6e0", TECH: "#7e9ee6", ENRG: "#e8814c", FINL: "#c9a227",
-  HLTH: "#4fb8a0", CONS: "#b07fd0"};
-const SPARE = ["#d9584a", "#8fbf6a", "#c98fb0", "#6fb5cf", "#bfa06a"];
+   fallback list for a configuration that trades other symbols. All of them are dark
+   enough to read as a 1.4 px line on white. */
+const COLOUR = {MKT: "#172033", TECH: "#2f5bea", ENRG: "#e07434", FINL: "#b7791f",
+  HLTH: "#2f9e86", CONS: "#8f6fd0"};
+const SPARE = ["#d43f3f", "#5f9a32", "#c0508a", "#2a8fb5", "#8a6d3b"];
 const colourOf = (key, i) => COLOUR[key] || SPARE[i % SPARE.length];
+
+/* Canvas colours. A canvas cannot read the CSS tokens by name, so the light palette
+   is repeated here: grid lines, axis text, the base line and the crosshair. */
+const INK = {grid: "#edf1f6", axis: "#65728a", base: "#c3ccda", cross: "#94a0b4",
+  empty: "#94a0b4"};
 
 /* Windows in trading days. "all" switches the request to daily closes, which is the
    only series that reaches back further than the 60 days of step history the backend
-   keeps — see MAX_STEPS in mes/indices.py. */
+   keeps. See MAX_STEPS in mes/indices.py. */
 const WINDOWS = {
-  day:   {label: "1 Tag",       back: "vor einem Tag",   days: 1,    scale: "step"},
-  week:  {label: "5 Tage",      back: "vor 5 Tagen",     days: 5,    scale: "step"},
-  month: {label: "60 Tage",     back: "vor 60 Tagen",    days: 60,   scale: "step"},
-  all:   {label: "ganzer Lauf", back: "Beginn des Laufs", days: 4000, scale: "day"},
+  day:   {label: "1 day",     back: "1 day ago",    days: 1,    scale: "step"},
+  week:  {label: "5 days",    back: "5 days ago",   days: 5,    scale: "step"},
+  month: {label: "60 days",   back: "60 days ago",  days: 60,   scale: "step"},
+  all:   {label: "whole run", back: "start of run", days: 4000, scale: "day"},
 };
 
 let win = "week", rebase = true, showFair = false;
@@ -287,9 +303,10 @@ function renderLegend(data) {
        legend: the eye reads the two together and believes the number. */
     const change = windowChange(index);
     chip.append(el("span", "num " + sign(change), pct(change, 1)));
-    chip.title = `${index.name} · ${index.members.length} Instrument(e) · `
-      + `${pct(index.changeTotal, 1)} seit Laufbeginn · `
-      + `Klick blendet die Linie aus, Zeigen hebt sie hervor`;
+    chip.title = `${index.name} · ${index.members.length} `
+      + `instrument${index.members.length === 1 ? "" : "s"} · `
+      + `${pct(index.changeTotal, 1)} since the run started · `
+      + `click hides the line, hover highlights it`;
     chip.onclick = () => {
       if (hidden.has(index.key)) hidden.delete(index.key); else hidden.add(index.key);
       remember(); renderLegend(DATA); draw();
@@ -340,10 +357,10 @@ function draw() {
   if (!shown.length) {
     /* Two different empty states, and saying the wrong one is misleading: before the
        first response nothing is hidden, the data is simply not here yet. */
-    g.fillStyle = "#5d5952"; g.font = "12px -apple-system,sans-serif";
+    g.fillStyle = INK.empty; g.font = "12px 'IBM Plex Sans',system-ui,sans-serif";
     g.fillText(DATA === null
-      ? "lädt …"
-      : "Alle Linien ausgeblendet — im Legendenband wieder einschalten.", PAD.l, h / 2);
+      ? "loading …"
+      : "All lines are hidden. Switch them back on in the legend.", PAD.l, h / 2);
     return;
   }
 
@@ -371,20 +388,20 @@ function draw() {
   const y = v => PAD.t + (1 - (v - lo) / (hi - lo)) * (h - PAD.t - PAD.b);
 
   // grid and the level axis
-  g.font = "10px ui-monospace,SFMono-Regular,Menlo,monospace";
+  g.font = "10px 'IBM Plex Mono',ui-monospace,Menlo,monospace";
   g.textBaseline = "middle";
   for (let i = 0; i <= 4; i++) {
     const value = lo + (hi - lo) * i / 4;
     const yy = Math.round(y(value)) + 0.5;
-    g.strokeStyle = "#1b1f25"; g.lineWidth = 1;
+    g.strokeStyle = INK.grid; g.lineWidth = 1;
     g.beginPath(); g.moveTo(PAD.l, yy); g.lineTo(w - PAD.r, yy); g.stroke();
-    g.fillStyle = "#5d5952"; g.textAlign = "right";
-    g.fillText(de(value, 1), PAD.l - 6, yy);
+    g.fillStyle = INK.axis; g.textAlign = "right";
+    g.fillText(fmt(value, 1), PAD.l - 6, yy);
   }
 
   // the base line, which is what every rebased curve started from
   if (rebase && lo < 100 && hi > 100) {
-    g.strokeStyle = "#2c333d"; g.setLineDash([2, 3]); g.lineWidth = 1;
+    g.strokeStyle = INK.base; g.setLineDash([2, 3]); g.lineWidth = 1;
     const yy = Math.round(y(100)) + 0.5;
     g.beginPath(); g.moveTo(PAD.l, yy); g.lineTo(w - PAD.r, yy); g.stroke();
     g.setLineDash([]);
@@ -409,7 +426,7 @@ function draw() {
   if (hover !== null && points > 1) {
     const i = Math.max(0, Math.min(points - 1, hover));
     const px = Math.round(x(i)) + 0.5;
-    g.strokeStyle = "#3c4652"; g.lineWidth = 1;
+    g.strokeStyle = INK.cross; g.lineWidth = 1;
     g.beginPath(); g.moveTo(px, PAD.t); g.lineTo(px, h - PAD.b); g.stroke();
     showTip(i, px, lines, w);
   } else {
@@ -417,10 +434,10 @@ function draw() {
   }
 
   // x axis: how far back the window reaches
-  g.fillStyle = "#5d5952"; g.textAlign = "left"; g.textBaseline = "alphabetic";
+  g.fillStyle = INK.axis; g.textAlign = "left"; g.textBaseline = "alphabetic";
   g.fillText(WINDOWS[win].back, PAD.l, h - 6);
   g.textAlign = "right";
-  g.fillText("jetzt", w - PAD.r, h - 6);
+  g.fillText("now", w - PAD.r, h - 6);
 }
 
 function showTip(i, px, lines, w) {
@@ -436,7 +453,7 @@ function showTip(i, px, lines, w) {
     const left = el("span", "");
     const sw = el("span", "sw"); sw.style.background = row.colour;
     left.append(sw, document.createTextNode(row.key));
-    line.append(left, el("span", "num", de(row.value, 2)));
+    line.append(left, el("span", "num", fmt(row.value, 2)));
     tip.append(line);
   }
   tip.style.display = "block";
@@ -460,22 +477,22 @@ $("#chart").addEventListener("mouseleave", () => { hover = null; draw(); });
 
 /* ------------------------------------------------------------------- table */
 const COLUMNS = [
-  ["Index", "", "Kürzel und Name. Der Gesamtmarkt enthält alle Instrumente."],
-  ["Stand", "n", "Indexstand, 100 zu Beginn des Laufs"],
-  ["fair", "n", "Derselbe Index auf den Fundamentalwerten gerechnet"],
-  ["Abw.", "n", "Kursindex gegen Fair-Wert-Index. Bei einem Index aus einem "
-   + "einzigen Instrument ist das exakt dessen Abstand zum fairen Wert"],
-  ["Abw. Mitglieder", "n", "Gewichteter Mittelwert von Kurs ÷ fairer Wert der "
-   + "Mitglieder — heute gemessen statt aufgezinst. Siehe Erklärung unten"],
-  ["1 Tag", "n", "Veränderung über die letzten 240 Schritte"],
-  ["5 Tage", "n", "Veränderung über die letzten fünf Handelstage"],
-  ["seit Start", "n", "Veränderung seit Beginn des Laufs"],
-  ["Vola p.a.", "n", "Annualisierte Volatilität der Tagesrenditen, ab 20 Tagen"],
-  ["max. DD", "n", "Größter Rückgang vom Höchststand der Tagesschlüsse"],
-  ["Beta Modell", "n", "Was das Faktormodell dem Fundamentalwert mitgibt"],
-  ["Beta gemessen", "n", "Regression der Tagesrenditen auf den Gesamtmarkt"],
-  ["Korr.", "n", "Korrelation der Tagesrenditen mit dem Gesamtmarkt"],
-  ["Breite", "n", "Wie viele Mitglieder über ihrem eigenen fairen Wert stehen"],
+  ["Index", "", "Symbol and name. The total market contains every instrument."],
+  ["Level", "n", "Index level, 100 at the start of the run"],
+  ["fair", "n", "The same index computed on the fundamental values"],
+  ["Gap", "n", "Price index against fair-value index. For an index of a "
+   + "single instrument this is exactly that instrument's gap to fair value"],
+  ["Gap members", "n", "Weighted mean of price ÷ fair value across the "
+   + "members, measured today rather than compounded. See the explanation below"],
+  ["1 day", "n", "Change over the last 240 steps"],
+  ["5 days", "n", "Change over the last five trading days"],
+  ["since start", "n", "Change since the start of the run"],
+  ["Vol p.a.", "n", "Annualised volatility of the daily returns, from 20 days on"],
+  ["max. DD", "n", "Largest decline from the peak of the daily closes"],
+  ["Beta model", "n", "What the factor model gives the fundamental value"],
+  ["Beta measured", "n", "Regression of the daily returns on the total market"],
+  ["Corr.", "n", "Correlation of the daily returns with the total market"],
+  ["Breadth", "n", "How many members stand above their own fair value"],
 ];
 
 function renderTable(data) {
@@ -502,23 +519,23 @@ function renderTable(data) {
     const sw = el("span", "sw"); sw.style.background = colourOf(index.key, i);
     tag.append(sw, el("b", "", index.key),
       el("span", "dim", " " + index.name + (index.kind === "market"
-        ? " · " + index.members.length + " Instrumente" : "")));
+        ? " · " + index.members.length + " instruments" : "")));
     name.append(tag);
     tr.append(name);
 
     const cell = (text, cls) => tr.append(el("td", "n num " + (cls || ""), text));
-    cell(de(index.level, 2));
-    cell(de(index.fair, 2), "dim");
+    cell(fmt(index.level, 2));
+    cell(fmt(index.fair, 2), "dim");
     cell(pct(index.gap, 1), sign(index.gap));
     cell(pct(index.gapMembers, 1), "dim");
     cell(pct(index.changeDay, 2), sign(index.changeDay));
     cell(pct(index.changeWeek, 2), sign(index.changeWeek));
     cell(pct(index.changeTotal, 1), sign(index.changeTotal));
-    cell(index.vol === null ? "–" : de(index.vol * 100, 0) + " %");
-    cell(index.drawdown === null ? "–" : de(index.drawdown, 0) + " %", "down");
-    cell(de(index.betaSpec, 2), "dim");
-    cell(index.beta === null ? "–" : de(index.beta, 2));
-    cell(index.corr === null ? "–" : de(index.corr, 2), "dim");
+    cell(index.vol === null ? "–" : fmt(index.vol * 100, 0) + "%");
+    cell(index.drawdown === null ? "–" : fmt(index.drawdown, 0) + "%", "down");
+    cell(fmt(index.betaSpec, 2), "dim");
+    cell(index.beta === null ? "–" : fmt(index.beta, 2));
+    cell(index.corr === null ? "–" : fmt(index.corr, 2), "dim");
     cell(index.breadth + " / " + index.width,
       index.breadth * 2 > index.width ? "up" : "down");
     table.append(tr);
@@ -549,27 +566,27 @@ $("#showfair").onclick = () => { showFair = !showFair; remember(); syncButtons()
 async function drive(button, body, label) {
   button.disabled = true;
   try { await post("/api/control", body); }
-  catch (e) { $("#foot").textContent = `${label} fehlgeschlagen: ${e.message}`; }
+  catch (e) { $("#foot").textContent = `${label} failed: ${e.message}`; }
   finally { button.disabled = false; refresh(); }
 }
 $("#play").onclick = e =>
-  drive(e.currentTarget, {action: paused ? "play" : "pause"}, paused ? "Weiter" : "Pause");
+  drive(e.currentTarget, {action: paused ? "play" : "pause"}, paused ? "Resume" : "Pause");
 document.querySelectorAll(".spd").forEach(b => b.onclick = () =>
-  drive(b, {action: "speed", speed: b.dataset.speed}, "Tempo " + b.dataset.speed));
+  drive(b, {action: "speed", speed: b.dataset.speed}, "Speed " + b.dataset.speed));
 
 function note() {
   if (!DATA) return;
   const spec = WINDOWS[win];
   $("#chartnote").textContent =
     (rebase
-      ? "Alle Linien auf 100 am Anfang des Fensters normiert — so ist vergleichbar, "
-        + "wer in diesem Zeitraum gelaufen ist. "
-      : "Absolute Indexstände, 100 zu Beginn des Laufs. ")
-    + `Fenster: ${spec.label} · ${DATA.points} Punkte aus ${DATA.window}`
-    + (spec.scale === "day" ? " (Tagesschlüsse)" : " (je ein Marktschritt)")
+      ? "Every line is normalised to 100 at the start of the window, so it is comparable "
+        + "which one moved in this period. "
+      : "Absolute index levels, 100 at the start of the run. ")
+    + `Window: ${spec.label} · ${DATA.points} points from ${DATA.window}`
+    + (spec.scale === "day" ? " (daily closes)" : " (one market step each)")
     + (showFair
-       ? " · gestrichelt der faire Wert"
-         + (focus ? " von " + focus : " jedes sichtbaren Index")
+       ? " · dashed: the fair value"
+         + (focus ? " of " + focus : " of every visible index")
        : "");
 }
 
@@ -587,10 +604,10 @@ async function refresh() {
     DATA = data;
     SPD = data.steps_per_day || 240;
 
-    $("#step").textContent = data.step.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "\u2009");
+    $("#step").textContent = count(data.step);
     $("#day").textContent = data.day;
     paused = !state.running;
-    $("#play").textContent = paused ? "Weiter" : "Pause";
+    $("#play").textContent = paused ? "Resume" : "Pause";
     document.querySelectorAll(".spd").forEach(b =>
       b.classList.toggle("on", b.dataset.speed === state.speed));
 
@@ -611,17 +628,17 @@ async function refresh() {
     const best = data.indices.filter(index => index.kind === "sector")
       .sort((a, b) => b.changeTotal - a.changeTotal);
     $("#foot").textContent = market
-      ? `Gesamtmarkt ${de(market.level, 2)} (${pct(market.changeTotal, 1)} seit Start, `
-        + `${pct(market.gap, 1)} zum fairen Wert) · vorn ${best[0] ? best[0].key : "–"}, `
-        + `hinten ${best.length ? best[best.length - 1].key : "–"} · `
-        + `${data.indices.length - 1} Sektorindizes · Tag ${data.day}`
-      : "keine Indizes";
-    $("#tablenote").textContent = "Volatilität, Drawdown, Beta und Korrelation werden "
-      + "auf Tagesschlüssen gemessen und brauchen 20 Handelstage — vorher steht dort "
-      + "ein Strich statt einer Zahl aus zu wenig Daten.";
+      ? `Total market ${fmt(market.level, 2)} (${pct(market.changeTotal, 1)} since start, `
+        + `${pct(market.gap, 1)} to fair value) · leading ${best[0] ? best[0].key : "–"}, `
+        + `trailing ${best.length ? best[best.length - 1].key : "–"} · `
+        + `${data.indices.length - 1} sector indices · Day ${data.day}`
+      : "no indices";
+    $("#tablenote").textContent = "Volatility, drawdown, beta and correlation are "
+      + "measured on daily closes and need 20 trading days. Before that a dash stands "
+      + "there instead of a number from too little data.";
     $("#stale").style.display = "none";
   } catch (e) {
-    $("#foot").textContent = "Backend nicht erreichbar: " + e.message;
+    $("#foot").textContent = "Backend not reachable: " + e.message;
     $("#stale").style.display = "";
     $("#stalewhy").textContent = e.message;
   }

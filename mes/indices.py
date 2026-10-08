@@ -116,7 +116,7 @@ class IndexBook:
     def __init__(self, markets: dict, sectors: dict[str, list[str]]) -> None:
         self.symbols = list(markets)
         self.indices: list[Index] = [
-            Index(key="MKT", name="Gesamtmarkt", kind="market", members=list(markets))
+            Index(key="MKT", name="Total market", kind="market", members=list(markets))
         ]
         for sector, members in sectors.items():
             self.indices.append(

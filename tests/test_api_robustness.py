@@ -9,7 +9,7 @@ The chain was: `Config.from_dict` did not cast → `range(200.0)` raised inside
 `_spawn_agents` → `Simulation.reset` had already appended 300 adaptive agents but
 never reached the line that gives them a strategy → every following `step()` raised
 `KeyError: 'base'` → the clock task died → `/api/state` kept answering, the page kept
-showing "LÄUFT", and the step counter never moved again.
+showing "RUNNING", and the step counter never moved again.
 
 Three separate defects, so three groups of tests. The endpoint coroutines are called
 directly rather than through `fastapi.testclient`, which needs `httpx`; the project
@@ -46,7 +46,7 @@ def test_from_dict_casts_every_parameter_in_the_spec():
         value = getattr(cfg, name)
         expected = int if spec["kind"] == "int" else float
         assert isinstance(value, expected), \
-            f"{name} ist {type(value).__name__}, erwartet {expected.__name__}"
+            f"{name} is {type(value).__name__}, expected {expected.__name__}"
 
 
 def test_from_dict_leaves_symbols_alone():
@@ -68,7 +68,7 @@ def test_a_float_population_builds_and_steps():
     for _ in range(12):     # far enough to pass a strategy review
         sim.step()
     assert all(agent.strategy != "base" for agent in sim.agents), \
-        "ein Agent ohne Strategie bringt jedes Review zum Absturz"
+        "an agent without a strategy crashes every review"
 
 
 # --------------------------------------------- 2. and 3. through the endpoints
@@ -119,13 +119,13 @@ def test_an_unbuildable_configuration_is_a_400_and_the_market_survives(api, monk
     step_before = live.t
 
     def refuse(_cfg):
-        raise ValueError("erfundene Ablehnung")
+        raise ValueError("invented refusal")
 
     monkeypatch.setattr(api, "Simulation", refuse)
     with pytest.raises(HTTPException) as raised:
         call(api.set_params(api.ParamPatch(values={"n_adaptive": 30.0}, reset=True)))
     assert raised.value.status_code == 400
-    assert "nicht baubar" in raised.value.detail
+    assert "cannot be built" in raised.value.detail
 
     # Built-before-swapped: the same object is still there, and it still steps.
     monkeypatch.undo()
@@ -137,14 +137,14 @@ def test_an_unbuildable_configuration_is_a_400_and_the_market_survives(api, monk
 
 
 def test_state_reports_whether_the_clock_is_alive(api):
-    """`failure` is the field the page needs in order to stop claiming "LÄUFT"."""
+    """`failure` is the field the page needs in order to stop claiming "RUNNING"."""
     snapshot = api.runner.snapshot()
     assert "failure" in snapshot
     assert snapshot["failure"] is None
 
 
 def test_reset_clears_a_recorded_failure(api):
-    api.runner.failure = "TypeError: erfunden"
+    api.runner.failure = "TypeError: invented"
     api.runner.running = False
     call(api.control(api.Control(action="reset")))
     assert api.runner.failure is None
@@ -206,7 +206,7 @@ def test_the_clock_records_a_failing_step_instead_of_dying(api):
                                n_leveraged=1, n_makers=1))
 
     def explode():
-        raise RuntimeError("kaputt")
+        raise RuntimeError("broken")
 
     broken.step = explode
     api.runner.sim = broken
@@ -227,7 +227,7 @@ def test_the_clock_records_a_failing_step_instead_of_dying(api):
             pass
 
     asyncio.run(run_briefly())
-    assert api.runner.failure == "RuntimeError: kaputt"
+    assert api.runner.failure == "RuntimeError: broken"
     assert api.runner.running is False
 
 
@@ -280,7 +280,7 @@ def test_the_lesson_catalogue_prices_its_own_recommendation(api):
 
 
 def test_the_check_says_how_much_longer(api):
-    """"Tag 12 von 70" carries no cost. These fields do."""
+    """"Day 12 of 70" carries no cost. These fields do."""
     api.runner.speed = "1x"
     result = api.check_lesson("bubble")
     assert result["speed"] == "1x"
@@ -290,7 +290,7 @@ def test_the_check_says_how_much_longer(api):
 
     api.runner.speed = "16x"
     fast = api.check_lesson("bubble")["seconds_left"]
-    assert fast < slow, "16× muss schneller geschätzt werden als 1×"
+    assert fast < slow, "16× must be estimated faster than 1×"
 
 
 def test_the_estimate_reaches_zero_once_the_recommendation_is_met(api):
@@ -340,9 +340,9 @@ def test_a_replay_position_is_shaped_like_the_live_state(opened_replay):
     frame = answer["snapshot"]
     live = api.runner.snapshot()
     missing = sorted(set(live) - set(frame))
-    assert not missing, f"Replay-Rahmen fehlen Felder aus /api/state: {missing}"
+    assert not missing, f"replay frames lack fields from /api/state: {missing}"
     assert frame["replay"]["day"] == 4
-    assert frame["running"] is False, "eine Aufzeichnung läuft nicht"
+    assert frame["running"] is False, "a recording does not run"
     assert frame["warming"] is False and frame["failure"] is None
 
 
@@ -401,7 +401,7 @@ def test_a_bad_live_value_is_a_400_and_changes_nothing(api):
     with pytest.raises(HTTPException) as raised:
         call(api.set_params(api.ParamPatch(values={
             "chartist_aggression": 90.0,
-            "herd_strength": "sehr stark",
+            "herd_strength": "very strong",
             "switch_rate": 0.5,
         })))
     assert raised.value.status_code == 400
@@ -429,7 +429,7 @@ def test_starting_a_lesson_restarts_a_stopped_clock(api):
     """A lesson rebuilds the market, and a rebuilt market is not the one that broke.
     The failure used to survive it, so the clock stayed parked for ever with an
     error message from a simulation that no longer existed."""
-    api.runner.failure = "RuntimeError: irgendwas"
+    api.runner.failure = "RuntimeError: anything"
     api.runner.running = False
     from mes import lessons
 
@@ -457,4 +457,4 @@ def test_one_lesson_does_not_inherit_the_previous_one(api):
         if name in setups[second]:
             continue
         assert live[name] == defaults[name], \
-            f"{second} läuft noch unter {first}s {name}"
+            f"{second} still runs with {first}'s {name}"

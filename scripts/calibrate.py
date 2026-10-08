@@ -49,7 +49,7 @@ def run_once(cfg: Config, steps: int) -> list[dict]:
         volumes = np.array([bar["v"] for bar in market.bars[WARMUP_DAYS + 1:]])
         report = analyse(returns, volumes)
         if report.get("insufficient"):
-            raise SystemExit(f"Nur {len(returns)} Tage — mehr Schritte nötig.")
+            raise SystemExit(f"Only {len(returns)} days. More steps needed.")
         report["_symbol"] = symbol
         report["_days"] = len(returns)
         report["_price"] = market.price
@@ -81,14 +81,14 @@ def main() -> int:
     for i in range(args.runs):
         cfg = Config(**{**overrides, "seed": 1000 + i * 137})
         reports.extend(run_once(cfg, args.steps))
-        print(f"  Lauf {i + 1}/{args.runs} fertig (Seed {cfg.seed})", flush=True)
+        print(f"  run {i + 1}/{args.runs} done (seed {cfg.seed})", flush=True)
 
     symbols = sorted({r["_symbol"] for r in reports})
     names = [c["name"] for c in reports[0]["stylized_facts"]]
     total = len(reports)
 
-    print(f"\n{len(symbols)} Instrument(e) x {args.runs} Läufe = {total} Messungen\n")
-    print(f"{'Kriterium':<34} {'Mittel':>10} {'Streuung':>10}  bestanden")
+    print(f"\n{len(symbols)} instrument(s) x {args.runs} runs = {total} measurements\n")
+    print(f"{'Criterion':<34} {'Mean':>10} {'Spread':>10}  passed")
     print("-" * 74)
 
     passed_total = 0
@@ -98,16 +98,16 @@ def main() -> int:
         passes = sum(r["stylized_facts"][idx]["passed"] for r in reports)
         ok = passes > total / 2
         passed_total += ok
-        mark = "JA " if ok else "NEIN"
+        mark = "YES" if ok else "NO "
         mean = np.nanmean(values) if len(values) else float("nan")
         spread = np.nanstd(values) if len(values) else float("nan")
         print(f"{name:<34} {mean:>10.4f} {spread:>10.4f}  {mark} ({passes}/{total})")
 
     print("-" * 74)
-    print(f"{passed_total}/{len(names)} Kriterien bestanden (Ziel: mindestens {len(names) - 1})")
+    print(f"{passed_total}/{len(names)} criteria passed (target: at least {len(names) - 1})")
 
     if len(symbols) > 1:
-        print(f"\n{'Instrument':<12}{'bestanden':>11}{'Vola':>8}{'|Abw|':>8}{'ACF1':>8}")
+        print(f"\n{'Instrument':<12}{'passed':>11}{'Vol':>8}{'|Gap|':>8}{'ACF1':>8}")
         for symbol in symbols:
             rows = [r for r in reports if r["_symbol"] == symbol]
             per = np.mean([sum(c["passed"] for c in r["stylized_facts"]) for r in rows])
@@ -120,13 +120,13 @@ def main() -> int:
         return float(np.nanmean([r[key] for r in reports if r.get(key) is not None]))
 
     print(
-        f"\nVola (annualisiert) {avg('annualised_vol'):.3f} · "
-        f"max. Drawdown {avg('max_drawdown'):.3f} · "
-        f"Margin Calls {avg('_margin_calls'):.0f} · "
-        f"Streuung Chartistenanteil {avg('_chartist_share_std'):.3f}"
+        f"\nVolatility (annualised) {avg('annualised_vol'):.3f} · "
+        f"max. drawdown {avg('max_drawdown'):.3f} · "
+        f"margin calls {avg('_margin_calls'):,.0f} · "
+        f"spread of the chartist share {avg('_chartist_share_std'):.3f}"
     )
     if len(symbols) > 1:
-        print(f"Durchschnittliche Sektor-Korrelation {avg('_avg_correlation'):.3f}")
+        print(f"Average sector correlation {avg('_avg_correlation'):.3f}")
     return 0 if passed_total >= len(names) - 1 else 1
 
 

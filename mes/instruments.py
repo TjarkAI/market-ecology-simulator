@@ -54,11 +54,11 @@ class Instrument:
 # other: a high-beta growth sector prone to bubbles, a volatile commodity sector,
 # a rate-sensitive financial sector, and two defensives.
 SECTOR_SPEC: list[dict] = [
-    {"symbol": "TECH", "name": "Technologie", "beta": 1.40, "idio_vol": 1.20, "rate_sensitivity": 1.80},
-    {"symbol": "ENRG", "name": "Energie",     "beta": 0.90, "idio_vol": 1.40, "rate_sensitivity": 0.40},
-    {"symbol": "FINL", "name": "Finanzen",    "beta": 1.20, "idio_vol": 0.90, "rate_sensitivity": 2.20},
-    {"symbol": "HLTH", "name": "Gesundheit",  "beta": 0.70, "idio_vol": 0.60, "rate_sensitivity": 0.90},
-    {"symbol": "CONS", "name": "Konsum",      "beta": 0.80, "idio_vol": 0.55, "rate_sensitivity": 1.00},
+    {"symbol": "TECH", "name": "Technology",  "beta": 1.40, "idio_vol": 1.20, "rate_sensitivity": 1.80},
+    {"symbol": "ENRG", "name": "Energy",      "beta": 0.90, "idio_vol": 1.40, "rate_sensitivity": 0.40},
+    {"symbol": "FINL", "name": "Financials",  "beta": 1.20, "idio_vol": 0.90, "rate_sensitivity": 2.20},
+    {"symbol": "HLTH", "name": "Health care", "beta": 0.70, "idio_vol": 0.60, "rate_sensitivity": 0.90},
+    {"symbol": "CONS", "name": "Consumer",    "beta": 0.80, "idio_vol": 0.55, "rate_sensitivity": 1.00},
 ]
 
 
@@ -70,7 +70,7 @@ def sector_name(symbol: str) -> str:
 
     A sector keeps a name even when it stops being tradable: with
     `stocks_per_sector` above zero no instrument is called TECH, but the group of
-    stocks is still Technologie and the index over them has to say so.
+    stocks is still Technology and the index over them has to say so.
     """
     return SECTOR_NAMES.get(symbol, symbol)
 
@@ -97,7 +97,7 @@ def build(
     wanted = set(symbols) if symbols else None
     chosen = [spec for spec in SECTOR_SPEC if wanted is None or spec["symbol"] in wanted]
     if not chosen:
-        raise ValueError(f"Keine bekannten Symbole in {symbols}")
+        raise ValueError(f"No known symbols in {symbols}")
 
     out = []
     for spec in chosen:

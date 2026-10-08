@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Build `Marktstadt.app` — a Dock launcher that starts the bridge and the town.
+"""Build `Market Town.app` — a Dock launcher that starts the bridge and the town.
 
 There is nothing to compile: the bundle is a folder with a plist, a bash script and
 an icon. Generating it from a script rather than checking a binary blob into the
 project means the icon can be changed by editing a few coordinates, and a broken
 bundle is one command away from being correct again.
+
+The bundle name has a space in it, and so may the project folder. Every path in
+the launcher is quoted for that reason; an unquoted one would split in two.
 
     python scripts/build_app.py            # bundle + icon
     python scripts/build_app.py --icon-only
@@ -29,8 +32,8 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parent.parent
-APP = ROOT / "Marktstadt.app"
-NAME = "Marktstadt"
+NAME = "Market Town"
+APP = ROOT / f"{NAME}.app"
 
 # The town's palette, so the icon and the thing it opens are recognisably the same
 # project. From the `:root` block in web/index.html.
@@ -162,18 +165,21 @@ def write_icns(target: Path) -> None:
 
 # ------------------------------------------------------------------ the launcher
 LAUNCHER = r'''#!/bin/bash
-# Marktstadt-Starter: startet die Brücke (uvicorn, mes/api.py) in einem sichtbaren
-# Terminal-Fenster und öffnet die Stadt im Browser. Fenster offen lassen — dort
-# stehen die Logs, Strg-C beendet den Lauf.
+# Market Town launcher: starts the bridge (uvicorn, mes/api.py) in a visible
+# Terminal window and opens the town in the browser. Keep the window open: the
+# logs are there, and Ctrl-C ends the run.
 #
-# Das Fenster ist Absicht: der erste Start richtet die virtuelle Umgebung ein und
-# installiert die Abhängigkeiten, danach spult der Markt 110 Handelstage vor. Beides
-# will man sehen können und nicht hinter einem hüpfenden Dock-Symbol raten.
+# The window is deliberate. The first start sets up the virtual environment and
+# installs the dependencies, then the market fast-forwards 110 trading days. Both
+# should be visible rather than guessed at behind a bouncing Dock icon.
+#
+# The bundle name and the project folder may contain spaces, so every path below
+# is quoted.
 
 PORT="${MES_PORT:-8000}"
 
-# Der Projektordner ist normalerweise der, in dem diese .app liegt. $MES_HOME
-# überschreibt das, falls die App woanders liegen soll.
+# The project folder is normally the one this .app sits in. $MES_HOME overrides
+# that, in case the app is meant to live somewhere else.
 SELF_PARENT="$(cd "$(dirname "$0")/../../.." 2>/dev/null && pwd)"
 PROJ=""
 for P in "$MES_HOME" "$SELF_PARENT"; do
@@ -181,26 +187,26 @@ for P in "$MES_HOME" "$SELF_PARENT"; do
 done
 
 if [ -z "$PROJ" ]; then
-  osascript -e 'display alert "Marktstadt" message "Projektordner nicht gefunden.\n\nMarktstadt.app muss IM Projektordner liegen — neben mes/, web/ und start.sh. Nicht nach ~/Downloads, ~/Desktop oder ~/Documents verschieben: dort sperrt macOS (TCC) die Helferprozesse.\n\nFürs Dock: die App im Projektordner lassen und von dort ins Dock ziehen — das Dock legt nur eine Verknüpfung an.\n\nAlternativ MES_HOME auf den Projektpfad setzen."'
+  osascript -e 'display alert "Market Town" message "Project folder not found.\n\nMarket Town.app must sit INSIDE the project folder, next to mes/, web/ and start.sh. Do not move it to ~/Downloads, ~/Desktop or ~/Documents: macOS (TCC) blocks the helper processes there.\n\nFor the Dock: leave the app in the project folder and drag it from there into the Dock. The Dock only creates a shortcut.\n\nAlternatively, set MES_HOME to the project path."'
   exit 1
 fi
 
-# Läuft schon eine Brücke auf dem Port? Hier beenden, bevor das Terminal eine neue
-# startet — sonst zeigt ein Doppelklick den alten Code weiter an.
+# Is a bridge already running on the port? Stop it here, before Terminal starts a
+# new one. Otherwise a double-click keeps showing the old code.
 #
-# -sTCP:LISTEN ist nicht optional: ohne den Filter listet lsof auch jeden *Client*
-# mit offener Verbindung auf diesen Port, und der zweite Doppelklick erschlägt dann
-# den Netzwerkprozess des Browsers, der gerade die Stadt anzeigt. Genau das ist beim
-# Testen passiert.
+# -sTCP:LISTEN is not optional: without the filter lsof also lists every *client*
+# with an open connection to this port, and the second double-click then kills the
+# networking process of the browser that is showing the town. That is exactly what
+# happened during testing.
 OLD=$(lsof -ti "tcp:$PORT" -sTCP:LISTEN 2>/dev/null)
 if [ -n "$OLD" ]; then kill $OLD 2>/dev/null; sleep 1; fi
 
-# start.sh richtet die Umgebung ein, startet uvicorn und öffnet den Browser, sobald
-# der Server antwortet. Deshalb genügt hier ein Aufruf.
+# start.sh sets up the environment, starts uvicorn and opens the browser as soon
+# as the server answers. That is why one call is enough here.
 osascript <<OSA
 tell application "Terminal"
   activate
-  do script "cd " & quoted form of "$PROJ" & " && clear && echo '▶ Marktstadt startet — Fenster offen lassen, Strg-C beendet.' && PORT=$PORT ./start.sh"
+  do script "cd " & quoted form of "$PROJ" & " && clear && echo '▶ Market Town is starting. Keep this window open, Ctrl-C ends it.' && PORT=$PORT ./start.sh"
 end tell
 OSA
 '''
@@ -215,7 +221,7 @@ def write_bundle() -> None:
     plist = {
         "CFBundleName": NAME,
         "CFBundleDisplayName": NAME,
-        "CFBundleIdentifier": "de.rtc.marktstadt.launcher",
+        "CFBundleIdentifier": "de.rtc.markettown.launcher",
         "CFBundleVersion": "1.0",
         "CFBundleShortVersionString": "1.0",
         "CFBundlePackageType": "APPL",
@@ -238,9 +244,9 @@ def main() -> None:
     args = parser.parse_args()
 
     if sys.platform != "darwin":
-        raise SystemExit("Nur auf macOS: das Bundle und iconutil sind macOS-spezifisch.")
+        raise SystemExit("macOS only: the bundle and iconutil are macOS-specific.")
     if shutil.which("iconutil") is None:
-        raise SystemExit("iconutil fehlt — gehört zu den Xcode Command Line Tools.")
+        raise SystemExit("iconutil is missing. It is part of the Xcode Command Line Tools.")
 
     icns = APP / "Contents" / "Resources" / f"{NAME}.icns"
     if not args.icon_only:
@@ -250,9 +256,9 @@ def main() -> None:
     # Finder caches icons per bundle; touching it makes the new one appear without
     # a logout.
     subprocess.run(["touch", str(APP)], check=False)
-    print(f"{APP} gebaut.")
-    print("Ins Dock: App aus dem Projektordner ins Dock ziehen (das Dock legt nur "
-          "eine Verknüpfung an, die App bleibt hier liegen).")
+    print(f"Built: {APP}")
+    print("For the Dock: drag the app from the project folder into the Dock (the Dock "
+          "only creates a shortcut, the app stays here).")
 
 
 if __name__ == "__main__":

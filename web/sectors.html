@@ -1,46 +1,56 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Market Ecology Simulator · Sektoren</title>
+<title>Market Ecology Simulator · Sectors</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+/* Look A, "Diorama": the light palette of the town page. The token names are the
+   ones this page always used; only the values changed. */
 :root{
-  --bg:#0d0f12; --panel:#14171c; --line:#22272f; --line2:#2c333d;
-  --ink:#ece6e0; --dim:#8d867d; --dimmer:#5d5952;
-  --up:#4fb8a0; --down:#d9584a; --warn:#e8814c; --gold:#c9a227; --blue:#7e9ee6;
+  --bg:#e9eef5; --panel:#ffffff; --sunken:#f1f4f9; --line:#e2e8f0; --line2:#d3dbe6;
+  --ink:#172033; --dim:#65728a; --dimmer:#94a0b4;
+  --accent:#2f5bea; --accent-soft:#e8eeff;
+  --up:#1c9a52; --up-soft:#e3f5ea; --down:#d43f3f; --down-soft:#fde8e8;
+  --warn:#b7791f; --warn-soft:#fdf3dc; --gold:#b7791f; --blue:#2f5bea;
+  --shadow:0 8px 28px rgba(28,48,92,.10);
+  --r-card:14px; --r-ctl:8px;
+  --sans:'IBM Plex Sans',system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);
-  font:13px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-.num,input,td.n{font-variant-numeric:tabular-nums;
-  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-a{color:var(--blue)}
+body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.45 var(--sans)}
+.num,input,td.n{font-variant-numeric:tabular-nums;font-family:var(--mono)}
+a{color:var(--accent)}
 header{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;
-  padding:12px 18px;border-bottom:1px solid var(--line);background:#101318}
+  padding:12px 18px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.92)}
 h1{font-size:14px;margin:0;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
 .sub{color:var(--dim);font-size:11px}
 .grow{flex:1}
 nav{display:flex;gap:2px}
 nav a{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;text-decoration:none;
-  color:var(--dim);border:1px solid transparent;border-radius:3px;padding:3px 9px}
+  color:var(--dim);border:1px solid transparent;border-radius:var(--r-ctl);padding:3px 9px}
 nav a:hover{color:var(--ink);border-color:var(--line2)}
-nav a.here{color:var(--warn);border-color:rgba(232,129,76,.5)}
-button{background:#1b2027;color:var(--ink);border:1px solid var(--line2);
-  border-radius:3px;padding:4px 10px;font-size:12px;cursor:pointer}
-button:hover{border-color:#3c4652;background:#212832}
-button.on{border-color:var(--warn);color:var(--warn)}
+nav a.here{color:var(--accent);border-color:rgba(47,91,234,.35);background:var(--accent-soft)}
+button{background:#fff;color:var(--ink);border:1px solid var(--line2);font-family:var(--sans);
+  border-radius:var(--r-ctl);padding:4px 10px;font-size:12px;cursor:pointer}
+button:hover{border-color:#c3ccda;background:var(--sunken)}
+button.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 button:disabled{opacity:.4;cursor:default}
 main{display:grid;grid-template-columns:1fr 300px;gap:14px;padding:14px;align-items:start}
 @media(max-width:1100px){main{grid-template-columns:1fr}}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:4px}
-.panel>h2{margin:0;padding:8px 12px;font-size:10.5px;letter-spacing:.16em;
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-card);
+  box-shadow:var(--shadow)}
+.panel>h2{margin:0;padding:9px 14px;font-size:10.5px;letter-spacing:.16em;
   text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--line);font-weight:600}
-.panel>.body{padding:12px}
+.panel>.body{padding:12px 14px}
 .stack{display:flex;flex-direction:column;gap:14px}
 /* sector tiles */
 .sectors{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
-.sector{border:1px solid var(--line2);border-radius:4px;padding:10px;background:#121519}
+.sector{border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--sunken)}
 .sector .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .sym{font-weight:600;letter-spacing:.08em}
 .px{font-size:17px}
@@ -48,135 +58,138 @@ main{display:grid;grid-template-columns:1fr 300px;gap:14px;padding:14px;align-it
 .spark{display:block;width:100%;height:34px;margin:6px 0 2px}
 .stocks{margin-top:8px;border-top:1px solid var(--line);padding-top:6px}
 .stock{display:flex;justify-content:space-between;gap:8px;padding:2px 0;font-size:12px}
-.stock:hover{background:#181c22}
+.stock:hover{background:#fff}
 .up{color:var(--up)} .down{color:var(--down)} .dim{color:var(--dim)}
 table{width:100%;border-collapse:collapse;font-size:12px}
 th{text-align:left;color:var(--dim);font-weight:500;font-size:10.5px;
   letter-spacing:.1em;text-transform:uppercase;padding:3px 6px 3px 0}
-td{padding:2px 6px 2px 0;border-top:1px solid #1b1f25}
+td{padding:2px 6px 2px 0;border-top:1px solid var(--line)}
 td.n{text-align:right}
 .heat{border-collapse:collapse;font-size:11px}
 .heat td,.heat th{padding:0;text-align:center}
+.heat td{border-top:0}
 .heat td div{width:100%;height:26px;display:flex;align-items:center;justify-content:center}
 .pass{color:var(--up)} .fail{color:var(--down)}
-.bar{height:4px;background:#1e242c;border-radius:2px;overflow:hidden;margin-top:3px}
-.bar i{display:block;height:100%;background:var(--warn)}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:3px}
+.bar i{display:block;height:100%;background:var(--accent)}
+.warnbox .bar i{background:var(--warn)}
 label.row{display:flex;justify-content:space-between;gap:8px;align-items:center;
   font-size:11.5px;color:var(--dim);margin-bottom:2px}
-input[type=range]{width:100%;accent-color:var(--warn)}
-input[type=number],select{background:#0f1216;color:var(--ink);border:1px solid var(--line2);
-  border-radius:3px;padding:3px 5px;font-size:12px;width:100%}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=number],select{background:#fff;color:var(--ink);border:1px solid var(--line2);
+  border-radius:var(--r-ctl);padding:3px 5px;font-size:12px;width:100%}
+select{font-family:var(--sans)}
 .group{margin-bottom:10px}
 .group>b{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
   color:var(--dimmer);margin:8px 0 4px}
-.hint{color:var(--dimmer);font-size:11px;line-height:1.5}
-.warnbox{border:1px solid rgba(232,129,76,.4);background:rgba(232,129,76,.07);
-  border-radius:3px;padding:8px 10px;color:var(--warn);font-size:11.5px;line-height:1.5}
+.hint{color:var(--dim);font-size:11px;line-height:1.5}
+.warnbox{border:1px solid rgba(183,121,31,.35);background:var(--warn-soft);
+  border-radius:var(--r-ctl);padding:8px 10px;color:var(--warn);font-size:11.5px;line-height:1.5}
+.warnbox.bad{border-color:rgba(212,63,63,.35);background:var(--down-soft);color:var(--down)}
 .log{max-height:150px;overflow:auto;font-size:11.5px}
-.log div{padding:1px 0;border-top:1px solid #1b1f25}
-footer{padding:10px 18px;border-top:1px solid var(--line);color:var(--dimmer);font-size:11px}
+.log div{padding:1px 0;border-top:1px solid var(--line)}
+footer{padding:10px 18px;border-top:1px solid var(--line);color:var(--dim);font-size:11px}
 .err{color:var(--down);font-size:11.5px}
 /* explanation */
 .phase{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}
 .phase b{font-size:16px}
 .tag{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;padding:2px 7px;
-  border:1px solid var(--line2);border-radius:10px;color:var(--dim)}
+  border:1px solid var(--line2);border-radius:var(--r-ctl);color:var(--dim);background:var(--sunken)}
 .why{margin:0 0 8px;padding-left:0;list-style:none}
 .why li{position:relative;padding:3px 0 3px 14px;font-size:12px;line-height:1.5}
 .why li:before{content:"";position:absolute;left:0;top:9px;width:5px;height:5px;
   border-radius:50%;background:var(--warn)}
-.watch li:before{background:var(--blue)}
+.watch li:before{background:var(--accent)}
 /* lessons */
-.lesson{border:1px solid var(--line2);border-radius:4px;padding:9px 11px;
-  margin-bottom:7px;background:#121519}
-.lesson.on{border-color:rgba(232,129,76,.6);background:rgba(232,129,76,.05)}
+.lesson{border:1px solid var(--line);border-radius:10px;padding:9px 11px;
+  margin-bottom:7px;background:var(--sunken)}
+.lesson.on{border-color:rgba(47,91,234,.45);background:var(--accent-soft)}
 .lesson h4{margin:0 0 3px;font-size:12.5px}
 .lesson .q{color:var(--dim);font-size:11.5px;margin:0 0 6px;line-height:1.5}
 .lesson .idea{font-size:11.5px;line-height:1.55;margin:0 0 7px}
 .check{display:flex;gap:7px;align-items:flex-start;font-size:11.5px;padding:2px 0}
 .check .m{width:12px;flex:none;font-weight:600}
 .verdict{font-size:10px;letter-spacing:.1em;text-transform:uppercase;
-  padding:2px 7px;border-radius:10px}
-.v-ok{color:var(--up);border:1px solid rgba(79,184,160,.5)}
-.v-no{color:var(--warn);border:1px solid rgba(232,129,76,.5)}
-.v-part{color:var(--gold);border:1px solid rgba(201,162,39,.5)}
+  padding:2px 7px;border-radius:var(--r-ctl)}
+.v-ok{color:var(--up);background:var(--up-soft);border:1px solid rgba(28,154,82,.4)}
+.v-no{color:#c0561d;background:#fdeee3;border:1px solid rgba(192,86,29,.4)}
+.v-part{color:var(--warn);background:var(--warn-soft);border:1px solid rgba(183,121,31,.4)}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Market Ecology · Analyse</h1>
-  <span class="sub">Sektoren · <span id="mode" class="num">–</span></span>
+  <h1>Market Ecology · Analysis</h1>
+  <span class="sub">Sectors · <span id="mode" class="num">–</span></span>
   <span class="grow"></span>
-  <span class="sub">Schritt <b id="step" class="num">–</b></span>
-  <span class="sub">Tag <b id="day" class="num">–</b></span>
-  <button id="play" title="Denselben Markt anhalten, den die Stadtansicht zeigt">Pause</button>
-  <button data-speed="1x" class="spd" title="Echtzeit">1×</button>
-  <button data-speed="4x" class="spd" title="Vierfach">4×</button>
-  <button data-speed="16x" class="spd" title="Sechzehnfach — hierhin, um Handelstage zu sammeln">16×</button>
+  <span class="sub">Step <b id="step" class="num">–</b></span>
+  <span class="sub">Day <b id="day" class="num">–</b></span>
+  <button id="play" title="Pause the same market the town view shows">Pause</button>
+  <button data-speed="1x" class="spd" title="Real time">1×</button>
+  <button data-speed="4x" class="spd" title="Four times as fast">4×</button>
+  <button data-speed="16x" class="spd" title="Sixteen times as fast. Use this to collect trading days">16×</button>
   <nav>
-    <a href="/" title="Die isometrische Stadt: dieselbe Simulation, als Karte">Stadt</a>
-    <a href="/sectors" class="here">Analyse</a>
-    <a href="/indices" title="Alle Indizes live gegeneinander, mit Beta und Breite">Indizes</a>
-    <a href="/traders" title="Alle Trader: Kapital, Positionen, Hebel, Ergebnis">Trader</a>
+    <a href="/" title="The isometric town: the same simulation, as a map">Town</a>
+    <a href="/sectors" class="here">Analysis</a>
+    <a href="/indices" title="All indices live against each other, with beta and breadth">Indices</a>
+    <a href="/traders" title="All traders: capital, positions, leverage, result">Traders</a>
   </nav>
 </header>
 
 <!-- Two views of one simulation, and neither used to say so. -->
 <p class="hint" style="margin:0;padding:8px 18px;border-bottom:1px solid var(--line)">
-  Dieselbe laufende Simulation wie die <a href="/">Stadtansicht</a> — dort die Karte,
-  hier die Zahlen: Sektoren im Vergleich, gemessene Korrelationen, die Stylized Facts,
-  A/B-Vergleiche über mehrere Seeds und aufgezeichnete Läufe.</p>
+  The same running simulation as the <a href="/">town view</a>. There the map, here the
+  numbers: sectors compared, measured correlations, the stylized facts, A/B comparisons
+  across several seeds and recorded runs.</p>
 
 <div id="warming" style="display:none;padding:10px 18px">
-  <div class="warnbox">Der Markt wird aufgewärmt — <span id="warmpct" class="num">0</span> %.
-    Das Validierungspanel braucht 100 Handelstage.
+  <div class="warnbox">The market is warming up: <span id="warmpct" class="num">0</span>%.
+    The validation panel needs 100 trading days.
     <div class="bar"><i id="warmbar" style="width:0"></i></div>
   </div>
 </div>
 
 <div id="broke" style="display:none;padding:10px 18px">
-  <div class="warnbox" style="border-color:rgba(217,88,74,.5);background:rgba(217,88,74,.08);
-    color:var(--down)">Die Simulation ist gestoppt: <b id="brokewhy">—</b>.
-    In der Stadtansicht setzt NEU STARTEN den Lauf zurück.</div>
+  <div class="warnbox bad">The simulation has stopped: <b id="brokewhy">—</b>.
+    RESTART in the town view resets the run.</div>
 </div>
 
 <!-- One failing request used to leave every panel showing its last reading with
      nothing saying the numbers were old. -->
 <div id="stale" style="display:none;padding:10px 18px">
-  <div class="warnbox">Die Zahlen unten sind der letzte erfolgreiche Abruf —
-    die Verbindung antwortet gerade nicht (<span id="stalewhy">—</span>).</div>
+  <div class="warnbox">The figures below are from the last successful request.
+    The connection is not answering right now (<span id="stalewhy">—</span>).</div>
 </div>
 
 <main>
   <div class="stack">
 
     <section class="panel" id="explainPanel">
-      <h2>Was passiert gerade</h2>
+      <h2>What is happening</h2>
       <div class="body" id="explain"></div>
     </section>
 
     <section class="panel">
-      <h2>Geführte Experimente</h2>
+      <h2>Guided experiments</h2>
       <div class="body" id="lessons"></div>
     </section>
 
     <section class="panel">
-      <h2>Sektoren</h2>
+      <h2>Sectors</h2>
       <div class="body"><div id="sectors" class="sectors"></div></div>
     </section>
 
     <!-- One instrument up close: the daily candles and the book they came out of.
          `/api/sectors/{symbol}` has returned both from the start and no page drew
-         either — the tiles above show a sparkline, which says where the price went
+         either. The tiles above show a sparkline, which says where the price went
          and nothing about how it got there. -->
     <section class="panel">
-      <h2>Instrument — Kerzen und Orderbuch</h2>
+      <h2>Instrument: candles and order book</h2>
       <div class="body" id="instrument"></div>
     </section>
 
     <section class="panel">
-      <h2>Korrelation — gemessen, nicht gesetzt</h2>
+      <h2>Correlation: measured, not set</h2>
       <div class="body">
         <div id="corrwrap"></div>
         <p class="hint" id="corrnote"></p>
@@ -184,22 +197,22 @@ footer{padding:10px 18px;border-top:1px solid var(--line);color:var(--dimmer);fo
     </section>
 
     <section class="panel">
-      <h2>Zentralbank</h2>
+      <h2>Central Bank</h2>
       <div class="body" id="cb"></div>
     </section>
 
     <section class="panel">
-      <h2>Validierung</h2>
+      <h2>Validation</h2>
       <div class="body" id="valid"></div>
     </section>
 
     <section class="panel">
-      <h2>A/B-Vergleich</h2>
+      <h2>A/B comparison</h2>
       <div class="body" id="compare"></div>
     </section>
 
     <section class="panel">
-      <h2>Aufzeichnungen &amp; Replay</h2>
+      <h2>Recordings &amp; replay</h2>
       <div class="body" id="replay"></div>
     </section>
 
@@ -207,11 +220,11 @@ footer{padding:10px 18px;border-top:1px solid var(--line);color:var(--dimmer);fo
 
   <div class="stack">
     <section class="panel">
-      <h2>Parameter</h2>
-      <div class="body" id="params"><span class="hint">lädt …</span></div>
+      <h2>Parameters</h2>
+      <div class="body" id="params"><span class="hint">loading …</span></div>
     </section>
     <section class="panel">
-      <h2>Protokoll</h2>
+      <h2>Log</h2>
       <div class="body log" id="log"></div>
     </section>
   </div>
@@ -224,23 +237,16 @@ footer{padding:10px 18px;border-top:1px solid var(--line);color:var(--dimmer);fo
 const $ = s => document.querySelector(s);
 const el = (tag, cls, text) => { const n = document.createElement(tag);
   if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; };
-/* German number, with the project’s own thousands separator. `toLocaleString`
-   groups with a dot, and mes/city.py groups with a thin space (THIN, U+2009) —
-   so every four-figure price printed here disagreed with the same price in the
-   town. The decimal comma comes from the locale; only the grouping is swapped. */
-const de = (v, d = 2) => v === null || v === undefined || Number.isNaN(v) ? "–"
-  : Number(v).toLocaleString("de-DE", {minimumFractionDigits: d, maximumFractionDigits: d})
-      .replace(/\./g, "\u2009");
-const pct = (v, d = 1) => v === null || v === undefined ? "–" : (v >= 0 ? "+" : "") + de(v, d) + " %";
-/* Share counts use a thin space for thousands, the way mes/city.py writes every
-   number the town shows. `toLocaleString("de-DE")` puts a dot there, which would
-   make the book and the tape count differently from the rest of the project. */
-/* The thin space mes/city.py writes (THIN, U+2009), not an ordinary one: the
-   comment here has always said "thin space" and the character was a plain
-   0x20, so the book and the tape aligned differently from every number the
-   town prints. */
-const thin = n => Math.round(Number(n) || 0).toString()
-  .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+/* Numbers in en-US, the convention of the whole project: comma thousands, point
+   decimal, "2.35%". The backend formats the same way, so a price printed here
+   matches the same price in the town. */
+const fmt = (v, d = 2) => v === null || v === undefined || Number.isNaN(Number(v)) ? "–"
+  : Number(v).toLocaleString("en-US", {minimumFractionDigits: d, maximumFractionDigits: d});
+const pct = (v, d = 1) => v === null || v === undefined ? "–" : (v >= 0 ? "+" : "") + fmt(v, d) + "%";
+/* Share counts, grouped the same way as every other number in the project, so the
+   book and the tape count like the rest of the screen. A string from the API is
+   already formatted and is shown as it came. */
+const count = n => typeof n === "string" ? n : Math.round(Number(n) || 0).toLocaleString("en-US");
 const sign = v => v > 0 ? "up" : v < 0 ? "down" : "dim";
 
 async function api(path, options) {
@@ -250,6 +256,24 @@ async function api(path, options) {
 }
 const post = (path, body) => api(path, {method: "POST",
   headers: {"content-type": "application/json"}, body: JSON.stringify(body || {})});
+
+/* Canvas colours for a white panel. A canvas cannot read the CSS tokens by name, so
+   the light palette is repeated here. */
+const INK = {
+  up: "#1c9a52", down: "#d43f3f", upFill: "rgba(28,154,82,.10)", downFill: "rgba(212,63,63,.10)",
+  upBody: "rgba(28,154,82,.60)", downBody: "rgba(212,63,63,.60)",
+  volume: "rgba(101,114,138,.22)", fair: "#2f5bea", empty: "#f1f4f9",
+};
+
+/* The log arrives with the colours the backend chose for a dark screen. Those that
+   would vanish on white are swapped for their light-palette counterparts; anything
+   else is used as it came. */
+const TONE = {
+  "#4fb8a0": "#2f9e86", "#d9584a": "#d43f3f", "#c9a227": "#b7791f", "#8d847b": "#65728a",
+  "#8d867d": "#65728a", "#e8814c": "#e07434", "#4ad07a": "#1c9a52", "#7e9ee6": "#2f5bea",
+  "#ece6e0": "#172033",
+};
+const tone = colour => TONE[String(colour || "").toLowerCase()] || colour;
 
 /* ------------------------------------------------------------ sparklines */
 function sparkline(canvas, values) {
@@ -266,10 +290,10 @@ function sparkline(canvas, values) {
 
   g.beginPath();
   values.forEach((v, i) => i ? g.lineTo(x(i), y(v)) : g.moveTo(x(i), y(v)));
-  g.strokeStyle = values.at(-1) >= values[0] ? "#4fb8a0" : "#d9584a";
+  g.strokeStyle = values.at(-1) >= values[0] ? INK.up : INK.down;
   g.lineWidth = 1.25; g.stroke();
   g.lineTo(x(values.length - 1), h); g.lineTo(x(0), h); g.closePath();
-  g.fillStyle = values.at(-1) >= values[0] ? "rgba(79,184,160,.10)" : "rgba(217,88,74,.10)";
+  g.fillStyle = values.at(-1) >= values[0] ? INK.upFill : INK.downFill;
   g.fill();
 }
 
@@ -281,22 +305,22 @@ function renderSectors(data) {
   const host = $("#sectors");
   host.innerHTML = "";
   $("#mode").textContent = data.stocks_per_sector > 0
-    ? `${data.stocks_per_sector} Aktien je Sektor` : "Sektor-Instrumente";
+    ? `${data.stocks_per_sector} stocks per sector` : "sector instruments";
 
   for (const group of data.groups) {
     const box = el("div", "sector");
     const top = el("div", "top");
     top.append(el("span", "sym", group.sector));
-    top.append(el("span", "px num", de(group.tradable ? group.members[0].price : group.index)));
+    top.append(el("span", "px num", fmt(group.tradable ? group.members[0].price : group.index)));
     box.append(top);
 
     // Percentage change against fair value, consistent with the members' figures.
     const stretch = group.tradable ? group.members[0].stretch
       : (group.index / group.fair - 1) * 100;
     const meta = el("div", "meta");
-    meta.append(el("span", "", group.tradable ? "Kurs" : "Index"));
-    meta.append(el("span", "", " · fair " + de(group.fair) + " · "));
-    const s = el("span", sign(stretch), pct(stretch, 0) + " Abw.");
+    meta.append(el("span", "", group.tradable ? "Price" : "Index"));
+    meta.append(el("span", "", " · fair " + fmt(group.fair) + " · "));
+    const s = el("span", sign(stretch), pct(stretch, 0) + " gap");
     meta.append(s);
     box.append(meta);
 
@@ -311,11 +335,11 @@ function renderSectors(data) {
       for (const m of group.members) {
         const row = el("div", "stock");
         const left = el("span", "", m.symbol);
-        const right = el("span", "num", de(m.price));
+        const right = el("span", "num", fmt(m.price));
         const chg = el("span", "num " + sign(m.change), pct(m.change, 1));
         row.append(left, chg, right);
-        row.title = `beta ${de(m.beta)} · Duration ${de(m.duration, 1)} J · `
-          + `Abw. ${pct(m.stretch, 0)} · Tiefe ${m.depth}`;
+        row.title = `beta ${fmt(m.beta)} · duration ${fmt(m.duration, 1)} yrs · `
+          + `gap ${pct(m.stretch, 0)} · depth ${count(m.depth)}`;
         list.append(row);
       }
       box.append(list);
@@ -327,7 +351,7 @@ function renderSectors(data) {
 
 /* ------------------------------------------------- one instrument up close */
 /* Candles and the order book. Both come out of `/api/sectors/{symbol}`, which also
-   carries that instrument's own validation report — so it is fetched here rather
+   carries that instrument's own validation report. So it is fetched here rather
    than a second time, and only while this panel has a symbol. */
 let instrument = null, instrumentData = null;
 
@@ -341,7 +365,7 @@ function renderInstrumentShell(symbols) {
   bar.style.cssText = "display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px";
   for (const symbol of symbols) {
     const b = el("button", symbol === instrument ? "on" : "", symbol);
-    b.title = `Kerzen und Orderbuch von ${symbol}`;
+    b.title = `Candles and order book of ${symbol}`;
     b.onclick = () => { instrument = symbol; instrumentData = null; refresh(); };
     bar.append(b);
   }
@@ -353,10 +377,10 @@ function renderInstrumentShell(symbols) {
   const right = el("div"); right.id = "bookwrap";
   grid.append(left, right);
   host.append(grid);
-  host.append(el("p", "hint", "Ein Tag sind " + (VALUES.steps_per_day || 240)
-    + " Schritte; der Schluss ist über die letzten Schritte gemittelt, wie eine "
-    + "Schlussauktion. Das Buch ist der Zustand genau jetzt — jeder Kurs entsteht "
-    + "dort, wo eine Order auf eine andere trifft."));
+  host.append(el("p", "hint", "A day is " + (VALUES.steps_per_day || 240)
+    + " steps. The close is averaged over the last steps, like a closing auction. "
+    + "The book is the state right now: every price forms where one order meets "
+    + "another."));
 }
 
 function renderCandles(data) {
@@ -369,7 +393,7 @@ function renderCandles(data) {
   host.append(canvas);
 
   if (bars.length < 2) {
-    host.append(el("p", "hint", "Noch keine Handelstage."));
+    host.append(el("p", "hint", "No trading days yet."));
     return;
   }
   const ratio = window.devicePixelRatio || 1;
@@ -390,15 +414,15 @@ function renderCandles(data) {
   bars.forEach((b, i) => {
     const cx = slot * (i + 0.5);
     const vh = (b.v / maxVol) * 22;
-    g.fillStyle = "rgba(141,134,125,.28)";
+    g.fillStyle = INK.volume;
     g.fillRect(cx - body / 2, h - 6 - vh, body, vh);
   });
 
   bars.forEach((b, i) => {
     const cx = slot * (i + 0.5);
     const up = b.c >= b.o;
-    g.strokeStyle = up ? "#4fb8a0" : "#d9584a";
-    g.fillStyle = up ? "rgba(79,184,160,.55)" : "rgba(217,88,74,.55)";
+    g.strokeStyle = up ? INK.up : INK.down;
+    g.fillStyle = up ? INK.upBody : INK.downBody;
     g.lineWidth = 1;
     g.beginPath();
     g.moveTo(Math.round(cx) + .5, y(b.h));
@@ -409,13 +433,13 @@ function renderCandles(data) {
   });
 
   // The fair value the candles are being compared against. The scale is set by the
-  // candles, so when the price has run far enough away the line falls outside it —
+  // candles, so when the price has run far enough away the line falls outside it,
   // and then the legend has to say so rather than name a dashed line that is not
   // on screen. Being off-scale is itself the interesting reading.
   const fair = (data.fair && data.fair.length) ? data.fair.at(-1) : null;
   const fairVisible = fair !== null && fair >= lo && fair <= hi;
   if (fairVisible) {
-    g.setLineDash([3, 3]); g.strokeStyle = "#7e9ee6"; g.lineWidth = 1;
+    g.setLineDash([3, 3]); g.strokeStyle = INK.fair; g.lineWidth = 1;
     g.beginPath(); g.moveTo(0, y(fair)); g.lineTo(w, y(fair)); g.stroke();
     g.setLineDash([]);
   }
@@ -423,13 +447,13 @@ function renderCandles(data) {
   const last = bars.at(-1);
   const gap = fair ? (last.c / fair - 1) * 100 : null;
   const line = el("p", "hint");
-  line.innerHTML = `${bars.length} von ${data.days} Tagen · letzter Tag `
-    + `O ${de(last.o)} H ${de(last.h)} T ${de(last.l)} S ${de(last.c)} · `
-    + `Umsatz ${thin(last.v)} Stück`
-    + (fair === null ? "" : ` · <span style="color:var(--blue)">`
-       + (fairVisible ? "– – " : "") + `fairer Wert ${de(fair)}`
-       + (fairVisible ? "" : " (außerhalb der Skala)")
-       + `</span>, ${pct(gap, 0)} Abweichung`);
+  line.innerHTML = `${bars.length} of ${data.days} days · last day `
+    + `O ${fmt(last.o)} H ${fmt(last.h)} L ${fmt(last.l)} C ${fmt(last.c)} · `
+    + `volume ${count(last.v)} shares`
+    + (fair === null ? "" : ` · <span style="color:var(--accent)">`
+       + (fairVisible ? "– – " : "") + `fair value ${fmt(fair)}`
+       + (fairVisible ? "" : " (outside the scale)")
+       + `</span>, ${pct(gap, 0)} gap`);
   host.append(line);
 }
 
@@ -439,13 +463,13 @@ function renderBook(data) {
   host.innerHTML = "";
   const bids = data.bids || [], asks = data.asks || [];
   if (!bids.length && !asks.length) {
-    host.append(el("p", "hint", "Keine ruhenden Orders."));
+    host.append(el("p", "hint", "No resting orders."));
     return;
   }
   const biggest = Math.max(1, ...bids.map(l => l[1]), ...asks.map(l => l[1]));
   const table = el("div");
   table.style.cssText = "font-variant-numeric:tabular-nums;"
-    + "font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px";
+    + "font-family:var(--mono);font-size:11.5px";
 
   const level = (side, price, qty) => {
     const row = el("div");
@@ -454,10 +478,10 @@ function renderBook(data) {
     const bar = el("div");
     bar.style.cssText = `position:absolute;top:0;bottom:0;right:0;border-radius:2px;`
       + `width:${(qty / biggest * 100).toFixed(1)}%;`
-      + `background:${side === "ask" ? "rgba(217,88,74,.18)" : "rgba(79,184,160,.18)"}`;
-    const p = el("span", "", de(price));
-    p.style.cssText = "position:relative;color:" + (side === "ask" ? "#ff9b8f" : "#7fd8c4");
-    const q = el("span", "dim", thin(qty));
+      + `background:${side === "ask" ? "rgba(212,63,63,.12)" : "rgba(28,154,82,.12)"}`;
+    const p = el("span", "", fmt(price));
+    p.style.cssText = "position:relative;color:" + (side === "ask" ? "var(--down)" : "var(--up)");
+    const q = el("span", "dim", count(qty));
     q.style.position = "relative";
     row.append(bar, p, q);
     return row;
@@ -470,29 +494,29 @@ function renderBook(data) {
   touch.style.cssText = "display:flex;justify-content:space-between;gap:8px;margin:5px 0;"
     + "padding:4px 5px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);"
     + "font-size:11px;color:var(--dim)";
-  touch.append(el("span", "", spread === null ? "einseitig"
-    : `Spanne ${de(spread)} · ${(spread / (data.price.at(-1) || 1) * 10000).toFixed(0)} bp`));
+  touch.append(el("span", "", spread === null ? "one-sided"
+    : `Spread ${fmt(spread)} · ${(spread / (data.price.at(-1) || 1) * 10000).toFixed(0)} bp`));
   table.append(touch);
 
   bids.forEach(([p, q]) => table.append(level("bid", p, q)));
   host.append(table);
 
   const sum = list => list.reduce((t, l) => t + l[1], 0);
-  host.append(el("p", "hint", `Kauf ${thin(sum(bids))} · `
-    + `Verkauf ${thin(sum(asks))} Stück ruhend`));
+  host.append(el("p", "hint", `Bid ${count(sum(bids))} · `
+    + `ask ${count(sum(asks))} shares resting`));
 
   // the tape: what actually crossed, newest first
   if ((data.trades || []).length) {
-    host.append(el("p", "hint", "Zuletzt gehandelt"));
+    host.append(el("p", "hint", "Last traded"));
     const tape = el("div");
     tape.style.cssText = "font-variant-numeric:tabular-nums;font-size:11px;"
-      + "font-family:ui-monospace,SFMono-Regular,Menlo,monospace";
+      + "font-family:var(--mono)";
     data.trades.slice(-6).reverse().forEach(t => {
       const row = el("div");
       row.style.cssText = "display:flex;justify-content:space-between;gap:8px;padding:1px 5px";
-      const p = el("span", "", de(t.price));
+      const p = el("span", "", fmt(t.price));
       p.style.color = t.side > 0 ? "var(--up)" : "var(--down)";
-      row.append(p, el("span", "dim", thin(t.qty)));
+      row.append(p, el("span", "dim", count(t.qty)));
       tape.append(row);
     });
     host.append(tape);
@@ -501,9 +525,9 @@ function renderBook(data) {
 
 /* --------------------------------------------------------- correlation */
 function heatColour(rho) {
-  if (rho === null || rho === undefined) return "#1b1f25";
-  const a = Math.min(Math.abs(rho), 1) * 0.75;
-  return rho >= 0 ? `rgba(217,88,74,${a})` : `rgba(126,158,230,${a})`;
+  if (rho === null || rho === undefined) return INK.empty;
+  const a = Math.min(Math.abs(rho), 1) * 0.6;
+  return rho >= 0 ? `rgba(212,63,63,${a})` : `rgba(47,91,234,${a})`;
 }
 
 function renderCorrelation(data) {
@@ -511,7 +535,7 @@ function renderCorrelation(data) {
   host.innerHTML = "";
   const c = data.correlation;
   if (!c || !c.matrix) {
-    host.append(el("p", "hint", "Noch zu wenige Handelstage für eine Korrelation."));
+    host.append(el("p", "hint", "Too few trading days for a correlation yet."));
     $("#corrnote").textContent = "";
     return;
   }
@@ -525,9 +549,9 @@ function renderCorrelation(data) {
     tr.append(el("th", "dim", c.symbols[i]));
     row.forEach((rho, j) => {
       const td = el("td");
-      const cell = el("div", "num", i === j ? "" : de(rho, 2));
-      cell.style.background = i === j ? "#1b1f25" : heatColour(rho);
-      td.title = `${c.symbols[i]} / ${c.symbols[j]}: ${de(rho, 3)}`;
+      const cell = el("div", "num", i === j ? "" : fmt(rho, 2));
+      cell.style.background = i === j ? INK.empty : heatColour(rho);
+      td.title = `${c.symbols[i]} / ${c.symbols[j]}: ${fmt(rho, 3)}`;
       td.append(cell); tr.append(td);
     });
     table.append(tr);
@@ -535,15 +559,15 @@ function renderCorrelation(data) {
   host.append(table);
 
   const wa = data.within_across || {};
-  let note = `Durchschnitt ${de(c.average, 3)}.`;
+  let note = `Average ${fmt(c.average, 3)}.`;
   if (wa.within !== null && wa.within !== undefined && wa.pairs_within > 0) {
-    note += ` Innerhalb eines Sektors ${de(wa.within, 3)} (${wa.pairs_within} Paare), `
-      + `sektorübergreifend ${de(wa.across, 3)} (${wa.pairs_across} Paare).`;
+    note += ` Within a sector ${fmt(wa.within, 3)} (${wa.pairs_within} pairs), `
+      + `across sectors ${fmt(wa.across, 3)} (${wa.pairs_across} pairs).`;
     note += wa.within > wa.across
-      ? " Die Hierarchie ist in den Kursen sichtbar — nirgends konfiguriert, sie folgt "
-        + "aus dem gemeinsamen Sektorschock."
-      : " Auf dieser Stichprobe kehrt sich die Ordnung um: bei wenigen Paaren und kurzer "
-        + "Historie ist das Rauschen größer als der Effekt.";
+      ? " The hierarchy is visible in the prices. It is configured nowhere; it follows "
+        + "from the common sector shock."
+      : " On this sample the order is reversed: with few pairs and a short history "
+        + "the noise is larger than the effect.";
   }
   $("#corrnote").textContent = note;
 }
@@ -566,24 +590,24 @@ const hold = node => {
 
 function renderBank(b) {
   const host = $("#cb");
-  if (holding && host.contains(holding)) return;   // in use — leave it alone
+  if (holding && host.contains(holding)) return;   // in use, leave it alone
   host.innerHTML = "";
   const head = el("div");
   head.style.cssText = "display:flex;gap:20px;align-items:baseline;flex-wrap:wrap";
-  const rate = el("span", "px num", de(b.rate, 2) + " %");
+  const rate = el("span", "px num", fmt(b.rate, 2) + "%");
   rate.style.fontSize = "24px";
   head.append(rate);
-  head.append(el("span", "meta", `neutral ${de(b.neutral, 2)} % · `
-    + `Inflation ${de(b.inflation, 2)} % (Ziel ${de(b.target, 2)} %) · `
-    + `Output-Gap ${pct(b.output_gap, 2)} · Realzins ${de(b.real_rate, 2)} %`));
+  head.append(el("span", "meta", `neutral ${fmt(b.neutral, 2)}% · `
+    + `inflation ${fmt(b.inflation, 2)}% (target ${fmt(b.target, 2)}%) · `
+    + `output gap ${pct(b.output_gap, 2)} · real rate ${fmt(b.real_rate, 2)}%`));
   host.append(head);
 
   const mode = el("div");
   mode.style.cssText = "margin:8px 0;display:flex;gap:6px;align-items:center;flex-wrap:wrap";
-  const manual = el("button", b.manual ? "on" : "", b.manual ? "von Hand" : "Taylor-Regel");
+  const manual = el("button", b.manual ? "on" : "", b.manual ? "manual" : "Taylor rule");
   manual.title = b.manual
-    ? "Zurück zur Taylor-Regel: die Bank rechnet den Zins wieder selbst aus"
-    : "Zins von Hand setzen. Er erreicht den Kurs nur über die drei Kanäle";
+    ? "Back to the Taylor rule: the bank computes the rate itself again"
+    : "Set the rate by hand. It reaches the price only through the three channels";
   manual.onclick = async () => {
     manual.disabled = true;
     try {
@@ -593,7 +617,7 @@ function renderBank(b) {
     } catch (e) {
       // Reported rather than swallowed; the button comes back either way.
       manual.disabled = false;
-      host.append(el("p", "err", "Zinsmodus nicht geändert: " + e.message));
+      host.append(el("p", "err", "Rate mode not changed: " + e.message));
     }
   };
   mode.append(manual);
@@ -604,12 +628,13 @@ function renderBank(b) {
     slider.min = 0; slider.max = 0.15; slider.step = 0.0025;
     slider.value = Math.round((b.rate / 100) / 0.0025) * 0.0025;
     slider.style.maxWidth = "220px";
-    slider.title = "Leitzins, jährlich";
-    slider.oninput = () => { rate.textContent = de(slider.value * 100, 2) + " %"; };
+    slider.title = "Policy rate, annual";
+    slider.setAttribute("aria-label", "Policy rate, annual");
+    slider.oninput = () => { rate.textContent = fmt(slider.value * 100, 2) + "%"; };
     slider.onchange = async () => {
       holding = null;
       try { await post("/api/centralbank", {manual: true, rate: Number(slider.value)}); }
-      catch (e) { host.append(el("p", "err", "Zins nicht gesetzt: " + e.message)); }
+      catch (e) { host.append(el("p", "err", "Rate not set: " + e.message)); }
       refresh();
     };
     mode.append(slider);
@@ -618,20 +643,20 @@ function renderBank(b) {
 
   const table = el("table");
   const head2 = el("tr");
-  ["Sektor", "Zins-Sens.", "Duration", "Kanal"].forEach(t => head2.append(el("th", "", t)));
+  ["Sector", "Rate sens.", "Duration", "Channel"].forEach(t => head2.append(el("th", "", t)));
   table.append(head2);
   for (const v of (b.channels?.valuation || [])) {
     const tr = el("tr");
     tr.append(el("td", "", v.symbol));
-    tr.append(el("td", "n num", de(v.rate_sensitivity, 1)));
-    tr.append(el("td", "n num", de(v.duration, 1) + " J"));
-    tr.append(el("td", "n num dim", pct(-v.duration, 0) + " je +1 Pkt"));
+    tr.append(el("td", "n num", fmt(v.rate_sensitivity, 1)));
+    tr.append(el("td", "n num", fmt(v.duration, 1) + " yrs"));
+    tr.append(el("td", "n num dim", pct(-v.duration, 0) + " per +1 pt"));
     table.append(tr);
   }
   host.append(table);
-  host.append(el("p", "hint", `Kreditzins für Hebel-Fonds ${de(b.channels?.borrow_rate, 2)} % · `
-    + `Zufluss-Faktor ${de(b.channels?.flow_multiplier, 2)}. `
-    + `Der Zins bewegt keinen Kurs direkt — er wirkt über Bewertung, Finanzierungskosten und Zuflüsse.`));
+  host.append(el("p", "hint", `Borrowing rate for leveraged funds ${fmt(b.channels?.borrow_rate, 2)}% · `
+    + `inflow factor ${fmt(b.channels?.flow_multiplier, 2)}. `
+    + `The rate moves no price directly. It works through valuation, financing costs and inflows.`));
 }
 
 /* ---------------------------------------------------------- validation */
@@ -642,31 +667,31 @@ function renderValidation(m) {
     host.append(el("p", "hint", `${m.basis || "–"}. ${m.note || ""}`));
     return;
   }
-  /* Both figures are ratios, and printing "Vola 2,45 p. a." invited reading it as
-     245 % of something unnamed. They are stated as percentages, with the unit. */
+  /* Both figures are ratios, and printing "vol 2.45 p.a." invited reading it as
+     245% of something unnamed. They are stated as percentages, with the unit. */
   host.append(el("p", "hint",
-    `Gemessen auf ${m.basis} · annualisierte Volatilität ${de(m.annualised_vol * 100, 0)} % · `
-    + `größter Rückgang vom Höchststand ${de(Math.abs(m.max_drawdown) * 100, 0)} %`));
+    `Measured on ${m.basis} · annualised volatility ${fmt(m.annualised_vol * 100, 0)}% · `
+    + `largest decline from the peak ${fmt(Math.abs(m.max_drawdown) * 100, 0)}%`));
   const table = el("table");
   const head = el("tr");
-  ["", "Kriterium", "Wert"].forEach(t => head.append(el("th", "", t)));
+  ["", "Criterion", "Value"].forEach(t => head.append(el("th", "", t)));
   table.append(head);
   for (const c of m.stylized_facts) {
     const tr = el("tr");
     tr.append(el("td", c.passed ? "pass" : "fail", c.passed ? "✓" : "✗"));
     const name = el("td", "", c.name); name.title = c.detail;
     tr.append(name);
-    tr.append(el("td", "n num", c.measurable === false ? "n/a" : de(c.value, 3)));
+    tr.append(el("td", "n num", c.measurable === false ? "n/a" : fmt(c.value, 3)));
     table.append(tr);
   }
   host.append(table);
   const met = m.stylized_facts.filter(c => c.passed).length;
-  host.append(el("p", "hint", `${met} von ${m.stylized_facts.length} erfüllt. `
-    + `Die Werte hier stammen aus einer kürzeren Stichprobe als die im README — `
-    + `bei 16× laufen sie darauf zu.`));
+  host.append(el("p", "hint", `${met} of ${m.stylized_facts.length} met. `
+    + `The values here come from a shorter sample than those in the README. `
+    + `At 16× they converge towards them.`));
   if (m.variance_ratio) {
-    host.append(el("p", "hint", "Varianz-Ratio (1 = Random Walk): "
-      + Object.entries(m.variance_ratio).map(([k, v]) => `${k}T ${de(v, 2)}`).join(" · ")));
+    host.append(el("p", "hint", "Variance ratio (1 = random walk): "
+      + Object.entries(m.variance_ratio).map(([k, v]) => `${k}d ${fmt(v, 2)}`).join(" · ")));
   }
 }
 
@@ -696,8 +721,8 @@ function renderCompare(state) {
   const wrapA = el("div"); wrapA.append(el("label", "row", "A"), valA);
   const wrapB = el("div"); wrapB.append(el("label", "row", "B"), valB);
   const wrapP = el("div"); wrapP.append(el("label", "row", "Parameter"), pick);
-  const run = el("button", "", "Vergleich starten");
-  const sweep = el("button", "", "über 3 Seeds");
+  const run = el("button", "", "Start comparison");
+  const sweep = el("button", "", "across 3 seeds");
   form.append(wrapP, wrapA, wrapB, run, sweep);
   host.append(form);
 
@@ -708,7 +733,7 @@ function renderCompare(state) {
   const done = () => { compareBusy = false; run.disabled = sweep.disabled = false; };
   run.onclick = async () => {
     run.disabled = sweep.disabled = true;
-    busy("rechnet zwei Läufe über 66 Handelstage — das dauert etwa eine Minute …");
+    busy("computing two runs over 66 trading days. This takes about a minute …");
     try {
       const key = pick.value;
       const data = await post("/api/compare", {
@@ -720,7 +745,7 @@ function renderCompare(state) {
   };
   sweep.onclick = async () => {
     run.disabled = sweep.disabled = true;
-    busy("rechnet 6 Läufe — das dauert mehrere Minuten …");
+    busy("computing 6 runs. This takes several minutes …");
     try {
       const key = pick.value;
       const data = await post("/api/compare/sweep", {
@@ -736,29 +761,29 @@ function renderCompare(state) {
 }
 
 const LABELS = {
-  criteria_met: "Kriterien erfüllt", annualised_vol: "Vola p. a.", acf1: "ACF(1)",
-  clustering: "Vola-Cluster", hill: "Tail-Index", volume_corr: "Volumen-Kopplung",
-  stretch: "|Abw. fair|", margin_calls: "Margin Calls", max_drawdown: "max. Drawdown",
-  excess_kurtosis: "Kurtosis", chartist_share: "Chartisten", correlation: "Korrelation",
+  criteria_met: "Criteria met", annualised_vol: "Vol p.a.", acf1: "ACF(1)",
+  clustering: "Vol clustering", hill: "Tail index", volume_corr: "Volume coupling",
+  stretch: "|Gap to fair|", margin_calls: "Margin calls", max_drawdown: "Max. drawdown",
+  excess_kurtosis: "Kurtosis", chartist_share: "Chartists", correlation: "Correlation",
 };
 
 /* "{"n_passive":30}" as a column header is the JSON, not the thing it means. */
 function armLabel(overrides) {
   const entries = Object.entries(overrides || {});
-  if (!entries.length) return "Standard";
+  if (!entries.length) return "Default";
   return entries.map(([name, value]) =>
-    `${(SPEC[name] || {}).label || name} ${de(value, Number.isInteger(value) ? 0 : 2)}`)
+    `${(SPEC[name] || {}).label || name} ${fmt(value, Number.isInteger(value) ? 0 : 2)}`)
     .join(" · ");
 }
 
 function renderCompareResult(host, data) {
   const a = data.a.metrics, b = data.b.metrics;
   if (a.insufficient || b.insufficient) {
-    host.append(el("p", "hint", "Noch zu wenige Handelstage für Kennzahlen.")); return;
+    host.append(el("p", "hint", "Too few trading days for metrics yet.")); return;
   }
-  /* Once a comparison exists there was no way to clear it: DELETE /api/compare was
+  /* Once a comparison existed there was no way to clear it: DELETE /api/compare was
      unreachable from anywhere, so the panel kept the old result for ever. */
-  const drop = el("button", "", "Ergebnis verwerfen");
+  const drop = el("button", "", "Discard result");
   drop.onclick = async () => {
     drop.disabled = true;
     try { await fetch("/api/compare", {method: "DELETE"}); renderCompare({active: false}); }
@@ -775,10 +800,10 @@ function renderCompareResult(host, data) {
     if (a[key] === undefined || a[key] === null) continue;
     const tr = el("tr");
     tr.append(el("td", "", LABELS[key]));
-    tr.append(el("td", "n num", de(a[key], 3)));
-    tr.append(el("td", "n num", de(b[key], 3)));
+    tr.append(el("td", "n num", fmt(a[key], 3)));
+    tr.append(el("td", "n num", fmt(b[key], 3)));
     const d = data.difference[key];
-    tr.append(el("td", "n num " + sign(d), d === undefined ? "–" : de(d, 3)));
+    tr.append(el("td", "n num " + sign(d), d === undefined ? "–" : fmt(d, 3)));
     table.append(tr);
   }
   host.append(table);
@@ -788,25 +813,24 @@ function renderCompareResult(host, data) {
 function renderSweep(host, data) {
   const table = el("table");
   const head = el("tr");
-  ["Kennzahl", "A", "B", "Δ", "Streuung", "Signal/Rauschen"]
+  ["Metric", "A", "B", "Δ", "Spread", "Signal/noise"]
     .forEach(t => head.append(el("th", "", t)));
   table.append(head);
   for (const [key, f] of Object.entries(data.summary)) {
     const tr = el("tr");
     tr.append(el("td", "", LABELS[key] || key));
-    tr.append(el("td", "n num", de(f.a, 3)));
-    tr.append(el("td", "n num", de(f.b, 3)));
-    tr.append(el("td", "n num " + sign(f.difference), de(f.difference, 3)));
-    tr.append(el("td", "n num dim", de(f.spread, 3)));
+    tr.append(el("td", "n num", fmt(f.a, 3)));
+    tr.append(el("td", "n num", fmt(f.b, 3)));
+    tr.append(el("td", "n num " + sign(f.difference), fmt(f.difference, 3)));
+    tr.append(el("td", "n num dim", fmt(f.spread, 3)));
     tr.append(el("td", "n num " + (f.signal_to_noise >= 1 ? "up" : "dim"),
-      de(f.signal_to_noise, 2)));
+      fmt(f.signal_to_noise, 2)));
     table.append(tr);
   }
   host.append(table);
-  host.append(el("p", "hint", `${data.seeds.length} Seed-Paare · ${data.steps} Schritte. `
-    + "Signal/Rauschen über 1 heißt, der Unterschied hebt sich von der Streuung zwischen "
-    + "den Seeds ab. Darunter nicht — unabhängig davon, wie deutlich ein einzelnes "
-    + "Diagramm aussieht."));
+  host.append(el("p", "hint", `${data.seeds.length} seed pairs · ${count(data.steps)} steps. `
+    + "Signal/noise above 1 means the difference stands out from the scatter between "
+    + "the seeds. Below 1 it does not, however clear a single chart looks."));
 }
 
 /* -------------------------------------------------------------- replay */
@@ -818,8 +842,8 @@ async function renderReplay() {
   catch (e) { host.append(el("p", "err", String(e.message))); return; }
 
   if (!runs.runs.length) {
-    host.append(el("p", "hint", "Keine Aufzeichnungen. Mit "
-      + "python scripts/run.py --steps 60000 --name basis  eine erzeugen."));
+    host.append(el("p", "hint", "No recordings. Create one with "
+      + "python scripts/run.py --steps 60000 --name baseline"));
     return;
   }
 
@@ -828,14 +852,14 @@ async function renderReplay() {
   const pick = el("select"); pick.style.maxWidth = "260px";
   for (const r of runs.runs) {
     const o = el("option", "", `${r.stamp} ${r.name}`
-      + (r.scenario ? ` · ${r.scenario}` : "") + ` · ${r.days} T · Seed ${r.seed}`);
+      + (r.scenario ? ` · ${r.scenario}` : "") + ` · ${r.days} d · seed ${r.seed}`);
     o.value = r.path; pick.append(o);
   }
-  const open = el("button", "", "Öffnen");
-  const wrap = el("div"); wrap.append(el("label", "row", "Aufzeichnung"), pick);
+  const open = el("button", "", "Open");
+  const wrap = el("div"); wrap.append(el("label", "row", "Recording"), pick);
   bar.append(wrap, open);
   if (state.active) {
-    const close = el("button", "", "Schließen");
+    const close = el("button", "", "Close");
     close.onclick = async () => { await fetch("/api/replay", {method: "DELETE"}); renderReplay(); };
     bar.append(close);
   }
@@ -848,22 +872,23 @@ async function renderReplay() {
   };
 
   if (!state.active) {
-    host.append(el("p", "hint", "Ein Replay wird aus dem Seed nachgerechnet, nicht aus "
-      + "gespeicherten Kurven gelesen. Deshalb steht an jeder Position der ganze Zustand "
-      + "zur Verfügung — Orderbuch, Viertel, Agenten — und nicht nur die Linien, die "
-      + "zufällig exportiert wurden."));
+    host.append(el("p", "hint", "A replay is recomputed from the seed, not read from "
+      + "stored curves. That is why the whole state is available at every position "
+      + "(order book, districts, agents), and not just the lines that happened to be "
+      + "exported."));
     return;
   }
 
   const info = el("p", "hint",
-    `${state.name} · Seed ${state.seed}${state.scenario ? " · " + state.scenario : ""} · `
-    + `Tag ${state.day} von ${state.days_total}`);
+    `${state.name} · seed ${state.seed}${state.scenario ? " · " + state.scenario : ""} · `
+    + `day ${state.day} of ${state.days_total}`);
   host.append(info);
 
   const scrub = hold(el("input")); scrub.type = "range";
   scrub.min = 0; scrub.max = state.days_total; scrub.step = 1; scrub.value = state.day;
-  scrub.title = "Tag im aufgezeichneten Lauf. Rückwärts wird von vorn nachgerechnet, "
-    + "das kann einen Moment dauern.";
+  scrub.title = "Day in the recorded run. Going backwards recomputes from the start, "
+    + "which can take a moment.";
+  scrub.setAttribute("aria-label", "Day in the recorded run");
   host.append(scrub);
 
   const read = el("div"); read.style.marginTop = "6px";
@@ -881,25 +906,32 @@ async function renderReplay() {
      remembered and honoured when the current seek returns. */
   let seeking = false, queued = null;
   const seek = async day => {
-    if (seeking) { queued = day; info.textContent = `springt … (${day} folgt)`; return; }
+    if (seeking) { queued = day; info.textContent = `seeking … (${day} next)`; return; }
     seeking = true;
-    info.textContent = `springt zu Tag ${day} …`;
+    info.textContent = `seeking day ${day} …`;
     try {
       const next = await post("/api/replay/seek", {day});
-      info.textContent = `${next.name} · Seed ${next.seed} · Tag ${next.day} von ${next.days_total}`;
+      info.textContent = `${next.name} · seed ${next.seed} · day ${next.day} of ${next.days_total}`;
       if (next.snapshot) show(next.snapshot);
-    } catch (e) { info.textContent = "Sprung fehlgeschlagen: " + e.message; }
+    } catch (e) { info.textContent = "Seek failed: " + e.message; }
     seeking = false;
     if (queued !== null) { const day2 = queued; queued = null; seek(day2); }
   };
   scrub.onchange = () => { holding = null; seek(Number(scrub.value)); };
-  host.append(el("p", "hint", "Vorwärts wird weitergerechnet, rückwärts von vorn — "
-    + "beides ergibt bitgenau denselben Lauf."));
+  host.append(el("p", "hint", "Forwards it computes on, backwards it computes from the "
+    + "start. Both give a bit-identical run."));
 }
 
 /* ------------------------------------------------------------- explain */
-const PHASE_COLOUR = {ruhig: "var(--dim)", aufbauend: "var(--warn)",
-  "überdehnt": "var(--warn)", fallend: "var(--down)", kaskade: "var(--down)"};
+/* Keyed by the phase the narrator reports. Both the German keys and their English
+   counterparts are listed while the backend switches language; an unknown phase
+   falls back to the ink colour. */
+const PHASE_COLOUR = {
+  ruhig: "var(--dim)", aufbauend: "var(--warn)", "überdehnt": "var(--warn)",
+  fallend: "var(--down)", kaskade: "var(--down)",
+  calm: "var(--dim)", building: "var(--warn)", stretched: "var(--warn)",
+  falling: "var(--down)", cascade: "var(--down)",
+};
 
 function renderExplain(e) {
   const host = $("#explain");
@@ -910,15 +942,15 @@ function renderExplain(e) {
   title.style.color = PHASE_COLOUR[e.phase] || "var(--ink)";
   head.append(title);
   head.append(el("span", "tag", e.regime.name));
-  head.append(el("span", "tag", "Vola " + e.turbulence.label));
-  if (e.risk.calls_now) head.append(el("span", "tag", e.risk.calls_now + " Margin Calls"));
+  head.append(el("span", "tag", "Vol " + e.turbulence.label));
+  if (e.risk.calls_now) head.append(el("span", "tag", e.risk.calls_now + " margin calls"));
   host.append(head);
 
   const why = el("ul", "why");
   e.because.forEach(t => why.append(el("li", "", t)));
   host.append(why);
 
-  host.append(el("div", "", "Worauf jetzt achten"));
+  host.append(el("div", "", "What to watch now"));
   host.lastChild.style.cssText =
     "font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dimmer);margin:6px 0 2px";
   const watch = el("ul", "why watch");
@@ -952,9 +984,9 @@ let LESSONS = [], activeLesson = null, CLOCK = {};
 /* The backend names the speeds "1x", "4x", "16x"; the buttons show "1×". */
 const spd = name => String(name).replace("x", "×");
 
-/* Minutes and hours, not seconds — the question is "how long will this take". */
+/* Minutes and hours, not seconds. The question is "how long will this take". */
 function duration(seconds) {
-  if (!isFinite(seconds) || seconds <= 0) return "gleich";
+  if (!isFinite(seconds) || seconds <= 0) return "any moment";
   if (seconds < 90) return `${Math.round(seconds)} s`;
   const minutes = seconds / 60;
   if (minutes < 90) return `${Math.round(minutes)} min`;
@@ -974,31 +1006,31 @@ async function renderLessons() {
   const fastest = CLOCK.fastest || "16x";
   const perStep = CLOCK.seconds_per_step || {};
   host.append(el("p", "hint",
-    "Jedes Experiment stellt den Markt ein, sagt worauf zu achten ist — und prüft "
-    + "danach gemessen, ob es funktioniert hat. Auch wenn nicht. Der Start schaltet "
-    + `auf ${spd(fastest)}: bei Echtzeit dauert ein Experiment Stunden.`));
+    "Each experiment sets up the market, says what to watch, and afterwards checks by "
+    + "measurement whether it worked. Even when it did not. Starting switches "
+    + `to ${spd(fastest)}: in real time an experiment takes hours.`));
 
   for (const L of LESSONS) {
     const box = el("div", "lesson" + (activeLesson === L.key ? " on" : ""));
     const head = el("div");
     head.style.cssText = "display:flex;justify-content:space-between;gap:8px;align-items:baseline";
     head.append(el("h4", "", L.title));
-    /* "läuft" was the label on a button that silently restarted the experiment, and
-       on failure it stayed disabled reading "Fehler" with the reason thrown away.
+    /* "running" was the label on a button that silently restarted the experiment, and
+       on failure it stayed disabled reading "error" with the reason thrown away.
        Now it says what it does, comes back either way, and the reason is printed. */
     const running = activeLesson === L.key;
     const steps = L.steps || L.days * (CLOCK.steps_per_day || 240);
     const atFastest = duration(steps * (perStep[fastest] ?? 0.03));
-    const run = el("button", "", running ? "neu starten" : "starten");
+    const run = el("button", "", running ? "restart" : "start");
     run.title = running
-      ? "Setzt dieses Experiment von Tag 0 neu auf"
-      : `Stellt den Markt ein und startet neu · ${L.days} Handelstage `
-        + `(${thin(steps)} Schritte) ≈ ${atFastest} bei ${spd(fastest)}`;
+      ? "Sets this experiment up again from day 0"
+      : `Sets up the market and restarts · ${L.days} trading days `
+        + `(${count(steps)} steps) ≈ ${atFastest} at ${spd(fastest)}`;
     run.onclick = async () => {
-      run.disabled = true; run.textContent = "startet …";
+      run.disabled = true; run.textContent = "starting …";
       try {
         await post("/api/lessons/" + L.key);
-        /* Straight to the fastest clock — at 1× the recommended days are hours away,
+        /* Straight to the fastest clock. At 1× the recommended days are hours away,
            which is the same as not offering them. */
         await post("/api/control", {action: "speed", speed: fastest});
         activeLesson = L.key;
@@ -1006,19 +1038,19 @@ async function renderLessons() {
         renderParams();
         renderLessons(); refresh();
       } catch (e) {
-        run.disabled = false; run.textContent = running ? "neu starten" : "starten";
-        box.append(el("p", "err", "Experiment nicht gestartet: " + e.message));
+        run.disabled = false; run.textContent = running ? "restart" : "start";
+        box.append(el("p", "err", "Experiment not started: " + e.message));
       }
     };
     head.append(run);
     /* Leaving an experiment was impossible: nothing cleared it, so the panel went on
        checking a market the experiment had not arranged. A reset ends it. */
     if (running) {
-      const stop = el("button", "", "beenden");
-      stop.title = "Experiment verlassen: zurück auf die kalibrierten Standardwerte "
-        + "und einen normalen Lauf";
+      const stop = el("button", "", "end");
+      stop.title = "Leave the experiment: back to the calibrated defaults "
+        + "and a normal run";
       stop.onclick = async () => {
-        stop.disabled = true; stop.textContent = "beendet …";
+        stop.disabled = true; stop.textContent = "ending …";
         try {
           /* Leaving means leaving the conditions too. A reset alone kept the
              experiment's overrides in place, so the market was still the
@@ -1031,8 +1063,8 @@ async function renderLessons() {
           renderParams();
           renderLessons(); refresh();
         } catch (e) {
-          stop.disabled = false; stop.textContent = "beenden";
-          box.append(el("p", "err", "Nicht beendet: " + e.message));
+          stop.disabled = false; stop.textContent = "end";
+          box.append(el("p", "err", "Not ended: " + e.message));
         }
       };
       head.append(stop);
@@ -1046,7 +1078,7 @@ async function renderLessons() {
       L.watch.forEach(t => watch.append(el("li", "", t)));
       box.append(watch);
       if (L.honest) box.append(el("p", "hint", L.honest));
-      const result = el("div", "", "prüft …");
+      const result = el("div", "", "checking …");
       result.className = "hint";
       box.append(result);
       checkLesson(L, result);
@@ -1061,36 +1093,40 @@ async function checkLesson(L, host) {
     host.innerHTML = "";
     const head = el("div");
     head.style.cssText = "display:flex;gap:8px;align-items:center;margin:6px 0 4px";
-    const cls = r.verdict === "gezeigt" ? "v-ok" : r.verdict === "teilweise" ? "v-part" : "v-no";
+    /* The colour follows the checks themselves, the same rule the backend uses for
+       the verdict, so it does not depend on the language the verdict is written in. */
+    const checks = r.checks || [];
+    const passed = checks.filter(c => c.passed).length;
+    const cls = passed === checks.length ? "v-ok" : passed ? "v-part" : "v-no";
     head.append(el("span", "verdict " + cls, r.verdict));
-    head.append(el("span", "hint", `Tag ${r.day} von ${r.days_needed}`
+    head.append(el("span", "hint", `Day ${r.day} of ${r.days_needed}`
       + (r.seconds_left > 0
-         ? ` · noch ≈ ${duration(r.seconds_left)} bei ${spd(r.speed)}`
-         : " · Empfehlung erreicht")));
+         ? ` · ≈ ${duration(r.seconds_left)} left at ${spd(r.speed)}`
+         : " · recommendation reached")));
     host.append(head);
-    for (const c of r.checks) {
+    for (const c of checks) {
       const row = el("div", "check");
       const m = el("span", "m " + (c.passed ? "up" : "down"), c.passed ? "✓" : "✗");
       row.append(m);
       const txt = el("span", "");
-      txt.append(el("span", "", c.label + " — "));
+      txt.append(el("span", "", c.label + ": "));
       txt.append(el("span", "dim", c.detail));
       row.append(txt);
       host.append(row);
     }
-  } catch (e) { host.textContent = "Prüfung fehlgeschlagen: " + e.message; }
+  } catch (e) { host.textContent = "Check failed: " + e.message; }
 }
 
 /* -------------------------------------------------------------- params */
 let SPEC = {}, VALUES = {}, DEFAULTS = null;
 
-/* Tiny steps need an exponent. Fundamental-Drift's whole range fits inside
-   "0,0000", so four decimals showed the same four zeros at every position. */
+/* Tiny steps need an exponent. The fundamental drift's whole range fits inside
+   "0.0000", so four decimals showed the same four zeros at every position. */
 function pnum(value, spec) {
   const n = Number(value);
   if (spec.step < 1e-4 && n !== 0 && Math.abs(n) < 1e-3)
-    return n.toExponential(2).replace(".", ",").replace("e", "·10^");
-  return de(n, spec.step < 0.001 ? 6 : spec.step < 0.01 ? 4 : spec.step < 1 ? 2 : 0);
+    return n.toExponential(2).replace("e", "·10^");
+  return fmt(n, spec.step < 0.001 ? 6 : spec.step < 0.01 ? 4 : spec.step < 1 ? 2 : 0);
 }
 
 function renderParams() {
@@ -1098,13 +1134,13 @@ function renderParams() {
   if (holding && host.contains(holding)) return;   // a slider is being dragged
   host.innerHTML = "";
 
-  /* Back to the values scripts/calibrate.py was run against — the only ones for
+  /* Back to the values scripts/calibrate.py was run against, the only ones for
      which the validation panel below means what the README says it means. */
-  const restore = el("button", "", "Standardwerte");
-  restore.title = "Alle Regler auf die kalibrierten Werte zurücksetzen und neu starten";
+  const restore = el("button", "", "Defaults");
+  restore.title = "Reset every control to the calibrated values and restart";
   restore.disabled = !DEFAULTS;
   restore.onclick = async () => {
-    restore.disabled = true; restore.textContent = "setzt zurück …";
+    restore.disabled = true; restore.textContent = "resetting …";
     const wanted = {};
     Object.keys(SPEC).forEach(name => wanted[name] = DEFAULTS[name]);
     try { await post("/api/params", {values: wanted, reset: true}); }
@@ -1125,7 +1161,7 @@ function renderParams() {
       const label = el("span", "", spec.label + (spec.live ? "" : " ·"));
       if (DEFAULTS && Number(VALUES[name]) !== Number(DEFAULTS[name])) {
         label.style.color = "var(--warn)";
-        label.title = "vom kalibrierten Standard abweichend";
+        label.title = "differs from the calibrated default";
       }
       line.append(label);
       const out = el("span", "num", pnum(VALUES[name], spec));
@@ -1134,8 +1170,9 @@ function renderParams() {
       slider.min = spec.min; slider.max = spec.max; slider.step = spec.step;
       slider.value = VALUES[name];
       slider.title = spec.live
-        ? name + " — wirkt sofort"
-        : name + " — wirkt erst nach einem Neustart; der Lauf beginnt neu und wärmt auf";
+        ? name + ": takes effect immediately"
+        : name + ": takes effect only after a restart; the run starts over and warms up";
+      slider.setAttribute("aria-label", spec.label);
       slider.oninput = () => { out.textContent = pnum(slider.value, spec); };
       slider.onchange = async () => {
         holding = null;
@@ -1146,9 +1183,9 @@ function renderParams() {
           out.style.color = "";
           refresh();
         } catch (e) {
-          /* Reported and recovered: the readout used to say "Fehler" for ever while
+          /* Reported and recovered: the readout used to say "error" for ever while
              the slider stayed at a value the simulation never accepted. */
-          out.textContent = "abgelehnt";
+          out.textContent = "rejected";
           out.style.color = "var(--down)";
           slider.value = VALUES[name];
           host.append(el("p", "err", spec.label + ": " + e.message));
@@ -1158,9 +1195,9 @@ function renderParams() {
     }
     host.append(box);
   }
-  host.append(el("p", "hint", "Ein · hinter dem Namen heißt: wirkt erst nach einem Neustart, "
-    + "weil die Population beim Reset gebaut wird. Alle Regler kommen aus PARAM_SPEC — "
-    + "ein neuer Parameter erscheint hier ohne Änderung an dieser Seite."));
+  host.append(el("p", "hint", "A · after the name means: takes effect only after a "
+    + "restart, because the population is built at reset. Every control comes from "
+    + "PARAM_SPEC. A new parameter appears here without any change to this page."));
 }
 
 async function loadParams() {
@@ -1186,11 +1223,11 @@ async function refresh() {
     }
     configSig = sig;
 
-    $("#step").textContent = state.step;
-    $("#day").textContent = Math.floor(
-      Number(String(state.step).replace(/\D/g, "")) / (VALUES.steps_per_day || 240));
+    $("#step").textContent = count(state.step);
+    $("#day").textContent = count(Math.floor(
+      Number(String(state.step).replace(/\D/g, "")) / (VALUES.steps_per_day || 240)));
     paused = !state.running;
-    $("#play").textContent = paused ? "Weiter" : "Pause";
+    $("#play").textContent = paused ? "Resume" : "Pause";
     document.querySelectorAll(".spd").forEach(b =>
       b.classList.toggle("on", b.dataset.speed === state.speed));
 
@@ -1208,7 +1245,7 @@ async function refresh() {
     if (state.lesson && state.lesson !== activeLesson) {
       activeLesson = state.lesson; renderLessons();
     } else if (activeLesson && !state.lesson) {
-      /* The server says no experiment is running — a reset or a scenario ended it. */
+      /* The server says no experiment is running: a reset or a scenario ended it. */
       activeLesson = null; renderLessons();
     } else if (activeLesson) {
       const box = document.querySelector(".lesson.on .hint:last-child");
@@ -1221,7 +1258,7 @@ async function refresh() {
     renderValidation(metrics);
 
     /* The instrument panel is a sixth request, and only the tradable symbols can
-       answer it — with `stocks_per_sector` above zero the sectors are indices with
+       answer it. With `stocks_per_sector` above zero the sectors are indices with
        no book of their own, so the individual names are the ones to offer. */
     const tradable = sectors.groups.flatMap(g => g.members.map(m => m.symbol));
     renderInstrumentShell(tradable);
@@ -1231,25 +1268,25 @@ async function refresh() {
         renderCandles(instrumentData);
         renderBook(instrumentData);
       } catch (e) {
-        $("#instrument").append(el("p", "err", "Instrument nicht geladen: " + e.message));
+        $("#instrument").append(el("p", "err", "Instrument not loaded: " + e.message));
       }
     }
 
     const log = $("#log"); log.innerHTML = "";
     (state.log || []).forEach(([step, text, colour]) => {
       const row = el("div", "", `${step}  ${text}`);
-      row.style.color = colour; log.append(row);
+      row.style.color = tone(colour); log.append(row);
     });
 
-    $("#foot").textContent = `${sectors.groups.length} Sektoren · `
-      + `${sectors.stocks_per_sector > 0 ? sectors.groups.length * sectors.stocks_per_sector : sectors.groups.length} Instrumente · `
-      + `${state.agents} Agenten · Seed ${state.seed} · `
-      + `Korrelation ${de(sectors.correlation?.average, 3)}`;
+    $("#foot").textContent = `${sectors.groups.length} sectors · `
+      + `${sectors.stocks_per_sector > 0 ? sectors.groups.length * sectors.stocks_per_sector : sectors.groups.length} instruments · `
+      + `${count(state.agents)} agents · seed ${state.seed} · `
+      + `correlation ${fmt(sectors.correlation?.average, 3)}`;
     $("#stale").style.display = "none";
   } catch (e) {
     /* Every panel is still showing the last successful reading. Saying so beats
        leaving numbers on screen that look current and are not. */
-    $("#foot").textContent = "Backend nicht erreichbar: " + e.message;
+    $("#foot").textContent = "Backend not reachable: " + e.message;
     $("#stale").style.display = "";
     $("#stalewhy").textContent = e.message;
   }
@@ -1262,21 +1299,21 @@ async function drive(button, body, label) {
   button.disabled = true;
   try { await post("/api/control", body); }
   catch (e) {
-    $("#foot").textContent = `${label} fehlgeschlagen: ${e.message}`;
+    $("#foot").textContent = `${label} failed: ${e.message}`;
     button.textContent = was;
   }
   finally { button.disabled = false; refresh(); }
 }
 
 $("#play").onclick = e =>
-  drive(e.currentTarget, {action: paused ? "play" : "pause"}, paused ? "Weiter" : "Pause");
+  drive(e.currentTarget, {action: paused ? "play" : "pause"}, paused ? "Resume" : "Pause");
 document.querySelectorAll(".spd").forEach(b => b.onclick = () =>
-  drive(b, {action: "speed", speed: b.dataset.speed}, "Tempo " + b.dataset.speed));
+  drive(b, {action: "speed", speed: b.dataset.speed}, "Speed " + b.dataset.speed));
 
 (async function boot() {
   /* Four independent panels, so they are fetched together rather than one after
-     the other. Serialised, the whole page stayed blank behind the slowest request
-     — which during warm-up is every request. */
+     the other. Serialised, the whole page stayed blank behind the slowest request,
+     which during warm-up is every request. */
   const settle = results => results.map(r => r.status === "fulfilled" ? r.value : null);
   const [params, compare] = settle(await Promise.allSettled([
     api("/api/params"), api("/api/compare"),
@@ -1286,7 +1323,7 @@ document.querySelectorAll(".spd").forEach(b => b.onclick = () =>
     renderParams();
   } else {
     $("#params").innerHTML = "";
-    $("#params").append(el("p", "err", "Parameter nicht geladen — Backend erreichbar?"));
+    $("#params").append(el("p", "err", "Parameters not loaded. Is the backend reachable?"));
   }
   /* Each of these reports its own failure inside its own panel. */
   await Promise.allSettled([
@@ -1297,7 +1334,7 @@ document.querySelectorAll(".spd").forEach(b => b.onclick = () =>
   await refresh();
   setInterval(() => { if (!compareBusy) refresh(); }, 1500);
   /* Sparklines are canvas and have to be redrawn at the new width. Redrawing them
-     is all that is needed — this used to call refresh(), which is five API requests,
+     is all that is needed. This used to call refresh(), which is five API requests,
      once per resize event, so dragging a window border fired hundreds of them. */
   let resizeQueued = false;
   window.addEventListener("resize", () => {

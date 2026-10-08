@@ -68,7 +68,7 @@ def test_shares_are_conserved_between_agents(sim):
     """
     quiet = Simulation(small(n_companies=0))
     assert not [a for a in quiet.agents if a.kind == "company"], \
-        "n_companies=0 muss den Emittenten wirklich entfernen"
+        "n_companies=0 must really remove the issuer"
     for _ in range(SEED_BOOK_GONE):
         quiet.step()
     before = total_shares(quiet)
@@ -92,8 +92,8 @@ def test_the_issuer_is_the_only_source_of_new_float():
     for _ in range(2000):
         loud.step()
 
-    assert others(loud) - before == issued(loud) - before_issued, "Stücke aus dem Nichts"
-    assert others(loud) != before, "der Emittent hat in 2000 Schritten nichts bewegt"
+    assert others(loud) - before == issued(loud) - before_issued, "shares out of nowhere"
+    assert others(loud) != before, "the issuer moved nothing in 2,000 steps"
 
 
 def test_only_makers_and_issuer_may_go_short(sim):
@@ -102,7 +102,7 @@ def test_only_makers_and_issuer_may_go_short(sim):
     for agent in sim.agents:
         if agent.kind in ("maker", "company"):
             continue
-        assert agent.shares >= 0, f"{agent.kind} #{agent.aid} hält {agent.shares} Stück"
+        assert agent.shares >= 0, f"{agent.kind} #{agent.aid} holds {agent.shares} shares"
 
 
 def test_only_leveraged_funds_may_borrow(sim):
@@ -113,7 +113,7 @@ def test_only_leveraged_funds_may_borrow(sim):
     for agent in sim.agents:
         if agent.kind == "leveraged":
             continue
-        assert agent.cash > -1e-6, f"{agent.kind} #{agent.aid} hat {agent.cash:.2f} € Kasse"
+        assert agent.cash > -1e-6, f"{agent.kind} #{agent.aid} has €{agent.cash:,.2f} in cash"
 
 
 def test_market_makers_respect_their_inventory_limit(sim):
@@ -135,7 +135,7 @@ def test_prices_stay_finite_and_positive(sim):
 def test_bars_are_well_formed(sim):
     for _ in range(sim.cfg.steps_per_day * 4):
         sim.step()
-    assert sim.bars, "keine Tagesbars erzeugt"
+    assert sim.bars, "no daily bars produced"
     for bar in sim.bars:
         assert bar["l"] <= bar["o"] <= bar["h"]
         assert bar["l"] <= bar["c"] <= bar["h"]
@@ -188,6 +188,6 @@ def test_news_moves_the_world_but_not_the_price_directly(sim):
     agents traded on it — that separation is the point of the model."""
     price_before = sim.price
     fair_before = sim.fair
-    sim.inject_news("Testmeldung", -0.20)
+    sim.inject_news("Test headline", -0.20)
     assert sim.fair < fair_before
     assert sim.price == price_before

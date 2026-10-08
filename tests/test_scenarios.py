@@ -32,10 +32,10 @@ def test_scenario_runs_to_the_end_of_its_script(key):
     for _ in range(steps):
         sim.step()
 
-    assert not sim.script, f"{key}: Skript nicht abgearbeitet"
+    assert not sim.script, f"{key}: script not worked through"
     assert sim.price > 0 and math.isfinite(sim.price)
     assert all(math.isfinite(p) for p in sim.prices)
-    assert sim.bars, f"{key}: keine Tagesbars"
+    assert sim.bars, f"{key}: no daily bars"
 
 
 @pytest.mark.parametrize("key", sorted(scenarios.ALL))
@@ -44,7 +44,7 @@ def test_scenario_overrides_reach_the_config(key):
     sim = Simulation(Config(seed=11, steps_per_day=FAST_DAY))
     sim.load_scenario(scenario)
     for name, value in scenario.overrides.items():
-        assert getattr(sim.cfg, name) == pytest.approx(value), f"{key}: {name} nicht gesetzt"
+        assert getattr(sim.cfg, name) == pytest.approx(value), f"{key}: {name} not set"
 
 
 def test_catalogue_is_complete_and_grouped():
@@ -52,7 +52,7 @@ def test_catalogue_is_complete_and_grouped():
     listed = {item["key"] for group in groups for item in group["items"]}
     assert listed == set(scenarios.ALL)
     for group in groups:
-        assert group["items"], f"leere Gruppe: {group['group']}"
+        assert group["items"], f"empty group: {group['group']}"
         for item in group["items"]:
             assert item["name"] and item["description"] and item["question"]
 
@@ -87,11 +87,11 @@ def test_timeline_events_fire_on_their_day():
 
     for _ in range(day * sim.cfg.steps_per_day - 1):
         sim.step()
-    assert not any(e.text == headline for e in sim.events), "Nachricht kam zu früh"
+    assert not any(e.text == headline for e in sim.events), "the headline came too early"
 
     for _ in range(2):
         sim.step()
-    assert any(e.text == headline for e in sim.events), "Nachricht kam nicht an"
+    assert any(e.text == headline for e in sim.events), "the headline never arrived"
 
 
 def test_leverage_crash_actually_produces_margin_calls():
@@ -114,9 +114,9 @@ def test_every_lesson_has_exactly_one_check_and_vice_versa():
     from mes import lessons
 
     assert set(lessons.CHECKS) == set(lessons.ALL), (
-        "CHECKS und LESSONS stimmen nicht überein: "
-        f"nur in CHECKS {sorted(set(lessons.CHECKS) - set(lessons.ALL))}, "
-        f"nur in LESSONS {sorted(set(lessons.ALL) - set(lessons.CHECKS))}"
+        "CHECKS and LESSONS do not match: "
+        f"only in CHECKS {sorted(set(lessons.CHECKS) - set(lessons.ALL))}, "
+        f"only in LESSONS {sorted(set(lessons.ALL) - set(lessons.CHECKS))}"
     )
 
 
@@ -129,8 +129,8 @@ def test_every_lesson_can_be_evaluated():
         sim.step()
     for key in lessons.ALL:
         result = lessons.evaluate(key, sim)
-        assert result["checks"], f"{key} liefert keine Prüfungen"
-        assert result["verdict"] in ("gezeigt", "teilweise", "diesmal nicht")
+        assert result["checks"], f"{key} returns no checks"
+        assert result["verdict"] in ("shown", "partly", "not this time")
 
 
 def test_every_scenario_a_lesson_names_exists():
@@ -140,4 +140,4 @@ def test_every_scenario_a_lesson_names_exists():
     for lesson in lessons.ALL.values():
         if lesson.scenario:
             assert scen.get(lesson.scenario) is not None, (
-                f"{lesson.key} verweist auf unbekanntes Szenario {lesson.scenario!r}")
+                f"{lesson.key} refers to an unknown scenario {lesson.scenario!r}")

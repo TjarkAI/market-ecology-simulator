@@ -111,7 +111,7 @@ def test_a_scenario_recording_replays_as_that_scenario(tmp_path):
     for _ in range(300):
         sim.step()
         rec.capture(sim)
-    path = rec.save(sim, "szenario", "20260101-000001", root=tmp_path)
+    path = rec.save(sim, "scenario", "20260101-000001", root=tmp_path)
     assert load(path)["meta"]["scenario"] == "calm"
     # The config stored is the scenario's, so replaying it reproduces those
     # conditions without needing the scenario definition again.
@@ -128,13 +128,13 @@ def test_a_recording_keeps_the_scenarios_timeline(tmp_path):
     from mes import scenarios
 
     scenario = scenarios.get("news_shock")
-    assert scenario.timeline, "dieses Szenario braucht eine Zeitleiste"
+    assert scenario.timeline, "this scenario needs a timeline"
 
     sim = Simulation(tiny())
     sim.load_scenario(scenario)
     for _ in range(300):
         sim.step()
-    assert not sim.script, "die Zeitleiste ist im Lauf abgearbeitet worden"
+    assert not sim.script, "the timeline was worked through during the run"
 
     path = rec_and_save(sim, tmp_path)
     stored = load(path)["meta"]["script"]
@@ -178,12 +178,12 @@ def rec_and_save(sim, tmp_path):
     rec.sentiment = [0.0] * sim.t
     rec.margin_calls = [0] * sim.t
     rec.orders = [0] * sim.t
-    return rec.save(sim, "szenario", "20260101-000002", root=tmp_path)
+    return rec.save(sim, "scenario", "20260101-000002", root=tmp_path)
 
 
 # -------------------------------------------------------------- comparison
 def test_an_arm_applies_its_overrides():
-    arm = Arm.build("hoch", tiny(), {"chartist_aggression": 140.0})
+    arm = Arm.build("high", tiny(), {"chartist_aggression": 140.0})
     assert arm.cfg.chartist_aggression == 140.0
     assert arm.overrides == {"chartist_aggression": 140.0}
 
@@ -222,7 +222,7 @@ def test_the_report_carries_the_caveat():
     numbers rather than buried in a docstring."""
     comparison = Comparison.build(tiny(), {}, {})
     comparison.advance(50)
-    assert "Seeds" in comparison.to_dict()["caveat"]
+    assert "seeds" in comparison.to_dict()["caveat"]
 
 
 def test_a_parameter_that_cannot_act_changes_nothing():
@@ -244,8 +244,8 @@ def test_an_agents_draws_depend_only_on_the_seed_and_its_id():
     a, b = Simulation(tiny()), Simulation(tiny(n_noise=99))
     first_a = {agent.aid: agent.rng.random() for agent in a.agents[:5]}
     first_b = {agent.aid: agent.rng.random() for agent in b.agents[:5]}
-    assert first_a == first_b, "gleiche id und gleicher Seed müssen gleich ziehen"
-    assert len(set(first_a.values())) == len(first_a), "verschiedene ids ziehen gleich"
+    assert first_a == first_b, "the same id and the same seed must draw the same"
+    assert len(set(first_a.values())) == len(first_a), "different ids draw the same"
 
 
 def test_a_short_run_reports_insufficient_rather_than_guessing():

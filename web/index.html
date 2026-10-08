@@ -1,590 +1,499 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Marktstadt — Market Ecology Simulator</title>
+<title>Market Town — Market Ecology Simulator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ---------------------------------------------------------------- tokens */
+/* Look A, "diorama": a bright plate under daylight, white glass panels floating over
+   it. The district colours are the ones the 3D town uses (web/town3d.js), darkened
+   just enough to read as text on white. */
 :root{
-  --exchsel:#ffd096;
-  --bg:#100e0d; --panel:#191512; --line:#2c2724; --line2:#33291f; --edge:#4a3a2c;
-  --txt:#ece6e0; --ink:#ece6e0; --dim:#8d847b; --dim2:#5e5751; --sunk:#241c17; --btn:#231c17;
-  --mom:#e8814c; --val:#4fb8a0; --gold:#c9a227; --etf:#4ad07a; --bank:#7e9ee6;
-  --lev:#d9584a; --noise:#8d847b; --mkr:#8fb4c8; --cmp:#b79bd6; --live:#4ad07a;
+  --sky:#dfe6ef;
+  --panel:rgba(255,255,255,.9); --solid:#ffffff; --line:#e2e8f0; --line2:#d5dde8; --edge:#b9c6d8;
+  --txt:#172033; --ink:#172033; --dim:#65728a; --dim2:#94a0b4; --sunk:#f1f4f9; --btn:#f4f6fa;
+  --accent:#2f5bea; --accent-soft:#e8eeff; --exchsel:#2f5bea;
+  --good:#1c9a52; --good-soft:#e3f5ea; --bad:#d43f3f; --bad-soft:#fde8e8; --warn:#b7791f; --warn-soft:#fdf3dc;
+  --mom:#e07434; --val:#2f9e86; --gold:#b7891f; --etf:#2f9e5e; --bank:#5872c9;
+  --lev:#d14a3c; --noise:#8a7fa3; --mkr:#3d8fb5; --cmp:#8f6fd0; --live:#1c9a52;
+  --shadow:0 8px 28px rgba(28,48,92,.12); --r:14px; --r2:9px;
   --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--txt);
+body{margin:0;background:var(--sky);color:var(--txt);
   font-family:'IBM Plex Sans',system-ui,sans-serif;overflow:auto}
 /* Scrolls rather than clips when the window is smaller than the layout needs.
    With overflow:hidden the footer buttons simply vanished on a laptop screen. */
-.app{width:100%;min-width:1180px;height:100vh;min-height:730px;display:flex;flex-direction:column}
+.app{position:relative;width:100%;min-width:1180px;height:100vh;min-height:730px;
+  display:flex;flex-direction:column;gap:10px;padding:12px;overflow:hidden}
+
+/* The town fills the whole window and the panels float over it. Only the cards take
+   the pointer; everything between them belongs to the map, so a drag that starts in
+   a gap turns the camera. */
+.world{position:absolute;inset:0;z-index:0}
+.world canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+.world canvas:active{cursor:grabbing}
+.world canvas.hover{cursor:pointer}
+.nogl{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+  font-size:13px;color:var(--dim);text-align:center;padding:0 30%}
+.nogl.on{display:flex}
+.top,.body,.foot{position:relative;z-index:1;pointer-events:none}
+.top>*,.foot>*,.col>*,.stage>*{pointer-events:auto}
+.card,.dock{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:var(--shadow);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 
 /* ---------------------------------------------------------------- header */
-.top{height:60px;flex:none;display:flex;align-items:center;justify-content:space-between;
-  gap:16px;padding:0 14px;background:var(--panel);border-bottom:1px solid var(--line)}
-.brand{display:flex;align-items:center;gap:11px}
+.top{flex:none;display:flex;align-items:stretch;gap:10px}
+.top>.dock{display:flex;align-items:center;gap:12px;padding:8px 12px}
+.brand{flex:none}
+.logo{width:34px;height:34px;border-radius:9px;background:var(--accent);display:grid;place-items:center;flex:none}
 .iconbtn{display:flex;align-items:center;justify-content:center;border-radius:8px;
   background:var(--btn);border:1px solid var(--line2);color:var(--dim);cursor:pointer;
   transition:color .12s,border-color .12s,background .12s}
 .iconbtn:hover{color:var(--txt);border-color:var(--edge)}
-.iconbtn.sq{width:32px;height:32px;font-size:14px;font-weight:600}
-.iconbtn.ctl{width:32px;height:28px;font-size:10px}
-.iconbtn.on{color:var(--txt);border-color:var(--edge);background:#2a2018}
-.title{display:flex;flex-direction:column;gap:3px}
-.title b{font-size:14px;font-weight:600;letter-spacing:.06em}
-.title span{font-size:9.5px;letter-spacing:.14em;color:var(--dim)}
-.chips{display:flex;align-items:center;gap:7px}
-.chip{display:flex;align-items:center;gap:7px;padding:6px 10px;border-radius:9px;
-  background:var(--btn);border:1px solid var(--line2);cursor:help}
-.chip .k{font-size:9.5px;letter-spacing:.12em;color:var(--dim)}
-.chip .v{font-family:var(--mono);font-size:12.5px}
-.sw{width:11px;height:11px;border-radius:2px}
+.iconbtn.sq{width:30px;height:30px;font-size:14px;font-weight:600}
+.iconbtn.ctl{width:32px;height:30px;font-size:11px}
+.iconbtn.on{color:#fff;border-color:var(--accent);background:var(--accent)}
+.title{display:flex;flex-direction:column;gap:2px}
+.title b{font-size:15px;font-weight:700;letter-spacing:.04em}
+.title span{font-size:10.5px;letter-spacing:.06em;color:var(--dim)}
+.chips{display:flex;gap:10px;min-width:0}
+.chip{display:flex;align-items:center;gap:9px;padding:7px 12px 7px 7px;cursor:help;min-width:0;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.chip .ic{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
+  background:var(--accent-soft);color:var(--accent);flex:none}
+.chip .k{display:block;font-size:11px;color:var(--dim)}
+.chip .v{white-space:nowrap;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.15}
+.chip .d{font-size:11px;font-weight:600;margin-left:5px}
+.sw{width:11px;height:11px;border-radius:3px;display:inline-block}
 .sw.dot{border-radius:50%}
 .sw.dia{transform:rotate(45deg)}
-.right{display:flex;align-items:center;gap:12px}
-.step{display:flex;align-items:baseline;gap:6px}
-.step .k{font-size:9.5px;letter-spacing:.12em;color:var(--dim2)}
-.step .v{font-family:var(--mono);font-size:14px}
+.right{margin-left:auto;flex-wrap:nowrap}
+.top>.dock.right{gap:10px;padding:6px 10px}
+.title span{white-space:nowrap}
+@media (max-width:1560px){.chip .ic{display:none}.chip{padding:7px 12px}.tonav a,.tolink{padding:7px 8px}}
+@media (max-width:1380px){.top .step{display:none}}
+.step{display:flex;flex-direction:column;gap:1px;white-space:nowrap}
+.step .k{font-size:10px;color:var(--dim)}
+.step .v{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
 /* A labelled cluster of buttons. Without the label a group of three words was
-   just three words; with it, "SCHOCK: CRASH" reads as one thing you can do. */
+   just three words; with it, "SHOCK: CRASH" reads as one thing you can do. */
 .cluster{display:flex;flex-direction:column;gap:3px}
-.cluster>b{font-size:8px;letter-spacing:.18em;color:var(--dim2);font-weight:600;padding-left:1px}
-.cluster>div{display:flex;gap:3px}
-.mode{padding:5px 9px;border-radius:7px;border:1px solid var(--line2);font-size:9.5px;
-  font-weight:600;letter-spacing:.08em;cursor:pointer;background:var(--btn);color:var(--dim)}
-.mode:hover{border-color:var(--edge);color:var(--txt)}
+.cluster>b{font-size:10px;color:var(--dim);font-weight:500;padding-left:1px}
+.cluster>div{display:flex;gap:4px}
+.mode{padding:6px 9px;border-radius:8px;border:1px solid var(--line2);font-size:11.5px;
+  font-weight:600;cursor:pointer;background:var(--btn);color:var(--txt)}
+.mode:hover{border-color:var(--edge)}
 .mode.busy{opacity:.5;cursor:progress}
 /* Offline the market cannot be driven, so the controls that drive it look and
    behave like what they are. They used to accept the click and do nothing. */
 .off{opacity:.35;pointer-events:none}
-.mode.calm:hover{border-color:rgba(79,184,160,.7);color:var(--val)}
-.mode.boom:hover{border-color:rgba(74,208,122,.7);color:var(--etf)}
-.mode.crash:hover{border-color:rgba(217,88,74,.75);color:var(--lev)}
-.spd{padding:5px 8px;border-radius:7px;border:1px solid var(--line2);font-family:var(--mono);
-  font-size:10px;cursor:pointer;background:var(--btn);color:var(--dim)}
-.spd:hover{border-color:var(--edge);color:var(--txt)}
-.spd.on{background:#2a2018;border-color:var(--edge);color:var(--txt)}
-.livewrap{display:flex;align-items:center;gap:6px;padding-left:12px;border-left:1px solid var(--line)}
-.livewrap i{width:6px;height:6px;border-radius:50%;background:var(--live)}
-.livewrap span{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--live)}
+.mode.calm:hover{border-color:var(--val);color:var(--val)}
+.mode.boom:hover{border-color:var(--good);color:var(--good)}
+.mode.crash:hover{border-color:var(--bad);color:var(--bad)}
+.spd{padding:6px 8px;border-radius:8px;border:1px solid var(--line2);font-family:var(--mono);
+  font-size:11px;cursor:pointer;background:var(--btn);color:var(--txt)}
+.spd:hover{border-color:var(--edge)}
+.spd.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.livewrap{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:var(--good-soft)}
+.livewrap i{width:7px;height:7px;border-radius:50%;background:var(--live)}
+.livewrap span{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.06em;color:var(--live)}
+.paused .livewrap{background:var(--sunk)}
 .paused .livewrap i{background:var(--dim)}
 .paused .livewrap span{color:var(--dim)}
-.tolink{font-size:9px;letter-spacing:.11em;color:var(--mom);text-decoration:none;
-  border:1px solid rgba(232,129,76,.45);border-radius:8px;padding:6px 9px;white-space:nowrap}
-.tolink:hover{background:rgba(232,129,76,.12)}
+.tolink{font-size:11px;font-weight:600;color:#fff;text-decoration:none;background:var(--accent);
+  border-radius:8px;padding:8px 11px;white-space:nowrap}
+.tolink:hover{filter:brightness(1.08)}
 /* The other three views of the same simulation. They were reachable only from each
    other, so the town — the page everybody opens first — was a dead end. */
-.tonav{display:flex;gap:3px}
-.tonav a{font-size:8.5px;letter-spacing:.11em;color:var(--dim);text-decoration:none;
-  border:1px solid var(--line2);border-radius:8px;padding:6px 8px;white-space:nowrap}
-.tonav a:hover{color:var(--txt);border-color:var(--edge);background:#271f18}
+.tonav{display:flex;gap:4px}
+.tonav a{font-size:11px;font-weight:600;color:var(--txt);text-decoration:none;
+  border:1px solid var(--line2);border-radius:8px;padding:7px 9px;white-space:nowrap;background:var(--btn)}
+.tonav a:hover{border-color:var(--edge)}
 
 /* warm-up banner: the market fast-forwards for the first ~20 s and nothing said so */
-.warm{flex:none;display:none;align-items:center;gap:12px;padding:7px 14px;
-  background:rgba(232,129,76,.08);border-bottom:1px solid rgba(232,129,76,.3);
-  font-size:11px;color:var(--mom)}
+.warm{display:none;align-items:center;gap:12px;padding:9px 14px;border-radius:var(--r2);
+  background:var(--warn-soft);border:1px solid rgba(183,121,31,.35);font-size:12px;color:#7a5212;
+  box-shadow:var(--shadow)}
 .warm.on{display:flex}
-.warm.bad{background:rgba(217,88,74,.1);border-bottom-color:rgba(217,88,74,.45);
-  color:#ff9b8f}
+.warm.bad{background:var(--bad-soft);border-color:rgba(212,63,63,.4);color:#9d2626}
 /* Replay: a different colour from the warm-up, because it is a different state —
    the market is not catching up, it is not running at all. */
-.warm.rep{background:rgba(126,158,230,.09);border-bottom-color:rgba(126,158,230,.34);
-  color:var(--bank);gap:10px}
-.warm.rep .tag2{font-size:8px;letter-spacing:.18em;font-weight:600;padding:3px 7px;
-  border:1px solid rgba(126,158,230,.5);border-radius:9px}
+.warm.rep{background:#eef2ff;border-color:rgba(88,114,201,.4);color:#33479a;gap:10px}
+.warm.rep .tag2{font-size:9.5px;letter-spacing:.14em;font-weight:700;padding:3px 7px;
+  border:1px solid rgba(88,114,201,.5);border-radius:9px}
 .warm.rep input[type=range]{flex:1;min-width:140px;max-width:520px;accent-color:var(--bank)}
-.warm.rep .num{font-family:var(--mono);font-size:11px;min-width:104px;text-align:right}
-.warm.rep .iconbtn{color:var(--bank);border-color:rgba(126,158,230,.4)}
+.warm.rep .num{font-family:var(--mono);font-size:11.5px;min-width:110px;text-align:right}
+.warm.rep .iconbtn{color:var(--bank);border-color:rgba(88,114,201,.4)}
 .warm.rep .btn{white-space:nowrap}
-.warm .track{flex:1;max-width:320px;height:5px;border-radius:3px;background:var(--sunk)}
-.warm .track i{display:block;height:5px;border-radius:3px;background:var(--mom);width:0}
+.warm .track{flex:1;max-width:320px;height:6px;border-radius:3px;background:rgba(183,121,31,.18)}
+.warm .track i{display:block;height:6px;border-radius:3px;background:var(--warn);width:0}
 
 /* ---------------------------------------------------------------- layout */
-.body{flex:1;display:grid;grid-template-columns:238px 1fr 318px;gap:11px;padding:11px;min-height:0}
-.col{display:flex;flex-direction:column;gap:11px;min-height:0;overflow-y:auto;
+.body{flex:1;display:grid;grid-template-columns:272px 1fr 318px;gap:10px;min-height:0}
+.col{display:flex;flex-direction:column;gap:10px;min-height:0;overflow-y:auto;
   scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
 .col::-webkit-scrollbar{width:6px}
 .col::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
-.card{border-radius:10px;background:var(--panel);border:1px solid var(--line);overflow:hidden;
-  flex:none}
-.card.pad{padding:12px;display:flex;flex-direction:column}
-.hd{font-size:9px;letter-spacing:.2em;color:var(--dim2);font-weight:600}
-.card>.hd{padding:11px 12px 8px}
-.hdrow{display:flex;justify-content:space-between;align-items:center;padding:10px 12px 8px;gap:8px}
+.card{overflow:hidden;flex:none}
+.card.pad{padding:12px 14px;display:flex;flex-direction:column}
+.hd{font-size:11px;letter-spacing:.06em;color:var(--dim);font-weight:600;text-transform:uppercase}
+.card>.hd{padding:12px 14px 8px}
+.hdrow{display:flex;justify-content:space-between;align-items:center;padding:11px 14px 8px;gap:8px}
 .hdrow .hd{flex:1}
-.kv{display:flex;justify-content:space-between;gap:8px;font-size:10.5px}
+.kv{display:flex;justify-content:space-between;gap:8px;font-size:12px}
 .kv span:first-child{color:var(--dim)}
-.kv span:last-child{font-family:var(--mono)}
+.kv span:last-child{font-weight:600;font-variant-numeric:tabular-nums}
 .bar{height:6px;border-radius:3px;background:var(--sunk)}
 .bar>i{display:block;height:6px;border-radius:3px}
 .bar.sm,.bar.sm>i{height:5px}
 .meter{display:flex;flex-direction:column;gap:6px}
-.legendtxt{margin-top:10px;font-size:9.5px;color:var(--dim2);line-height:1.75;
+.legendtxt{margin-top:10px;font-size:11px;color:var(--dim);line-height:1.7;
   border-top:1px solid var(--line);padding-top:9px}
-.legendtxt b{color:var(--dim);font-weight:600}
+.legendtxt b{color:var(--txt);font-weight:600}
 
 /* district list */
 .room{display:grid;grid-template-columns:14px 1fr;align-items:start;gap:9px;
-  padding:8px 12px;cursor:pointer;background:transparent;border-left:2px solid transparent}
-.room:hover{background:#1f1a15}
-.room .plot{width:12px;height:12px;background:var(--edge);border-radius:2px;
-  transform:rotate(45deg) scaleY(.6);margin-top:2px}
+  padding:8px 14px;cursor:pointer;background:transparent;border-left:3px solid transparent}
+.room:hover{background:var(--sunk)}
+.room .plot{width:11px;height:11px;background:var(--edge);border-radius:3px;margin-top:3px}
 .room .txt{display:flex;flex-direction:column;gap:2px;min-width:0}
-.room .nm{font-size:11px;color:var(--dim)}
-.room .mt{font-family:var(--mono);font-size:9px;color:var(--dim2)}
-.room .wh{display:none;font-size:10px;line-height:1.5;color:var(--dim);margin-top:3px}
-.room.sel{background:#2a2018;border-left-color:var(--mom)}
-.room.sel .nm{color:var(--txt);font-weight:600}
+.room .nm{font-size:12.5px;color:var(--txt)}
+.room .mt{font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
+.room .wh{display:none;font-size:11.5px;line-height:1.5;color:var(--dim);margin-top:3px}
+.room.sel{background:var(--accent-soft);border-left-color:var(--accent)}
+.room.sel .nm{font-weight:600}
 .room.sel .wh{display:block}
 
 /* the market panel: line, candles, book */
 #chart{display:block;width:100%;height:96px}
-.chartkey{display:flex;gap:10px;padding:0 12px 10px;font-size:9px;color:var(--dim2);
-  flex-wrap:wrap}
+.chartkey{display:flex;gap:10px;padding:0 14px 11px;font-size:11px;color:var(--dim);flex-wrap:wrap}
 .chartkey span{display:flex;align-items:center;gap:5px}
 .chartkey i{width:12px;height:2px;border-radius:1px;display:inline-block}
 .chartkey i.box{width:7px;height:9px;border-radius:1px}
 .tabs{display:flex;gap:2px}
-.tab{font:inherit;font-size:8px;letter-spacing:.14em;font-weight:600;cursor:pointer;
-  padding:3px 6px;border-radius:5px;border:1px solid transparent;background:transparent;
-  color:var(--dim2)}
+.tab{font:inherit;font-size:11px;font-weight:600;cursor:pointer;padding:4px 8px;border-radius:7px;
+  border:1px solid transparent;background:transparent;color:var(--dim)}
 .tab:hover{color:var(--txt);border-color:var(--line2)}
-.tab.on{color:var(--txt);background:#2a2018;border-color:var(--edge)}
+.tab.on{color:var(--accent);background:var(--accent-soft);border-color:transparent}
 
 /* the order book: two ladders meeting at the touch */
-#bookView{display:none;padding:2px 12px 10px}
+#bookView{display:none;padding:2px 14px 10px}
 #bookView.on{display:block}
 #chart.hidden{display:none}
 .lvl{position:relative;display:grid;grid-template-columns:1fr auto;gap:8px;
-  font-family:var(--mono);font-size:9.5px;padding:1px 4px;border-radius:2px}
-.lvl>i{position:absolute;top:0;bottom:0;right:0;border-radius:2px;z-index:0}
+  font-family:var(--mono);font-size:11px;padding:1px 5px;border-radius:3px}
+.lvl>i{position:absolute;top:0;bottom:0;right:0;border-radius:3px;z-index:0}
 .lvl>span{position:relative;z-index:1}
 .lvl .qty{color:var(--dim)}
-.lvl.ask span:first-child{color:#ff9b8f}
-.lvl.bid span:first-child{color:#7fd8c4}
+.lvl.ask span:first-child{color:var(--bad)}
+.lvl.bid span:first-child{color:var(--good)}
 .touch{display:flex;justify-content:space-between;align-items:baseline;gap:6px;
-  margin:4px 0;padding:3px 4px;border-top:1px solid var(--line);
-  border-bottom:1px solid var(--line);font-size:9px;color:var(--dim2)}
-.touch b{font-family:var(--mono);font-size:10.5px;color:var(--txt);font-weight:500}
+  margin:4px 0;padding:3px 5px;border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);font-size:10.5px;color:var(--dim)}
+.touch b{font-family:var(--mono);font-size:11.5px;color:var(--txt);font-weight:600}
 
 /* ---------------------------------------------------------------- stage */
-.stage{position:relative;border-radius:12px;border:1px solid var(--line);overflow:hidden;
-  background:radial-gradient(120% 95% at 50% 4%,#211b16 0%,#0d0b0a 76%)}
-.plate{position:absolute;left:50%;top:54%;width:800px;height:800px;
-  transform:translate(-50%,-50%) scale(.76) rotateX(52deg) rotateZ(45deg);
-  transform-style:preserve-3d;border-radius:10px;background:#1b1712;
-  background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 50px),
-                   repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 50px);
-  box-shadow:0 0 0 1px rgba(255,255,255,.06),0 80px 120px rgba(0,0,0,.72);
-  transition:transform .35s ease}
-.zone{position:absolute;border-radius:10px}
-.bld{position:absolute;transform-style:preserve-3d}
-.bld>i{position:absolute;display:block}
-.street{position:absolute;transform-origin:0 50%;border-radius:4px}
-.runner{position:absolute;width:0;height:0}
-.runner>i{position:absolute;left:0;top:0;width:0;height:0;transform-origin:0 0;
-  transform:rotateZ(-45deg) rotateX(-52deg)}
-.runner .torso{position:absolute;left:-5.5px;bottom:0;width:11px;height:16px;
-  border-radius:5.5px 5.5px 2px 2px;box-shadow:inset 0 -4px 5px rgba(0,0,0,.4)}
-.runner .head{position:absolute;left:-4px;bottom:14px;width:8px;height:8px;
-  border-radius:50%;background:#e8d5c0}
-.billboard{position:absolute;width:0;height:0;transform-origin:0 0;
-  transform:rotateZ(-45deg) rotateX(-52deg)}
-.pip{position:absolute;left:-20px;width:40px;text-align:center;font-family:var(--mono);
-  font-size:10px;font-weight:600}
-.tree .trunk{position:absolute;left:-8px;bottom:0;width:16px;height:11px;
-  border-radius:2px 2px 4px 4px;background:#4a3a2c}
-.tree .crown{position:absolute;left:-10px;bottom:10px;width:20px;border-radius:10px 10px 4px 4px;
-  background:#3f6b4a}
-.lamp .mast{position:absolute;left:-1.5px;bottom:0;width:3px;height:34px;background:#3a2c22}
-.lamp .bulb{position:absolute;left:-5px;bottom:32px;width:10px;height:6px;border-radius:3px;
-  background:var(--gold);box-shadow:0 0 12px rgba(201,162,39,.6)}
-.alarmring{position:absolute;left:629px;top:117px;width:120px;height:120px;margin:-60px 0 0 -60px;
-  border-radius:50%;border:2px solid rgba(217,88,74,.6);animation:mwring 1.6s ease-out infinite}
-.mcall{position:absolute;left:-38px;bottom:64px;width:76px;text-align:center;padding:3px 0;
-  border-radius:5px;background:rgba(217,88,74,.2);border:1px solid rgba(217,88,74,.65);
-  font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;color:#ff9b8f;
-  animation:mwpulse 1.4s ease-in-out infinite}
-.policy{position:absolute;left:300px;top:128px;width:209px;height:4px;transform-origin:0 50%;
-  transform:rotate(73.3deg);animation:mwpolicy 2.4s linear infinite;
-  background-image:repeating-linear-gradient(90deg,rgba(126,158,230,.5) 0 10px,transparent 10px 44px)}
+/* The middle column holds nothing but the map's own controls; the map itself is the
+   window behind everything. */
+.stage{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0;
+  pointer-events:none}
+.stage>.warm{align-self:stretch}
 
 /* the market switcher: a bar, not five floating chips that collided with the labels */
-.mktbar{position:absolute;left:0;right:0;top:0;z-index:1300;display:flex;align-items:center;
-  gap:6px;flex-wrap:wrap;padding:7px 10px;background:rgba(16,14,13,.9);
-  border-bottom:1px solid var(--line);backdrop-filter:blur(3px)}
-.mktbar>b{font-size:8.5px;letter-spacing:.18em;color:var(--dim2);font-weight:600;
-  margin-right:2px}
-.mktbar .sub{margin-left:auto}
+.mktbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;padding:7px 10px;max-width:100%}
+.mktbar>b{font-size:11px;color:var(--dim);font-weight:600;margin-right:2px}
+.mktbar .sub{font-size:11px;color:var(--dim);padding-left:6px}
 button.mk{cursor:pointer;font:inherit;color:var(--ink);display:inline-flex;align-items:center;
-  gap:5px;padding:5px 9px;border-radius:8px;background:var(--btn);border:1px solid var(--line2)}
-button.mk:hover{border-color:rgba(232,129,76,.7)}
-button.mk.sel{border-color:rgba(255,208,150,.8);background:rgba(255,176,110,.12)}
-button.mk b{font-size:10px;font-weight:600;letter-spacing:.1em}
-button.mk .num{font-family:var(--mono);font-size:10.5px}
+  gap:5px;padding:5px 8px;border-radius:9px;background:var(--btn);border:1px solid var(--line2)}
+button.mk:hover{border-color:var(--accent)}
+button.mk.sel{border-color:var(--accent);background:var(--accent-soft)}
+button.mk b{font-size:11.5px;font-weight:700;letter-spacing:.04em}
+button.mk .num{font-family:var(--mono);font-size:11.5px}
+.ticker{display:flex;align-items:center;gap:9px;padding:7px 12px;border-radius:var(--r2);
+  background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow)}
+.ticker .s{font-family:var(--mono);font-size:11px;font-weight:600}
+.ticker .m{font-size:12px;color:var(--txt)}
+.cmdrow{align-self:stretch;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;pointer-events:none}
+.cmdrow>*{pointer-events:auto}
+.command{display:flex;gap:14px;padding:7px 10px;margin-left:auto}
+.key{margin-top:auto;display:flex;align-items:center;gap:12px;padding:8px 14px;
+  flex-wrap:wrap;justify-content:center;max-width:100%}
+.key i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.key i.sq{border-radius:2px;width:10px;height:8px}
+.key span{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim)}
+.key b{font-size:10px;letter-spacing:.08em;color:var(--txt);font-weight:700}
+.zoom{position:absolute;right:0;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;
+  gap:2px;padding:4px}
+.zoom .iconbtn{width:32px;height:32px;font-size:14px;background:transparent;border-color:transparent;color:var(--txt)}
+.zoom .iconbtn:hover{background:var(--sunk)}
 
-/* stage overlays */
-.ov{position:absolute;white-space:nowrap}
-#reading{padding:10px 12px;max-height:330px;overflow-y:auto;scrollbar-width:thin;
+/* stage overlays positioned by web/town3d.js */
+.overlay{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+#reading{padding:10px 14px 12px;max-height:330px;overflow-y:auto;scrollbar-width:thin;
   scrollbar-color:var(--line2) transparent}
 #reading::-webkit-scrollbar{width:5px}
 #reading::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px}
-#reading .ph{font-size:14px;font-weight:600;margin-bottom:5px;line-height:1.3}
-#reading .tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px}
-#reading .tg{font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;
-  padding:2px 6px;border:1px solid var(--line2);border-radius:9px;color:var(--dim)}
+#reading .ph{font-size:16px;font-weight:700;margin-bottom:6px;line-height:1.3}
+#reading .tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+#reading .tg{font-size:10.5px;padding:3px 8px;border-radius:999px;background:var(--sunk);color:var(--dim)}
 #reading ul{margin:0;padding:0;list-style:none}
-#reading li{position:relative;padding:3px 0 3px 12px;font-size:11.5px;line-height:1.5;
-  color:var(--ink)}
-#reading li:before{content:"";position:absolute;left:0;top:8px;width:4px;height:4px;
+#reading li{position:relative;padding:3px 0 3px 13px;font-size:12.5px;line-height:1.5;color:var(--ink)}
+#reading li:before{content:"";position:absolute;left:0;top:9px;width:5px;height:5px;
   border-radius:50%;background:var(--mom)}
 #reading .wt li:before{background:var(--bank)}
-#reading .lbl{font-size:8.5px;letter-spacing:.13em;text-transform:uppercase;
-  color:var(--dim2);margin:7px 0 1px}
-#reading .rm{font-size:10.5px;color:var(--dim2);line-height:1.5;margin-top:7px;
-  border-top:1px solid var(--line);padding-top:6px}
-/* Map labels are anchored to a plate coordinate and projected with the plate's own
-   transform, so they keep pointing at their building at any zoom. Hand-placed
-   screen pixels meant one zoom step and every label pointed at nothing. */
-.tag{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;
-  gap:3px;align-items:center;cursor:pointer;z-index:1100}
-.tag .pill{display:flex;align-items:center;gap:7px;padding:5px 9px;border-radius:8px;
-  background:rgba(25,21,18,.92);border:1px solid var(--line2)}
-.tag:hover .pill{border-color:var(--edge)}
-.tag.sel .pill{border-color:rgba(255,208,150,.7);background:rgba(255,176,110,.12)}
-.tag .pill b{font-size:9.5px;font-weight:600;letter-spacing:.1em}
-.tag .pill .num{font-family:var(--mono);font-size:10.5px}
-/* The caption sits over lit windows, so it carries its own backing — as plain
-   text on a building wall it was unreadable exactly where it mattered. */
-.tag .sub{font-size:9px;letter-spacing:.04em;color:var(--dim);padding:1px 6px;
-  border-radius:5px;background:rgba(16,14,13,.8)}
-/* Zoomed out, the plate shrinks and the labels do not, so they start colliding.
-   A map declutters at small scale: the captions go first, then the pills shrink. */
-.stage.far .tag .sub{display:none}
-.stage.far .tag .pill{padding:3px 7px;gap:5px}
-.stage.far .tag .pill b{font-size:8.5px}
-.stage.far .tag .pill .num{font-size:9.5px}
-.ticker{position:absolute;left:14px;top:52px;z-index:1200;display:flex;align-items:center;gap:9px;
-  padding:7px 11px;border-radius:9px;background:rgba(25,21,18,.92);border:1px solid var(--line2)}
-.ticker .s{font-family:var(--mono);font-size:9.5px}
-.ticker .m{font-size:10.5px;color:var(--txt)}
-.key{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;
-  align-items:center;gap:13px;padding:8px 14px;border-radius:10px;background:rgba(25,21,18,.92);
-  border:1px solid var(--line2);z-index:1200;flex-wrap:wrap;justify-content:center;max-width:94%}
-.key i{width:7px;height:7px;border-radius:50%;display:inline-block}
-.key i.sq{border-radius:1px;width:8px;height:3px}
-.key span{display:flex;align-items:center;gap:6px;font-size:9.5px;color:var(--dim)}
-.key b{font-size:8px;letter-spacing:.16em;color:var(--dim2);font-weight:600}
-.zoom{position:absolute;right:16px;bottom:16px;display:flex;flex-direction:column;gap:5px;
-  z-index:1200}
-.zoom .iconbtn{width:30px;height:30px;font-size:13px;background:rgba(25,21,18,.92)}
+#reading .lbl{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;
+  color:var(--dim);margin:8px 0 1px}
+#reading .rm{font-size:11.5px;color:var(--dim);line-height:1.5;margin-top:8px;
+  border-top:1px solid var(--line);padding-top:7px}
+/* Map labels are anchored to the buildings they name and projected with the camera
+   every frame, so they keep pointing at their building from any angle. */
+.tag{position:absolute;left:0;top:0;display:flex;flex-direction:column;gap:3px;align-items:center;
+  cursor:pointer;pointer-events:auto;will-change:transform;white-space:nowrap}
+.tag .pill{display:flex;align-items:center;gap:7px;padding:6px 11px;border-radius:999px;
+  background:#fff;box-shadow:0 4px 14px rgba(28,48,92,.16)}
+.tag:hover .pill{box-shadow:0 0 0 1px var(--edge),0 4px 14px rgba(28,48,92,.16)}
+.tag.sel .pill{box-shadow:0 0 0 2px var(--accent),0 4px 14px rgba(28,48,92,.16)}
+.tag .pill b{font-size:11.5px;font-weight:700;letter-spacing:.03em}
+.tag .pill .num{font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums}
+/* The caption sits over the plate, so it carries its own backing. */
+.tag .sub{font-size:10.5px;color:#3b4760;padding:1px 7px;border-radius:6px;background:rgba(255,255,255,.75)}
+.pip{position:absolute;left:0;top:0;font-family:var(--mono);font-size:13px;font-weight:700;
+  will-change:transform,opacity;text-shadow:0 1px 0 #fff,0 0 6px rgba(255,255,255,.9);opacity:0}
+.mcall{position:absolute;left:0;top:0;display:none;padding:5px 9px;border-radius:5px;background:var(--bad);
+  font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;color:#fff;
+  animation:mwpulse 1.4s ease-in-out infinite}
 
 /* ---------------------------------------------------------------- unit card */
-.figstage{margin:0 12px;height:112px;border-radius:8px;position:relative;
-  background:radial-gradient(70% 70% at 50% 40%,#2f2318 0%,#1c1713 100%);
+.figstage{margin:0 14px;height:108px;border-radius:10px;position:relative;
+  background:radial-gradient(70% 80% at 50% 35%,#ffffff 0%,#e9eef5 100%);
   border:1px solid var(--line);display:flex;align-items:flex-end;justify-content:center;
   padding-bottom:20px}
 .figstage .shadow{position:absolute;bottom:15px;left:50%;transform:translateX(-50%);
-  width:64px;height:18px;border-radius:50%;background:rgba(0,0,0,.45)}
+  width:64px;height:16px;border-radius:50%;background:rgba(28,48,92,.16)}
 .fig{position:relative;width:34px;height:52px}
 .fig .torso{position:absolute;left:3px;bottom:0;width:28px;height:34px;
-  border-radius:13px 13px 5px 5px;box-shadow:inset 0 -8px 12px rgba(0,0,0,.35)}
+  border-radius:13px 13px 5px 5px;box-shadow:inset 0 -8px 12px rgba(0,0,0,.18)}
 .fig .head{position:absolute;left:8px;bottom:30px;width:18px;height:18px;border-radius:50%;
-  background:#e8d5c0}
-.tagL,.tagR{position:absolute;top:8px;padding:3px 7px;border-radius:6px;font-size:9px}
-.tagL{left:10px;background:#2f2318;border:1px solid var(--edge);font-family:var(--mono);
-  color:var(--gold);letter-spacing:.04em}
-.tagR{right:10px;font-size:9px;letter-spacing:.1em;border:1px solid transparent}
-.unitname{padding:11px 12px 13px;display:flex;flex-direction:column;gap:4px}
-.unitname b{font-size:13px;font-weight:600}
-.unitname span{font-size:10px;color:var(--dim)}
+  background:#f1d3b8}
+.tagL,.tagR{position:absolute;top:8px;padding:3px 8px;border-radius:999px;font-size:10px;font-weight:700}
+.tagL{left:10px;background:var(--accent-soft);color:var(--accent);letter-spacing:.04em}
+.tagR{right:10px;letter-spacing:.06em;border:1px solid transparent}
+.unitname{padding:11px 14px 13px;display:flex;flex-direction:column;gap:4px}
+.unitname b{font-size:15px;font-weight:700}
+.unitname span{font-size:11.5px;color:var(--dim)}
 .unitnav{display:flex;gap:4px;align-items:center}
-.unitnav .iconbtn{width:26px;height:22px;font-size:11px}
-.unitnav .of{font-family:var(--mono);font-size:9px;color:var(--dim2);padding:0 3px}
-.dec{display:flex;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:9.8px}
-.dec span:first-child{color:var(--dim2);font-family:'IBM Plex Sans',sans-serif}
-.order{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;
-  border-radius:7px;border:1px solid transparent}
-.order b{font-family:var(--mono);font-size:11px;font-weight:600}
-.order span{font-size:9px;color:var(--dim)}
-.logrow{display:grid;grid-template-columns:44px 1fr;gap:8px;font-family:var(--mono);font-size:9.5px}
-.logrow span:first-child{color:var(--dim2)}
+.unitnav .iconbtn{width:26px;height:24px;font-size:12px}
+.unitnav .of{font-family:var(--mono);font-size:10.5px;color:var(--dim);padding:0 3px}
+.dec{display:flex;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:11px}
+.dec span:first-child{color:var(--dim);font-family:'IBM Plex Sans',sans-serif}
+.order{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;
+  border-radius:var(--r2);border:1px solid transparent}
+.order b{font-family:var(--mono);font-size:12.5px;font-weight:700}
+.order span{font-size:10.5px;color:var(--dim)}
+.logrow{display:grid;grid-template-columns:50px 1fr;gap:8px;font-size:11.5px;line-height:1.4}
+.logrow span:first-child{color:var(--dim);font-family:var(--mono);font-size:10.5px}
 
 /* ---------------------------------------------------------------- footer */
-.foot{height:76px;flex:none;display:flex;align-items:center;justify-content:space-between;
-  gap:16px;padding:0 14px;background:var(--panel);border-top:1px solid var(--line)}
-.acts{display:flex;gap:7px}
-.act{width:78px;height:54px;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:5px;border-radius:9px;background:var(--btn);
-  border:1px solid var(--line2);cursor:pointer;color:var(--dim)}
-.act:hover{border-color:var(--edge);color:var(--txt);background:#271f18}
-.act .ic{font-size:15px;line-height:1}
-.act .nm{font-size:8.5px;letter-spacing:.1em;font-weight:600}
-.act.primary{background:#2a2018;border-color:var(--edge);color:var(--txt)}
-.act.primary:hover{background:#332619}
-.review{flex:1;max-width:420px;display:flex;flex-direction:column;gap:6px}
-.review .lbl{display:flex;justify-content:space-between;gap:8px;font-size:9px;letter-spacing:.14em}
-.review .lbl b{color:var(--dim2);font-weight:600}
-.review .lbl span{color:var(--dim)}
+.foot{flex:none;display:flex;align-items:stretch;gap:10px}
+.foot>.dock{display:flex;align-items:center;gap:12px;padding:8px 12px}
+.acts{display:flex;gap:6px}
+.act{width:74px;height:52px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:5px;border-radius:10px;background:var(--btn);
+  border:1px solid var(--line2);cursor:pointer;color:var(--txt);font:inherit}
+.act:hover{border-color:var(--edge);background:#fff}
+.act .ic{font-size:15px;line-height:1;color:var(--accent)}
+.act .nm{font-size:10.5px;font-weight:600}
+.act.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.act.primary .ic{color:#fff}
+.act.primary:hover{filter:brightness(1.08)}
+.review{flex:1;min-width:150px;max-width:460px;display:flex;flex-direction:column;gap:7px;justify-content:center}
+.review .lbl{display:flex;justify-content:space-between;gap:8px;font-size:11px}
+.review .lbl b{color:var(--txt);font-weight:600}
+.review .lbl span{color:var(--dim);font-variant-numeric:tabular-nums}
 .review .ticks{display:flex;gap:3px}
-.review .ticks i{flex:1;height:8px;border-radius:2px;background:#2a2018}
-.review .ticks i.on{background:var(--mom)}
-.scale{display:flex;align-items:center;gap:14px}
-.scale .txt{display:flex;flex-direction:column;gap:3px;align-items:flex-end;text-align:right}
-.scale .txt b{font-size:9px;letter-spacing:.14em;color:var(--dim2);font-weight:600;
-  display:flex;align-items:center;gap:7px}
-.scale .txt span{font-size:9.5px;color:var(--dim);max-width:330px}
-.scale .follow{display:flex;align-items:center;gap:7px;padding:8px 11px;border-radius:9px;
-  background:var(--btn);border:1px solid var(--line2);font-size:10px;color:var(--dim)}
-.scale .follow i{width:8px;height:8px;border-radius:50%;background:var(--gold);
+.review .ticks i{flex:1;height:8px;border-radius:3px;background:var(--sunk)}
+.review .ticks i.on{background:var(--accent)}
+.scale{margin-left:auto}
+.scale .txt{display:flex;flex-direction:column;gap:4px;align-items:flex-end;text-align:right}
+.scale .txt b{font-size:11px;color:var(--txt);font-weight:600;display:flex;align-items:center;gap:7px}
+.scale .txt span{font-size:11px;color:var(--dim);max-width:300px}
+.scale .follow{white-space:nowrap}
+.scale .follow{display:flex;align-items:center;gap:7px;padding:8px 11px;border-radius:var(--r2);
+  background:var(--sunk);font-size:11px;color:var(--dim)}
+.scale .follow i{width:8px;height:8px;border-radius:50%;background:var(--live);
   animation:mwpulse 2s ease-in-out infinite}
 
 /* ------------------------------------------------------- sheets and help */
-.scrim{position:fixed;inset:0;background:rgba(8,7,6,.7);z-index:2000;display:none}
+.scrim{position:fixed;inset:0;background:rgba(23,32,51,.32);z-index:2000;display:none}
 .scrim.open{display:block}
 .sheet{position:fixed;right:0;top:0;bottom:0;width:540px;max-width:94vw;z-index:2001;
-  background:var(--panel);border-left:1px solid var(--line);display:none;flex-direction:column}
+  background:var(--solid);border-left:1px solid var(--line);display:none;flex-direction:column;
+  box-shadow:-12px 0 40px rgba(28,48,92,.16)}
 .sheet.open{display:flex}
-.sheet>header{flex:none;display:flex;align-items:flex-start;gap:12px;padding:15px 16px 12px;
+.sheet>header{flex:none;display:flex;align-items:flex-start;gap:12px;padding:16px 18px 13px;
   border-bottom:1px solid var(--line)}
 .sheet>header .t{flex:1;display:flex;flex-direction:column;gap:5px}
-.sheet>header b{font-size:13.5px;letter-spacing:.03em}
-.sheet>header p{margin:0;font-size:11px;line-height:1.55;color:var(--dim)}
-.sheet>.inner{flex:1;overflow-y:auto;padding:14px 16px 22px;display:flex;flex-direction:column;
-  gap:10px}
-.opt{text-align:left;width:100%;border-radius:9px;background:#1d1813;border:1px solid var(--line2);
-  padding:10px 12px;cursor:pointer;color:var(--txt);font:inherit;display:flex;
+.sheet>header b{font-size:15px}
+.sheet>header p{margin:0;font-size:12px;line-height:1.55;color:var(--dim)}
+.sheet>.inner{flex:1;overflow-y:auto;padding:14px 18px 22px;display:flex;flex-direction:column;gap:10px}
+.opt{text-align:left;width:100%;border-radius:10px;background:var(--btn);border:1px solid var(--line2);
+  padding:11px 13px;cursor:pointer;color:var(--txt);font:inherit;display:flex;
   flex-direction:column;gap:4px}
-.opt:hover{border-color:var(--edge);background:#241d16}
-.opt.on{border-color:rgba(232,129,76,.6);background:rgba(232,129,76,.07)}
-.opt b{font-size:12px;font-weight:600}
-.opt .q{font-size:10.5px;color:var(--mom);line-height:1.5}
-.opt .d{font-size:10.5px;color:var(--dim);line-height:1.55}
-.grp{font-size:8.5px;letter-spacing:.18em;color:var(--dim2);font-weight:600;
+.opt:hover{border-color:var(--edge);background:#fff}
+.opt.on{border-color:var(--accent);background:var(--accent-soft)}
+.opt b{font-size:13px;font-weight:600}
+.opt .q{font-size:12px;color:var(--accent);line-height:1.5}
+.opt .d{font-size:12px;color:var(--dim);line-height:1.55}
+.grp{font-size:10.5px;letter-spacing:.08em;color:var(--dim);font-weight:600;
   margin:6px 0 -2px;text-transform:uppercase}
-.sheet .hint{font-size:10.5px;color:var(--dim2);line-height:1.6;margin:0}
-.sheet .err{font-size:10.5px;color:var(--lev);line-height:1.6;margin:0}
+.sheet .hint{font-size:12px;color:var(--dim);line-height:1.6;margin:0}
+.sheet .err{font-size:12px;color:var(--bad);line-height:1.6;margin:0}
 .sheet ul.watch{margin:2px 0 0;padding:0;list-style:none}
-.sheet ul.watch li{position:relative;padding:2px 0 2px 12px;font-size:10.5px;line-height:1.5;
-  color:var(--dim)}
-.sheet ul.watch li:before{content:"";position:absolute;left:0;top:8px;width:4px;height:4px;
+.sheet ul.watch li{position:relative;padding:2px 0 2px 13px;font-size:12px;line-height:1.5;color:var(--dim)}
+.sheet ul.watch li:before{content:"";position:absolute;left:0;top:9px;width:5px;height:5px;
   border-radius:50%;background:var(--bank)}
 .field{display:flex;flex-direction:column;gap:5px}
-.field label{font-size:10px;letter-spacing:.06em;color:var(--dim)}
-.field input[type=text],.field input[type=number]{background:#100e0d;color:var(--txt);
-  border:1px solid var(--line2);border-radius:7px;padding:8px 10px;font:inherit;font-size:12px}
-.field input[type=range]{accent-color:var(--mom);width:100%}
+.field label{font-size:11.5px;color:var(--dim)}
+.field input[type=text],.field input[type=number]{background:#fff;color:var(--txt);
+  border:1px solid var(--line2);border-radius:8px;padding:9px 11px;font:inherit;font-size:13px}
+.field input[type=range]{accent-color:var(--accent);width:100%}
 .row2{display:flex;gap:8px;align-items:center}
-.btn{border-radius:8px;background:#2a2018;border:1px solid var(--edge);color:var(--txt);
-  padding:8px 14px;font:inherit;font-size:11px;font-weight:600;letter-spacing:.06em;cursor:pointer}
-.btn:hover{background:#352818}
+.btn{border-radius:8px;background:var(--accent);border:1px solid var(--accent);color:#fff;
+  padding:8px 14px;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.btn:hover{filter:brightness(1.08)}
 .btn:disabled{opacity:.45;cursor:default}
-.btn.ghost{background:var(--btn);border-color:var(--line2);color:var(--dim);font-weight:400}
-.btn.danger{background:rgba(217,88,74,.14);border-color:rgba(217,88,74,.5);color:#ff9b8f}
+.btn.ghost{background:var(--btn);border-color:var(--line2);color:var(--txt);font-weight:500}
+.btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
 .slider{display:flex;flex-direction:column;gap:3px}
-.slider .kv{font-size:10.5px}
-.slider input[type=range]{accent-color:var(--mom);width:100%}
-.check{display:flex;gap:7px;align-items:flex-start;font-size:10.5px;padding:2px 0;
-  line-height:1.5}
-.check .m{width:11px;flex:none;font-weight:600}
-.ok{color:var(--val)} .no{color:var(--lev)}
-.verdict{font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;
-  border-radius:10px;display:inline-block}
-.v-ok{color:var(--val);border:1px solid rgba(79,184,160,.5)}
-.v-no{color:var(--mom);border:1px solid rgba(232,129,76,.5)}
-.v-part{color:var(--gold);border:1px solid rgba(201,162,39,.5)}
+.slider .kv{font-size:12px}
+.slider input[type=range]{accent-color:var(--accent);width:100%}
+.check{display:flex;gap:7px;align-items:flex-start;font-size:12px;padding:2px 0;line-height:1.5}
+.check .m{width:11px;flex:none;font-weight:700}
+.ok{color:var(--good)} .no{color:var(--bad)}
+.verdict{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;padding:3px 8px;
+  border-radius:999px;display:inline-block}
+.v-ok{color:var(--good);background:var(--good-soft)}
+.v-no{color:var(--bad);background:var(--bad-soft)}
+.v-part{color:var(--warn);background:var(--warn-soft)}
 
 /* the first-run explanation */
 .help{position:fixed;inset:0;z-index:2100;display:none;align-items:center;justify-content:center;
-  padding:22px;background:rgba(8,7,6,.82)}
+  padding:22px;background:rgba(23,32,51,.4)}
 .help.open{display:flex}
-.helpbox{width:840px;max-width:100%;max-height:100%;overflow-y:auto;border-radius:14px;
-  background:var(--panel);border:1px solid var(--edge);padding:24px 26px 22px}
-.helpbox h2{margin:0 0 4px;font-size:19px;letter-spacing:.01em}
-.helpbox .lead{margin:0 0 16px;font-size:12.5px;line-height:1.65;color:var(--dim);max-width:66ch}
-.helpcols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.helpbox{width:880px;max-width:100%;max-height:100%;overflow-y:auto;border-radius:18px;
+  background:var(--solid);border:1px solid var(--line);padding:26px 28px 22px;box-shadow:0 20px 60px rgba(28,48,92,.25)}
+.helpbox h2{margin:0 0 6px;font-size:22px}
+.helpbox .lead{margin:0 0 18px;font-size:13.5px;line-height:1.65;color:var(--dim);max-width:68ch}
+.helpcols{display:grid;grid-template-columns:1fr 1fr;gap:24px}
 @media(max-width:760px){.helpcols{grid-template-columns:1fr}}
-.helpbox h3{margin:14px 0 6px;font-size:9px;letter-spacing:.2em;color:var(--dim2);font-weight:600;
+.helpbox h3{margin:16px 0 7px;font-size:11px;letter-spacing:.08em;color:var(--dim);font-weight:700;
   text-transform:uppercase}
 .helpbox h3:first-child{margin-top:0}
-.helpbox dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:3px 10px;
-  font-size:11.5px;line-height:1.55}
+.helpbox dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12.5px;line-height:1.55}
 .helpbox dt{color:var(--txt);font-weight:600;white-space:nowrap}
 .helpbox dd{margin:0;color:var(--dim)}
-.helpbox ol{margin:0;padding-left:18px;font-size:11.5px;line-height:1.7;color:var(--dim)}
+.helpbox ol{margin:0;padding-left:18px;font-size:12.5px;line-height:1.7;color:var(--dim)}
 .helpbox ol b{color:var(--txt)}
-.helpbox kbd{font-family:var(--mono);font-size:10px;background:#100e0d;border:1px solid var(--line2);
-  border-radius:4px;padding:1px 5px;color:var(--txt)}
-.helpfoot{margin-top:18px;padding-top:14px;border-top:1px solid var(--line);display:flex;
+.helpbox kbd{font-family:var(--mono);font-size:11px;background:var(--sunk);border:1px solid var(--line2);
+  border-radius:5px;padding:1px 6px;color:var(--txt)}
+.helpfoot{margin-top:20px;padding-top:14px;border-top:1px solid var(--line);display:flex;
   align-items:center;justify-content:space-between;gap:14px}
-.helpfoot p{margin:0;font-size:10.5px;color:var(--dim2);line-height:1.6;max-width:60ch}
+.helpfoot p{margin:0;font-size:12px;color:var(--dim);line-height:1.6;max-width:62ch}
 
-/* ---------------------------------------------------------------- motion */
-@keyframes mwpulse{0%,100%{opacity:.35}50%{opacity:.9}}
-@keyframes mwring{0%{transform:scale(.6);opacity:.85}100%{transform:scale(1.5);opacity:0}}
-@keyframes mwpolicy{to{background-position:0 -44px}}
-@keyframes mwrise{0%{transform:translateY(0);opacity:0}18%{opacity:1}70%{opacity:1}
-  100%{transform:translateY(-54px);opacity:0}}
-@keyframes mwr1{0%{transform:translate(0,0);opacity:0}10%{opacity:1}90%{opacity:1}
-  100%{transform:translate(130px,-20px);opacity:0}}
-@keyframes mwr2{0%{transform:translate(0,0);opacity:0}10%{opacity:1}90%{opacity:1}
-  100%{transform:translate(0,-175px);opacity:0}}
-@keyframes mwr3{0%{transform:translate(0,0);opacity:0}10%{opacity:1}90%{opacity:1}
-  100%{transform:translate(-165px,165px);opacity:0}}
-@keyframes mwr4{0%{transform:translate(0,0);opacity:0}10%{opacity:1}90%{opacity:1}
-  100%{transform:translate(-130px,20px);opacity:0}}
-@keyframes mwr5{0%{transform:translate(0,0);opacity:0}10%{opacity:1}90%{opacity:1}
-  100%{transform:translate(-140px,-140px);opacity:0}}
-/* The makers sit beside the exchange and the issuer supplies it — two short walks,
-   and the steadiest order flow in the market, which had no road at all. */
-@keyframes mwr6{0%{transform:translate(0,0);opacity:0}14%{opacity:1}86%{opacity:1}
-  100%{transform:translate(0,46px);opacity:0}}
-@keyframes mwr7{0%{transform:translate(0,0);opacity:0}14%{opacity:1}86%{opacity:1}
-  100%{transform:translate(0,-58px);opacity:0}}
-.paused .plate *{animation-play-state:paused !important}
-@media (prefers-reduced-motion:reduce){.plate *{animation:none !important}}
+@keyframes mwpulse{0%,100%{opacity:.55}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.mcall,.scale .follow i{animation:none}}
 </style>
 </head>
 <body>
 <div class="app" id="app">
 
+  <!-- The town itself: a WebGL plate behind every panel. web/town3d.js draws it. -->
+  <div class="world" id="world">
+    <div class="overlay" id="tags"></div>
+    <div class="overlay" id="pips"><div class="mcall" id="mcall">MARGIN CALL</div></div>
+    <div class="nogl" id="nogl">This browser offers no WebGL, so the town cannot be drawn.
+      Every figure is still in the panels, and the analysis pages work as usual.</div>
+  </div>
+
   <!-- ------------------------------------------------------------ header -->
   <header class="top">
-    <div class="brand">
-      <div class="iconbtn sq" id="btnHelp" title="Was ist das hier? (?)">?</div>
+    <div class="dock brand">
+      <div class="iconbtn sq" id="btnHelp" title="What is this? (?)">?</div>
+      <span class="logo"><svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="#fff" stroke-width="1.6"><path d="M2 15h14M4 15V8l3-2v9M9 15V3l5 3v9"/></svg></span>
       <div class="title">
-        <b>MARKTSTADT</b>
+        <b>MARKET TOWN</b>
         <span id="subtitle">—</span>
       </div>
     </div>
 
     <div class="chips">
-      <div class="chip" title="Summe des Eigenkapitals aller Agenten">
-        <span class="sw" style="background:#c9a227"></span>
-        <span class="k">KAPITAL</span><span class="v" data-f="cap"></span></div>
-      <div class="chip" title="0 = Angst, 100 = Gier. Gemessen aus Trend, Volatilität und Abstand zum fairen Wert">
-        <span class="sw dot" data-f="moodFg" data-fp="background"></span>
-        <span class="k">STIMMUNG</span><span class="v" data-f="mood" data-fc="moodFg"></span></div>
-      <div class="chip" title="Gehandelte Stücke im gewählten Markt in diesem Schritt">
-        <span class="sw dia" style="background:#4fb8a0"></span>
-        <span class="k">VOLUMEN</span><span class="v" data-f="vol"></span></div>
-      <div class="chip" title="Kurs des gewählten Marktes · Änderung über die letzten 20 Schritte">
-        <span class="k">KURS</span><span class="v" data-f="px"></span>
-        <span style="font-size:9px" data-f="chg" data-fc="chgFg"></span></div>
+      <div class="chip" title="Sum of every agent's equity">
+        <span class="ic"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><ellipse cx="9" cy="5" rx="6" ry="2.5"/><path d="M3 5v4c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V5M3 9v4c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V9"/></svg></span>
+        <span><span class="k">Capital</span><span class="v" data-f="cap"></span></span></div>
+      <div class="chip" title="0 = fear, 100 = greed. Measured from trend, volatility and the gap to fair value. The town's light follows it.">
+        <span class="ic"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.5 13a6.5 6.5 0 1 1 13 0"/><path d="M9 13l3.2-4"/></svg></span>
+        <span><span class="k">Sentiment <span class="sw dot" style="width:8px;height:8px" data-f="moodFg" data-fp="background"></span></span>
+          <span class="v" data-f="mood" data-fc="moodFg"></span></span></div>
+      <div class="chip" title="Shares traded in the selected market this step">
+        <span class="ic"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 15V9M7 15V5M11 15v-7M15 15V3"/></svg></span>
+        <span><span class="k">Volume</span><span class="v" data-f="vol"></span></span></div>
+      <div class="chip" title="Price of the selected market · change over the last 20 steps">
+        <span class="ic"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 13l4-4 3 2 6-6M11 5h4v4"/></svg></span>
+        <span><span class="k">Price · <span data-f="focus"></span></span><span class="v"><span data-f="px"></span><span class="d" data-f="chg" data-fc="chgFg"></span></span></span></div>
     </div>
 
-    <div class="right">
-      <div class="step" title="Ein Schritt ist etwa eine Minute Handel, 240 Schritte ein Handelstag">
-        <span class="k">TAG</span><span class="v" data-f="day"></span>
-        <span class="k" style="padding-left:6px">SCHRITT</span><span class="v" data-f="step"></span>
-      </div>
-
-      <!-- Shocks, not modes: each one changes the world once and the model answers. -->
-      <div class="cluster">
-        <b>SCHOCK</b>
-        <div>
-          <span class="mode calm" id="shkCalm"
-            title="Beruhigt den Markt: weniger Trendfolge, weniger Aktivität (Taste R)">RUHIG</span>
-          <span class="mode boom" id="shkBoom"
-            title="Gute Nachricht plus mehr Trendfolge. Wie weit der Kurs steigt, entscheidet der Markt (Taste B)">BOOM</span>
-          <span class="mode crash" id="shkCrash"
-            title="Fundamentalwert fällt, Stimmung kippt, Trendfolge hoch. Ob es 5 % oder 40 % werden, ist die Antwort des Modells (Taste C)">CRASH</span>
-        </div>
-      </div>
-
-      <div class="cluster">
-        <b>TEMPO</b>
-        <div>
-          <span class="iconbtn ctl" id="btnPause" title="Pause / weiter (Leertaste)">❙❙</span>
-          <span class="iconbtn ctl" id="btnStep" title="Ein einzelner Schritt (Taste ])">›</span>
-          <span class="spd" data-speed="1x" title="Echtzeit (Taste 1)">1×</span>
-          <span class="spd" data-speed="4x" title="Vierfach (Taste 2)">4×</span>
-          <span class="spd" data-speed="16x" title="Sechzehnfach (Taste 3)">16×</span>
-        </div>
+    <div class="dock right">
+      <div class="step" title="One step is roughly a minute of trading; 240 steps make a trading day">
+        <span class="k">Day <b class="v" data-f="day"></b></span>
+        <span class="k">Step <b class="v" data-f="step"></b></span>
       </div>
 
       <div class="livewrap"><i></i><span id="liveTxt">—</span></div>
       <div class="tonav">
         <a href="/indices"
-           title="Alle Indizes live gegeneinander: Stand, fairer Wert, Vola, Beta, Breite">INDIZES</a>
+           title="Every index live, side by side: level, fair value, volatility, beta, breadth">Indices</a>
         <a href="/traders"
-           title="Alle Trader in einer Liste: Kapital, Positionen, Hebel, Ergebnis">TRADER</a>
+           title="Every trader in one list: capital, positions, leverage, result">Traders</a>
       </div>
       <a class="tolink" href="/sectors"
-         title="Sektorvergleich, Korrelationen, Validierung, A/B-Vergleich, Aufzeichnungen">
-        ANALYSE &amp; VALIDIERUNG &#8250;</a>
+         title="Sector comparison, correlations, validation, A/B comparison, recordings">
+        Analysis &amp; validation &#8250;</a>
     </div>
   </header>
-
-  <!-- The server fast-forwards 110 trading days on start. Nothing said so before. -->
-  <div class="warm" id="warm">
-    <span>Der Markt wird aufgewärmt — <b class="num" id="warmPct">0</b> %. Das
-      Validierungspanel braucht 100 Handelstage, bevor seine Zahlen etwas bedeuten.
-      Pause und Tempo greifen danach.</span>
-    <span class="track"><i id="warmBar"></i></span>
-  </div>
-
-  <!-- A stopped market has to say that it has stopped. It used to keep the step
-       counter frozen and the lamp on "LÄUFT". -->
-  <div class="warm bad" id="broke">
-    <span>Die Simulation ist gestoppt: <b id="brokeWhy">—</b>. Über NEU STARTEN
-      lässt sich der Lauf zurücksetzen.</span>
-  </div>
-
-  <!-- Replay. Seeking already returned the whole state at every position; nothing
-       drew it, so a recorded run could only be read as a single price. Now the town
-       renders the position and this bar scrubs it. -->
-  <div class="warm rep" id="replayBar">
-    <span class="tag2">AUFZEICHNUNG</span>
-    <span id="replayWho">—</span>
-    <input type="range" id="replayScrub" min="0" max="1" step="1" value="0"
-           title="Tag im aufgezeichneten Lauf. Vorwärts wird weitergerechnet,
-rückwärts von vorn — beides ergibt bitgenau denselben Lauf, rückwärts dauert es.">
-    <span class="iconbtn ctl" id="replayPrev" title="ein Tag zurück">‹</span>
-    <span class="iconbtn ctl" id="replayNext" title="ein Tag vor">›</span>
-    <span id="replayDay" class="num">—</span>
-    <button class="btn ghost" id="replayLive" title="Replay schließen und zum laufenden Markt zurück">
-      zurück zu Live</button>
-  </div>
 
   <div class="body">
 
     <!-- ---------------------------------------------------------- left -->
     <div class="col">
       <!-- The reading comes first. A town that shows state without saying what the
-           state means is decoration; this is the panel that answers "und was
-           bringt mir das?" -->
+           state means is decoration; this is the panel that answers "and what does
+           that tell me?" -->
       <div class="card" id="readCard">
-        <div class="hd">WAS PASSIERT GERADE</div>
+        <div class="hd">What is happening</div>
         <div id="reading"></div>
       </div>
-      <!-- The reading can run long in a turbulent market. Capped with its own
-           scroll so it never pushes the district list off the screen — that list
-           is the map key, and a key below the fold is not a key. -->
 
-      <!-- Three views of the selected market, all of which the backend could always
-           answer and none of which any page ever drew: price against fair value
+      <!-- Three views of the selected market: price against fair value
            (/api/series), the daily candles (/api/bars) and the resting orders. The
            last one is where a price in this model actually comes from — every trade
-           is one order crossing another — and it was the least visible thing in the
-           whole interface. Tabs rather than three stacked panels: the column is
-           already long, and each view answers the same question at a different
-           resolution. -->
+           is one order crossing another. Tabs rather than three stacked panels: each
+           view answers the same question at a different resolution. -->
       <div class="card" id="marketCard">
         <div class="hdrow">
-          <span class="hd">MARKT · <span id="chartSym">—</span></span>
+          <span class="hd">Market · <span id="chartSym">—</span></span>
           <span class="tabs" id="marketTabs">
             <button class="tab" data-view="line"
-              title="Kurs gegen fairen Wert, die letzten 240 Schritte">KURS</button>
+              title="Price against fair value, the last 240 steps">Price</button>
             <button class="tab" data-view="candles"
-              title="Tageskerzen: Eröffnung, Hoch, Tief, Schluss je Handelstag">KERZEN</button>
+              title="Daily candles: open, high, low, close per trading day">Candles</button>
             <button class="tab" data-view="book"
-              title="Das Orderbuch: ruhende Kauf- und Verkaufsorders">BUCH</button>
+              title="The order book: resting buy and sell orders">Book</button>
           </span>
         </div>
         <canvas id="chart" width="440" height="192"></canvas>
@@ -593,16 +502,16 @@ rückwärts von vorn — beides ergibt bitgenau denselben Lauf, rückwärts daue
       </div>
 
       <div class="card">
-        <div class="hdrow" title="Ein Viertel anklicken: es erklärt sich und stellt ein
-Mitglied in die Einheiten-Karte rechts"><span class="hd">VIERTEL · KAPITAL</span>
+        <div class="hdrow" title="Click a district: it explains itself and puts one of
+its members into the unit card on the right"><span class="hd">Districts · capital</span>
           <span class="hd">?</span></div>
         <div id="rooms"></div>
       </div>
 
       <div class="card pad" style="gap:11px">
-        <div class="hd">ADAPTIVES VIERTEL</div>
+        <div class="hd">Adaptive Quarter</div>
         <div class="meter">
-          <div class="kv"><span>Trendfolge</span><span data-f="mom"></span></div>
+          <div class="kv"><span>Trend following</span><span data-f="mom"></span></div>
           <div class="bar"><i style="background:var(--mom)" data-f="momW" data-fp="width"></i></div>
         </div>
         <div class="meter">
@@ -610,118 +519,136 @@ Mitglied in die Einheiten-Karte rechts"><span class="hd">VIERTEL · KAPITAL</spa
           <div class="bar"><i style="background:var(--val)" data-f="valW" data-fp="width"></i></div>
         </div>
         <div class="meter">
-          <div class="kv"><span>hat gerade gewechselt</span><span data-f="mov"></span></div>
+          <div class="kv"><span>just switched</span><span data-f="mov"></span></div>
           <div class="bar"><i style="background:var(--gold)" data-f="movW" data-fp="width"></i></div>
         </div>
       </div>
 
       <div class="card pad" style="gap:8px">
-        <div class="hd">DIESER SCHRITT</div>
-        <div class="kv" title="Wie viele Agenten in diesem Schritt überhaupt handeln dürfen">
-          <span>Handelnd</span><span data-f="act"></span></div>
-        <div class="kv" title="Aufgegebene Orders"><span>Orders</span><span data-f="ord"></span></div>
-        <div class="kv" title="Zustande gekommene Geschäfte">
+        <div class="hd">This step</div>
+        <div class="kv" title="How many agents are allowed to trade in this step at all">
+          <span>Active</span><span data-f="act"></span></div>
+        <div class="kv" title="Orders placed"><span>Orders</span><span data-f="ord"></span></div>
+        <div class="kv" title="Trades that happened">
           <span>Trades</span><span data-f="trd"></span></div>
-        <div class="kv" title="Zwangsverkäufe: ein Fonds ist unter die Margin-Schwelle gefallen">
-          <span>Margin Calls</span><span data-f="mc" data-fc="mcFg"></span></div>
+        <div class="kv" title="Forced sales: a fund has fallen below the margin threshold">
+          <span>Margin calls</span><span data-f="mc" data-fc="mcFg"></span></div>
         <div class="legendtxt">
-          <b>Wie die Stadt zu lesen ist</b><br>
-          Höhe eines Blocks = Kapital im Viertel<br>
-          Breite einer Straße = Orderfluss<br>
-          Eine Figur = zehn Agenten mit einer Order<br>
-          Türme in der Mitte = die Börsen, Höhe = Buchtiefe<br>
-          <span class="scaleTxt">1 Geschoss = 30 000 €</span>
+          <b>How to read the town</b><br>
+          Height of a block = capital in the district<br>
+          Width of a road = order flow<br>
+          One figure = ten agents carrying an order<br>
+          Crate = the order's side: green buy, red sell<br>
+          Blue towers = the exchanges, height = book depth<br>
+          Light = sentiment: sun when greedy, rain in panic<br>
+          <span class="scaleTxt">1 floor = €30,000</span>
         </div>
       </div>
     </div>
 
     <!-- ---------------------------------------------------------- stage -->
     <div class="stage" id="stage">
-      <div class="plate" id="plate">
-        <!-- district ground plots -->
-        <div class="zone" style="left:30px;top:220px;width:215px;height:350px;
-          background:rgba(232,129,76,.09);border:1px solid rgba(232,129,76,.17)"></div>
-        <div class="zone" style="left:578px;top:265px;width:180px;height:180px;
-          background:rgba(79,184,160,.07);border:1px dashed rgba(79,184,160,.2)"></div>
-        <div class="zone" style="left:228px;top:596px;width:222px;height:146px;
-          background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)"></div>
-        <div class="zone" style="left:548px;top:555px;width:186px;height:150px;
-          background:rgba(74,208,122,.06);border:1px solid rgba(74,208,122,.16)"></div>
-        <div class="zone" style="left:108px;top:48px;width:205px;height:115px;
-          background:rgba(126,158,230,.06);border:1px solid rgba(126,158,230,.16)"></div>
-        <div class="zone" style="left:585px;top:76px;width:90px;height:108px;
-          background:rgba(217,88,74,.08);border:1px solid rgba(217,88,74,.2)"></div>
-        <div class="zone" style="left:308px;top:226px;width:244px;height:66px;
-          background:rgba(143,180,200,.06);border:1px solid rgba(143,180,200,.18)"></div>
-        <div class="zone" style="left:346px;top:442px;width:108px;height:94px;
-          background:rgba(183,155,214,.06);border:1px solid rgba(183,155,214,.18)"></div>
-        <div class="zone" style="left:296px;top:296px;width:208px;height:188px;border-radius:50%;
-          background:radial-gradient(closest-side,rgba(232,129,76,.13),rgba(232,129,76,0))"></div>
+      <!-- The server fast-forwards 110 trading days on start. Nothing said so before. -->
+      <div class="warm" id="warm">
+        <span>Warming up the market — <b class="num" id="warmPct">0</b>%. The validation
+          panel needs 100 trading days before its figures mean anything. Pause and speed
+          take effect afterwards.</span>
+        <span class="track"><i id="warmBar"></i></span>
+      </div>
 
-        <!-- policy line from the central bank -->
-        <div class="policy"></div>
+      <!-- A stopped market has to say that it has stopped. It used to keep the step
+           counter frozen and the lamp on "RUNNING". -->
+      <div class="warm bad" id="broke">
+        <span>The simulation has stopped: <b id="brokeWhy">—</b>. RESTART resets the run.</span>
+      </div>
 
-        <!-- street furniture -->
-        <div class="billboard tree" style="left:284px;top:318px;z-index:600">
-          <div class="trunk"></div><div class="crown" style="height:22px"></div></div>
-        <div class="billboard tree" style="left:492px;top:552px;z-index:1010">
-          <div class="trunk"></div><div class="crown" style="height:24px"></div></div>
-        <div class="billboard lamp" style="left:250px;top:560px;z-index:790">
-          <div class="mast"></div><div class="bulb"></div></div>
-        <div class="billboard lamp" style="left:560px;top:250px;z-index:770">
-          <div class="mast"></div><div class="bulb"></div></div>
-
-        <!-- generated: streets, buildings, runners, order pips, alarm -->
+      <!-- Replay. Seeking returns the whole state at every position, so the town renders
+           the position and this bar scrubs it. -->
+      <div class="warm rep" id="replayBar">
+        <span class="tag2">RECORDING</span>
+        <span id="replayWho">—</span>
+        <input type="range" id="replayScrub" min="0" max="1" step="1" value="0"
+               title="Day in the recorded run. Forwards it is computed onwards, backwards
+from the start — both give a bit-identical run, backwards takes longer.">
+        <span class="iconbtn ctl" id="replayPrev" title="one day back">‹</span>
+        <span class="iconbtn ctl" id="replayNext" title="one day forward">›</span>
+        <span id="replayDay" class="num">—</span>
+        <button class="btn ghost" id="replayLive" title="Close the replay and return to the running market">
+          back to live</button>
       </div>
 
       <!-- the market switcher -->
-      <div class="mktbar">
-        <b>MÄRKTE</b>
-        <div id="markets" style="display:flex;gap:5px;flex-wrap:wrap"></div>
-        <span class="sub" data-f="book" style="font-size:9.5px;color:var(--dim2)"></span>
+      <div class="card mktbar">
+        <b>Markets</b>
+        <div id="markets" style="display:flex;gap:5px;flex-wrap:wrap;justify-content:center"></div>
+        <span class="sub" data-f="book"></span>
       </div>
 
-      <div class="ticker" id="ticker">
+      <div class="cmdrow">
+  <div class="ticker" id="ticker">
         <span class="s" data-f="tickStep" data-fc="tickFg"></span>
         <span class="m" data-f="tick"></span>
       </div>
+        <div class="card command">
+          <!-- Shocks, not modes: each one changes the world once and the model answers. -->
+          <div class="cluster">
+            <b>Shock</b>
+            <div>
+              <span class="mode calm" id="shkCalm"
+                title="Calms the market: less trend following, less activity (key R)">Calm</span>
+              <span class="mode boom" id="shkBoom"
+                title="Good news plus more trend following. How far the price rises is the market's decision (key B)">Boom</span>
+              <span class="mode crash" id="shkCrash"
+                title="Fair value falls, sentiment turns, trend following up. Whether it is 5% or 40% is the model's answer (key C)">Crash</span>
+            </div>
+          </div>
 
-      <!-- map labels, generated and projected with the plate transform -->
-      <div id="tags"></div>
-
-      <!-- Two groups, because the colours mean two different things. The old single
-           row put "kauft"/"verkauft" next to the district dots in the ETF and Hebel
-           colours, so the same green stood for a district and for a fill. -->
-      <div class="key">
-        <b>FIGUREN</b>
-        <span><i style="background:var(--mom)"></i>Trendfolge</span>
-        <span><i style="background:var(--val)"></i>Value</span>
-        <span><i style="background:var(--gold)"></i>wechselt gerade</span>
-        <span><i style="background:var(--noise)"></i>Rausch</span>
-        <span><i style="background:var(--mkr)"></i>Market Maker</span>
-        <span><i style="background:var(--cmp)"></i>Emittent</span>
-        <span><i style="background:var(--lev)"></i>Hebel</span>
-        <b style="margin-left:4px">ZAHLEN ÜBER DER BÖRSE</b>
-        <span><i class="sq" style="background:var(--etf)"></i>Kauf</span>
-        <span><i class="sq" style="background:var(--lev)"></i>Verkauf</span>
+          <div class="cluster">
+            <b>Speed</b>
+            <div>
+              <span class="iconbtn ctl" id="btnPause" title="Pause / resume (Space)">❙❙</span>
+              <span class="iconbtn ctl" id="btnStep" title="A single step (key ])">›</span>
+              <span class="spd" data-speed="1x" title="Real time (key 1)">1×</span>
+              <span class="spd" data-speed="4x" title="Four times (key 2)">4×</span>
+              <span class="spd" data-speed="16x" title="Sixteen times (key 3)">16×</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="zoom">
-        <div class="iconbtn" id="zIn" title="Näher (+)">＋</div>
-        <div class="iconbtn" id="zOut" title="Weiter weg (−)">－</div>
-        <div class="iconbtn" id="zRst" title="Kamera zurücksetzen (0)" style="font-size:12px">⟳</div>
+      <!-- Two groups, because the colours mean two different things: who is walking,
+           and which side their order is on. -->
+      <div class="card key">
+        <b>FIGURES</b>
+        <span><i style="background:var(--mom)"></i>Trend</span>
+        <span><i style="background:var(--val)"></i>Value</span>
+        <span><i style="background:var(--gold)"></i>switching</span>
+        <span><i style="background:var(--noise)"></i>Noise</span>
+        <span><i style="background:var(--mkr)"></i>Market makers</span>
+        <span><i style="background:var(--lev)"></i>Leverage</span>
+        <span>trucks: ETF depot, issuer</span>
+        <b style="margin-left:4px">CRATES &amp; NUMBERS</b>
+        <span><i class="sq" style="background:var(--good)"></i>buy</span>
+        <span><i class="sq" style="background:var(--bad)"></i>sell</span>
+      </div>
+
+      <div class="card zoom">
+        <div class="iconbtn" id="zIn" title="Closer (+)">＋</div>
+        <div class="iconbtn" id="zOut" title="Further away (−)">－</div>
+        <div class="iconbtn" id="zRot" title="Turn the town by 45°">⟲</div>
+        <div class="iconbtn" id="zRst" title="Reset the camera (0)" style="font-size:13px">⌂</div>
       </div>
     </div>
 
     <!-- ---------------------------------------------------------- right -->
     <div class="col">
       <div class="card">
-        <div class="hdrow"><span class="hd">AUSGEWÄHLTE EINHEIT</span>
+        <div class="hdrow"><span class="hd">Selected unit</span>
           <span class="unitnav">
-            <span class="iconbtn" id="unitPrev" title="vorheriger Agent">‹</span>
+            <span class="iconbtn" id="unitPrev" title="previous agent">‹</span>
             <span class="of" data-f="unitOf"></span>
-            <span class="iconbtn" id="unitNext" title="nächster Agent">›</span>
-            <span class="iconbtn" id="unitRnd" title="zufälliger Agent" style="width:26px;height:22px">⚄</span>
+            <span class="iconbtn" id="unitNext" title="next agent">›</span>
+            <span class="iconbtn" id="unitRnd" title="random agent" style="width:26px;height:24px">⚄</span>
           </span>
         </div>
         <div class="figstage">
@@ -730,7 +657,7 @@ Mitglied in die Einheiten-Karte rechts"><span class="hd">VIERTEL · KAPITAL</spa
             <div class="torso" data-f="body" data-fp="background"></div>
             <div class="head"></div>
           </div>
-          <span class="tagL" data-f="unitKind" title="Agentenklasse aus mes/agents.py"></span>
+          <span class="tagL" data-f="unitKind" title="Agent class from mes/agents.py"></span>
           <span class="tagR" id="stratTag" data-f="strat" data-fc="stratFg"></span>
         </div>
         <div class="unitname">
@@ -740,35 +667,35 @@ Mitglied in die Einheiten-Karte rechts"><span class="hd">VIERTEL · KAPITAL</spa
       </div>
 
       <div class="card pad" style="gap:10px">
-        <div class="hd">WERTE</div>
+        <div class="hd">Values</div>
         <div class="meter" style="gap:5px">
-          <div class="kv" title="Eigenkapital dieses Agenten, im Verhältnis zum größten der Stadt">
-            <span>Kapital</span><span data-f="eq"></span></div>
+          <div class="kv" title="This agent's equity, relative to the largest in town">
+            <span>Capital</span><span data-f="eq"></span></div>
           <div class="bar sm"><i style="background:var(--mom)" data-f="eqW" data-fp="width"></i></div>
         </div>
         <div class="meter" style="gap:5px">
-          <div class="kv" title="Parameter chartist_aggression: wie stark ein Trend extrapoliert wird">
-            <span>Trendfolge-Stärke</span><span data-f="trend"></span></div>
+          <div class="kv" title="Parameter chartist_aggression: how strongly a trend is extrapolated">
+            <span>Trend strength</span><span data-f="trend"></span></div>
           <div class="bar sm"><i style="background:var(--gold)" data-f="trendW" data-fp="width"></i></div>
         </div>
         <div class="meter" style="gap:5px">
-          <div class="kv" title="Parameter memory: wie langsam die eigene Erfolgsbilanz vergessen wird">
-            <span>Gedächtnis</span><span data-f="mem"></span></div>
+          <div class="kv" title="Parameter memory: how slowly the agent forgets its own track record">
+            <span>Memory</span><span data-f="mem"></span></div>
           <div class="bar sm"><i style="background:var(--val)" data-f="memW" data-fp="width"></i></div>
         </div>
         <div class="meter" style="gap:5px">
-          <div class="kv" title="Position geteilt durch Eigenkapital"><span>Hebel</span>
+          <div class="kv" title="Position divided by equity"><span>Leverage</span>
             <span data-f="levX"></span></div>
           <div class="bar sm"><i style="background:var(--noise)" data-f="levW" data-fp="width"></i></div>
         </div>
       </div>
 
       <div class="card pad" style="gap:8px">
-        <div class="hd">ENTSCHEIDUNG DIESEN SCHRITT</div>
-        <div class="dec"><span>Trend / Vola</span><span data-f="d1"></span></div>
-        <div class="dec"><span>+ Stimmung · 0,25</span>
+        <div class="hd">Decision this step</div>
+        <div class="dec"><span>Trend / vol</span><span data-f="d1"></span></div>
+        <div class="dec"><span>+ sentiment · 0.25</span>
           <span style="color:var(--dim)" data-f="d2"></span></div>
-        <div class="dec"><span>Ziel = <span data-f="dBase"></span> · Vermögen /
+        <div class="dec"><span>Target = <span data-f="dBase"></span> · wealth /
           <span data-f="dSym"></span> <span data-f="dPx"></span></span>
           <span data-f="d3"></span></div>
         <div class="order" id="orderBox">
@@ -777,7 +704,7 @@ Mitglied in die Einheiten-Karte rechts"><span class="hd">VIERTEL · KAPITAL</spa
       </div>
 
       <div class="card pad" style="gap:9px">
-        <div class="hd">STADT-PROTOKOLL</div>
+        <div class="hd">Town log</div>
         <div id="log" style="display:flex;flex-direction:column;gap:9px"></div>
       </div>
     </div>
@@ -785,31 +712,30 @@ Mitglied in die Einheiten-Karte rechts"><span class="hd">VIERTEL · KAPITAL</spa
 
   <!-- ------------------------------------------------------------ footer -->
   <footer class="foot">
-    <!-- Five buttons that do something. They used to be five div elements with a
-         pointer cursor and no handler of any kind, which is the single most
-         misleading thing a control can be. Each one now opens the backend
-         capability its label names. -->
-    <div class="acts">
+    <!-- Six buttons that do something. They used to be div elements with a pointer
+         cursor and no handler of any kind, which is the single most misleading thing a
+         control can be. Each one now opens the backend capability its label names. -->
+    <div class="dock acts">
       <button class="act primary" id="actScenario"
-              title="Markt unter den Bedingungen eines Szenarios neu aufsetzen">
-        <span class="ic">◈</span><span class="nm">SZENARIO</span></button>
+              title="Set the market up again under the conditions of a scenario">
+        <span class="ic">◈</span><span class="nm">Scenario</span></button>
       <button class="act" id="actLesson"
-              title="Geführtes Experiment: Frage, Aufbau, gemessene Prüfung">
-        <span class="ic">◉</span><span class="nm">EXPERIMENT</span></button>
+              title="Guided experiment: question, setup, measured check">
+        <span class="ic">◉</span><span class="nm">Experiment</span></button>
       <button class="act" id="actNews"
-              title="Nachricht von Hand einspeisen — bewegt fairen Wert und Stimmung">
-        <span class="ic">✦</span><span class="nm">NACHRICHT</span></button>
-      <button class="act" id="actParams" title="Parameter im laufenden Markt verändern">
-        <span class="ic">▤</span><span class="nm">REGLER</span></button>
+              title="Inject a headline by hand — moves fair value and sentiment">
+        <span class="ic">✦</span><span class="nm">Headline</span></button>
+      <button class="act" id="actParams" title="Change parameters in the running market">
+        <span class="ic">▤</span><span class="nm">Controls</span></button>
       <button class="act" id="actReplay"
-              title="Aufgezeichneten Lauf öffnen und in der Stadt durchscrubben">
-        <span class="ic">⏱</span><span class="nm">REPLAY</span></button>
-      <button class="act" id="actReset" title="Lauf auf Schritt 0 zurücksetzen">
-        <span class="ic">⟲</span><span class="nm">NEU STARTEN</span></button>
+              title="Open a recorded run and scrub through it in the town">
+        <span class="ic">⏱</span><span class="nm">Replay</span></button>
+      <button class="act" id="actReset" title="Reset the run to step 0">
+        <span class="ic">⟲</span><span class="nm">Restart</span></button>
     </div>
 
-    <div class="review">
-      <div class="lbl"><b>NÄCHSTES STRATEGIE-REVIEW</b><span id="reviewLbl">—</span></div>
+    <div class="dock review">
+      <div class="lbl"><b>Next strategy review</b><span id="reviewLbl">—</span></div>
       <div class="ticks" id="ticks"></div>
     </div>
 
@@ -817,29 +743,29 @@ Mitglied in die Einheiten-Karte rechts"><span class="hd">VIERTEL · KAPITAL</spa
          the smallest district reaches 135× and one linear ladder cannot serve both
          ends. Euro stays the default and stays honest; the comparison mode says in
          this same line that its heights are not euros. -->
-    <div class="scale">
+    <div class="dock scale">
       <div class="txt">
-        <b>MASSSTAB
+        <b>Scale
           <span class="tabs" id="scaleTabs">
             <button class="tab" data-scale="euro"
-              title="Blockhöhe in Euro — ein Geschoss ist ein fester Betrag. Ehrlich, aber bei großer Spreizung stehen die kleinen Viertel alle auf Minimalhöhe">EURO</button>
+              title="Block height in euros — one floor is a fixed amount. Honest, but with a wide spread the small districts all sit on the minimum height">EURO</button>
             <button class="tab" data-scale="log"
-              title="Blockhöhe logarithmisch — gleicher Abstand je Verzehnfachung. Macht die kleinen Viertel wieder vergleichbar, ist aber keine Euro-Höhe mehr">VERGLEICH</button>
+              title="Block height on a log scale — the same step per tenfold. Makes the small districts comparable again, but is no longer a height in euros">COMPARE</button>
           </span></b>
-        <span><span class="scaleTxt">1 Geschoss = 30 000 €</span> ·
-        <span id="scaleNote">Börsen im Verhältnis zueinander: tiefstes Buch = höchstes Haus</span></span>
+        <span><span class="scaleTxt">1 floor = €30,000</span> ·
+        <span id="scaleNote">Exchanges relative to each other: deepest book = tallest tower</span></span>
       </div>
       <div class="follow"><i></i><span id="source">—</span></div>
     </div>
   </footer>
 </div>
 
-<!-- a right-hand drawer for the five footer actions -->
+<!-- a right-hand drawer for the footer actions -->
 <div class="scrim" id="scrim"></div>
 <aside class="sheet" id="sheet">
   <header>
     <div class="t"><b id="sheetTitle"></b><p id="sheetNote"></p></div>
-    <button class="btn ghost" id="sheetClose">Schließen</button>
+    <button class="btn ghost" id="sheetClose">Close</button>
   </header>
   <div class="inner" id="sheetBody"></div>
 </aside>
@@ -847,106 +773,117 @@ Mitglied in die Einheiten-Karte rechts"><span class="hd">VIERTEL · KAPITAL</spa
 <!-- ------------------------------------------------------- what is this -->
 <div class="help" id="help">
   <div class="helpbox">
-    <h2>Was ist das hier?</h2>
-    <p class="lead">Ein Aktienmarkt aus mehreren hundert Agenten. Jeder folgt einer
-      einfachen Regel, keiner kennt den wahren Wert, keiner weiß, was die anderen
-      vorhaben — und nirgends im Code steht eine Formel für den Kurs. Jede
-      Kursbewegung ist eine Order, die auf eine andere trifft.</p>
+    <h2>What is this?</h2>
+    <p class="lead">An equity market made of several hundred agents. Each follows a
+      simple rule, none knows the true value, none knows what the others are about to
+      do — and nowhere in the code is there a formula for the price. Every price move
+      is one order meeting another.</p>
 
     <div class="helpcols">
       <div>
-        <h3>Die Stadt ist die Anzeige</h3>
+        <h3>The town is the display</h3>
         <dl>
-          <dt>Blockhöhe</dt><dd>Kapital, das in diesem Viertel steht. Nach vielen
-            Handelstagen hält ein Lager fast alles und die übrigen Viertel stehen
-            flach — dann macht <b>MASSSTAB · VERGLEICH</b> unten rechts sie wieder
-            unterscheidbar (logarithmisch, dann keine Euro-Höhe)</dd>
-          <dt>Straßenbreite</dt><dd>Orderfluss auf diesem Weg, in diesem Schritt</dd>
-          <dt>Eine Figur</dt><dd>zehn Agenten, die eine Order zur Börse tragen</dd>
-          <dt>Fünf Türme</dt><dd>die fünf Börsen, je eine pro Sektor. Höhe = Buchtiefe</dd>
-          <dt>Zahlen darüber</dt><dd>Geschäfte, die gerade zustande gekommen sind</dd>
-          <dt>Roter Ring</dt><dd>Margin Call: ein Fonds muss verkaufen</dd>
-          <dt>Markt-Panel</dt><dd>links: Kurs gegen fairen Wert, Tageskerzen, Orderbuch —
-            umschaltbar, immer der gewählte Markt</dd>
+          <dt>Block height</dt><dd>Capital standing in that district. After many
+            trading days one camp holds almost everything and the other districts sit
+            flat — then <b>SCALE · COMPARE</b> at the bottom right makes them
+            distinguishable again (logarithmic, so no longer a height in euros)</dd>
+          <dt>Road width</dt><dd>Order flow on that road, in this step</dd>
+          <dt>One figure</dt><dd>ten agents carrying an order to the exchange; the crate
+            is green for a buy and red for a sell</dd>
+          <dt>Trucks</dt><dd>the ETF depot's scheduled purchases and the issuer's new
+            shares</dd>
+          <dt>Five towers</dt><dd>the five exchanges, one per sector. Height = book depth</dd>
+          <dt>Numbers above</dt><dd>trades that have just happened</dd>
+          <dt>Red ring</dt><dd>margin call: a fund has to sell</dd>
+          <dt>Light</dt><dd>sentiment: warm sun when greedy, overcast when fearful,
+            rain in panic</dd>
+          <dt>Market panel</dt><dd>left: price against fair value, daily candles, order
+            book — switchable, always the selected market</dd>
         </dl>
 
-        <h3>Die Viertel</h3>
+        <h3>The districts</h3>
         <dl>
-          <dt>Adaptives Viertel</dt><dd>300 Trader, die regelmäßig zwischen Trendfolge
-            und Value wechseln — je nachdem, was zuletzt funktioniert hat</dd>
-          <dt>Rausch-Vorstadt</dt><dd>handelt ohne Meinung, liefert die Gegenseite</dd>
-          <dt>ETF-Lager</dt><dd>kauft nach Plan, preisunabhängig, liest keine Nachrichten</dd>
-          <dt>Hebel-Turm</dt><dd>Fonds auf Kredit. Fällt der Kurs zu weit, müssen sie
-            verkaufen — ohne es zu entscheiden</dd>
-          <dt>Market Maker</dt><dd>die Einzigen, die dauerhaft Kurse stellen</dd>
-          <dt>Emittent</dt><dd>gibt neue Aktien aus, wenn der Kurs weit über dem
-            fairen Wert steht</dd>
-          <dt>Zentralbank</dt><dd>setzt den Zins; er wirkt über Bewertung, Kreditkosten
-            und Zuflüsse, nie direkt auf den Kurs</dd>
+          <dt>Adaptive Quarter</dt><dd>300 traders who regularly switch between trend
+            following and value, depending on what worked last</dd>
+          <dt>Noise Suburb</dt><dd>trades without an opinion, supplies the other side</dd>
+          <dt>ETF Depot</dt><dd>buys on schedule, regardless of price, reads no news</dd>
+          <dt>Leverage Tower</dt><dd>funds on credit. If the price falls too far they
+            must sell — without deciding to</dd>
+          <dt>Market Makers</dt><dd>the only ones who quote prices all the time</dd>
+          <dt>Issuer</dt><dd>issues new shares when the price stands far above fair value</dd>
+          <dt>Central Bank</dt><dd>sets the rate; it acts through valuation, credit cost
+            and flows, never directly on the price</dd>
         </dl>
       </div>
 
       <div>
-        <h3>Was zuerst probieren</h3>
+        <h3>What to try first</h3>
         <ol>
-          <li><b>16×</b> drücken und zusehen, wie der Kurs sich vom fairen Wert löst —
-            das Markt-Panel links zeigt beide. Über <b>KERZEN</b> dieselbe Bewegung
-            als Handelstage, über <b>BUCH</b> die ruhenden Orders, aus denen jeder
-            einzelne Kurs entsteht.</li>
-          <li>Ein <b>Szenario</b> laden: „Blasenbildung“ oder „Hebel-Crash“. Es setzt
-            Bedingungen und liefert Nachrichten; was der Kurs daraus macht, ist die
-            Antwort des Modells, kein Drehbuch.</li>
-          <li>Ein <b>Experiment</b> starten. Es stellt den Markt ein, sagt worauf zu
-            achten ist — und prüft danach gemessen, ob es funktioniert hat. Auch wenn
-            nicht.</li>
-          <li>Ein <b>Viertel</b> anklicken: links steht, wofür es da ist, rechts ein
-            echtes Mitglied mit seiner Entscheidung in diesem Schritt.</li>
-          <li>Über <b>Analyse &amp; Validierung</b> in den Sektorvergleich: Korrelationen,
-            Stylized Facts, A/B-Vergleich über mehrere Seeds.</li>
+          <li>Press <b>16×</b> and watch the price drift away from fair value — the
+            market panel on the left shows both. <b>Candles</b> shows the same move as
+            trading days, <b>Book</b> the resting orders every single price comes from.</li>
+          <li>Load a <b>scenario</b>: "Bubble formation" or "Leverage crash". It sets
+            conditions and supplies headlines; what the price makes of them is the
+            model's answer, not a script.</li>
+          <li>Start an <b>experiment</b>. It sets the market up, says what to watch —
+            and then checks, by measurement, whether it worked. Also when it did not.</li>
+          <li>Click a <b>district</b>, on the map or in the list: the left side says what
+            it is for, the right shows a real member and its decision this step.</li>
+          <li>Drag the map to turn it, scroll to zoom, right-drag to move it.</li>
+          <li>Go to <b>Analysis &amp; validation</b> for the sector comparison:
+            correlations, stylized facts, A/B comparison across several seeds.</li>
         </ol>
 
-        <h3>Tasten</h3>
+        <h3>Keys</h3>
         <dl>
-          <dt><kbd>Leertaste</kbd></dt><dd>Pause / weiter</dd>
-          <dt><kbd>]</kbd></dt><dd>ein einzelner Schritt</dd>
-          <dt><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></dt><dd>Tempo 1× / 4× / 16×</dd>
-          <dt><kbd>R</kbd> <kbd>B</kbd> <kbd>C</kbd></dt><dd>Schock: ruhig / Boom / Crash</dd>
-          <dt><kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd></dt><dd>Zoom und Kamera zurücksetzen</dd>
-          <dt><kbd>?</kbd></dt><dd>diese Erklärung</dd>
-          <dt><kbd>Esc</kbd></dt><dd>schließen</dd>
+          <dt><kbd>Space</kbd></dt><dd>pause / resume</dd>
+          <dt><kbd>]</kbd></dt><dd>a single step</dd>
+          <dt><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></dt><dd>speed 1× / 4× / 16×</dd>
+          <dt><kbd>R</kbd> <kbd>B</kbd> <kbd>C</kbd></dt><dd>shock: calm / boom / crash</dd>
+          <dt><kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd></dt><dd>zoom and reset the camera</dd>
+          <dt><kbd>?</kbd></dt><dd>this explanation</dd>
+          <dt><kbd>Esc</kbd></dt><dd>close</dd>
         </dl>
       </div>
     </div>
 
     <div class="helpfoot">
-      <p>Nichts davon ist einprogrammiert. Blasen, Crashs, Volatilitätscluster und
-        Zwangsverkaufs-Kaskaden entstehen aus dem Zusammenspiel — oder sie sind nicht da.</p>
-      <button class="btn" id="helpClose">Verstanden</button>
+      <p>None of this is programmed in. Bubbles, crashes, volatility clusters and
+        forced-selling cascades emerge from the interaction — or they are not there.</p>
+      <button class="btn" id="helpClose">Got it</button>
     </div>
   </div>
 </div>
 
+<script src="vendor/three.min.js"></script>
+<script src="town3d.js"></script>
 <script>
 /* =====================================================================
-   Marktstadt — the city is a read-out of the simulation, not decoration.
+   Market Town — the town is a read-out of the simulation, not decoration.
 
    Block height  = capital standing in that district (scale in the footer)
-   Street width  = order flow on that road this step
-   One runner    = ten agents carrying an order to the exchange
-   Pips          = the fills that actually happened
+   Road width    = order flow on that road this step
+   One figure    = ten agents carrying an order to the exchange
+   Crate colour  = the side of that group's orders this step
+   Numbers       = the fills that actually happened
+   Light         = sentiment
 
-   Numbers come from GET /api/state (see mes/city.py). Opened without the
-   backend the page falls back to the snapshot below, which is generated from a
-   real run by scripts/demo_state.py rather than written by hand — the two
-   hand-written snapshots that used to live here had drifted to 550 agents and a
-   single exchange, and the page showed those figures for the first second of
+   Numbers come from GET /api/state (see mes/city.py). This script turns them into
+   a town model — blocks, roads, figures — and web/town3d.js draws that model in 3D.
+   The split is deliberate: everything that carries a number is decided here, in
+   plate coordinates the tests can read; the 3D file only draws.
+
+   Opened without the backend the page falls back to the snapshot below, which is
+   generated from a real run by scripts/demo_state.py rather than written by hand —
+   the two hand-written snapshots that used to live here had drifted to 550 agents
+   and a single exchange, and the page showed those figures for the first second of
    every real session.
    ===================================================================== */
 
-/* One floor is five pixels. How many euros a floor is worth is the map scale:
-   it starts at 30 000 € and steps down only when the tallest block would grow
-   out of the plate — the footer always states the scale actually in use, the
-   way a site plan carries a scale bar.
+/* One floor is five plate pixels. How many euros a floor is worth is the map scale:
+   it starts at €30,000 and steps down only when the tallest block would grow out of
+   the plate — the footer always states the scale actually in use, the way a site
+   plan carries a scale bar.
 
    Two modes, because one linear scale cannot do both jobs once the market has run
    for a while. After a hundred trading days the trend followers hold most of the
@@ -958,10 +895,9 @@ Mitglied in die Einheiten-Karte rechts"><span class="hd">VIERTEL · KAPITAL</spa
    heights are not euros. Exactly the argument the exchanges already won: five
    buildings meant to be compared, all the same height, is not a comparison. */
 const FLOOR_PX = 5, MAX_BLOCK_PX = 300;
-/* The ladder used to stop at 5 Mio. €, and the tallest block then grew straight
-   through the 300-pixel ceiling the ladder exists to enforce: the leverage tower
-   measured 320 px and left the plate. A market left running compounds without a
-   limit, so the ladder has to keep going. */
+/* The ladder used to stop at €5M, and the tallest block then grew straight through
+   the 300-pixel ceiling the ladder exists to enforce. A market left running compounds
+   without a limit, so the ladder has to keep going. */
 const SCALE_LADDER = [30e3, 50e3, 100e3, 200e3, 500e3, 1e6, 2e6, 5e6,
                       10e6, 20e6, 50e6, 100e6, 200e6, 500e6, 1e9];
 let euroPerFloor = SCALE_LADDER[0];
@@ -975,7 +911,7 @@ const SCALE_KEY = 'mes.town.scale.v1';
 let scaleMode = 'euro';
 try { scaleMode = localStorage.getItem(SCALE_KEY) === 'log' ? 'log' : 'euro'; } catch (_) {}
 
-/* Euro or decade, one entry point. Everything that turns money into pixels goes
+/* Euro or decade, one entry point. Everything that turns money into height goes
    through here so the two modes cannot drift apart. */
 function hpx(eur) {
   if (scaleMode === 'log') {
@@ -987,23 +923,22 @@ function hpx(eur) {
 }
 
 function chooseScale(maxEur) {
-  const de = n => n.toString().replace('.', ',');
   if (scaleMode === 'log') {
     document.querySelectorAll('.scaleTxt').forEach(el =>
-      el.textContent = `${PX_PER_DECADE} px je Verzehnfachung`);
-    $('#scaleNote').textContent = 'Höhen logarithmisch, nicht in Euro — für den '
-      + 'Vergleich der kleinen Viertel. Börsen wie immer im Verhältnis zueinander.';
+      el.textContent = `${PX_PER_DECADE / FLOOR_PX} floors per tenfold`);
+    $('#scaleNote').textContent = 'Heights are logarithmic, not in euros — for comparing '
+      + 'the small districts. Exchanges relative to each other, as always.';
     return;
   }
   euroPerFloor = SCALE_LADDER.find(e => maxEur / e * FLOOR_PX <= MAX_BLOCK_PX)
               ?? SCALE_LADDER[SCALE_LADDER.length - 1];
-  const label = euroPerFloor >= 1e9 ? de(euroPerFloor / 1e9) + ' Mrd. €'
-              : euroPerFloor >= 1e6 ? de(euroPerFloor / 1e6) + ' Mio. €'
-              : de(euroPerFloor / 1e3) + ' 000 €';
+  const label = euroPerFloor >= 1e9 ? '€' + euroPerFloor / 1e9 + 'bn'
+              : euroPerFloor >= 1e6 ? '€' + euroPerFloor / 1e6 + 'M'
+              : '€' + (euroPerFloor / 1e3) + ',000';
   document.querySelectorAll('.scaleTxt').forEach(el =>
-    el.textContent = '1 Geschoss = ' + label);
-  $('#scaleNote').textContent = 'Börsen im Verhältnis zueinander: tiefstes Buch '
-    + '= höchstes Haus';
+    el.textContent = '1 floor = ' + label);
+  $('#scaleNote').textContent = 'Exchanges relative to each other: deepest book '
+    + '= tallest tower';
 }
 
 function setScaleMode(mode) {
@@ -1014,12 +949,12 @@ function setScaleMode(mode) {
   paint();
 }
 
-const ORANGE = '#e8814c', TEAL = '#4fb8a0', GOLD = '#c9a227',
-      GREY = '#8d847b', RED = '#d9584a', GREEN = '#4ad07a',
-      STEEL = '#8fb4c8', VIOLET = '#b79bd6';
+const ORANGE = '#e07434', TEAL = '#2f9e86', GOLD = '#b7891f',
+      GREY = '#8a7fa3', RED = '#d14a3c', GREEN = '#2f9e5e',
+      STEEL = '#3d8fb5', VIOLET = '#8f6fd0';
 
 /* ------------------------------------------------------------- fallback */
-/* demo-state:begin — erzeugt von scripts/demo_state.py, nicht von Hand ändern */
+/* demo-state:begin — generated by scripts/demo_state.py, do not edit by hand */
 const DEMO =
 {
  "seed": 42,
@@ -1029,82 +964,82 @@ const DEMO =
   "floor_px": 5,
   "agents_per_figure": 10
  },
- "step": "4 800",
- "cap": "274,0 M",
+ "step": "4,800",
+ "cap": "274.0M",
  "mood": "67",
- "moodFg": "#e8814c",
- "vol": "1 159",
- "px": "108,62",
+ "moodFg": "#e07434",
+ "vol": "1,159",
+ "px": "108.62",
  "focus": "TECH",
  "markets": [
   {
    "sym": "TECH",
-   "px": "108,62",
-   "chg": "▼ 0,7 %",
-   "chgFg": "#d9584a",
+   "px": "108.62",
+   "chg": "▼ 0.7%",
+   "chgFg": "#d43f3f",
    "eur": 1999786.25,
-   "depth": "18 410",
+   "depth": "18,410",
    "sel": true,
-   "gap": "+12 %"
+   "gap": "+12%"
   },
   {
    "sym": "ENRG",
-   "px": "137,53",
-   "chg": "▼ 0,4 %",
-   "chgFg": "#d9584a",
+   "px": "137.53",
+   "chg": "▼ 0.4%",
+   "chgFg": "#d43f3f",
    "eur": 2416451.775,
-   "depth": "17 571",
+   "depth": "17,571",
    "sel": false,
-   "gap": "+29 %"
+   "gap": "+29%"
   },
   {
    "sym": "FINL",
-   "px": "115,16",
-   "chg": "▼ 0,1 %",
-   "chgFg": "#d9584a",
+   "px": "115.16",
+   "chg": "▼ 0.1%",
+   "chgFg": "#d43f3f",
    "eur": 1885135.8849999998,
-   "depth": "16 369",
+   "depth": "16,369",
    "sel": false,
-   "gap": "+32 %"
+   "gap": "+32%"
   },
   {
    "sym": "HLTH",
-   "px": "132,21",
-   "chg": "▲ 6,0 %",
-   "chgFg": "#4fb8a0",
+   "px": "132.21",
+   "chg": "▲ 6.0%",
+   "chgFg": "#2f9e86",
    "eur": 2378986.7399999998,
-   "depth": "17 994",
+   "depth": "17,994",
    "sel": false,
-   "gap": "+10 %"
+   "gap": "+10%"
   },
   {
    "sym": "CONS",
-   "px": "102,28",
-   "chg": "▲ 0,7 %",
-   "chgFg": "#4fb8a0",
+   "px": "102.28",
+   "chg": "▲ 0.7%",
+   "chgFg": "#2f9e86",
    "eur": 1809012.51,
-   "depth": "17 686",
+   "depth": "17,686",
    "sel": false,
-   "gap": "+17 %"
+   "gap": "+17%"
   }
  ],
- "chg": "▲ 0,2 %",
- "chgFg": "#4fb8a0",
- "tickStep": "SCHRITT 4 800",
- "tick": "TECH 108,62 · 12,2 % vom fairen Wert",
- "tickFg": "#e8814c",
- "tickBd": "rgba(232,129,76,.4)",
+ "chg": "▲ 0.2%",
+ "chgFg": "#2f9e86",
+ "tickStep": "STEP 4,800",
+ "tick": "TECH 108.62 · 12.2% from fair value",
+ "tickFg": "#e07434",
+ "tickBd": "rgba(224,116,52,0.4)",
  "day": "20",
- "bankRate": "2,06 %",
- "bankSub": "Inflation 2,13 % · Ziel 2,00 %",
+ "bankRate": "2.06%",
+ "bankSub": "Inflation 2.13% · target 2.00%",
  "noiseN": "200",
  "etfN": "30",
- "etfFlow": "+900 €",
- "etfSub": "alle 40 Schritte · preisunabhängig",
+ "etfFlow": "+€900",
+ "etfSub": "every 40 steps · price-insensitive",
  "mkrN": "60",
- "mkrSub": "Buchtiefe 18 410 Stück",
- "cmpN": "489 361",
- "cmpSub": "ab 12 % über fair",
+ "mkrSub": "book depth 18,410 shares",
+ "cmpN": "489,361",
+ "cmpSub": "issues from 12% above fair value",
  "mom": "195",
  "momW": "65%",
  "val": "105",
@@ -1116,8 +1051,8 @@ const DEMO =
  "ord": "357",
  "trd": "182",
  "mc": "0",
- "mcFg": "#ece6e0",
- "book": "TECH · 107 Orders · 65 Trades · Buch 2,0 M",
+ "mcFg": "#172033",
+ "book": "TECH · 107 orders · 65 trades · book 2.0M",
  "ladder": {
   "bids": [
    [
@@ -1187,12 +1122,12 @@ const DEMO =
     3
    ]
   ],
-  "bid": "108,59",
-  "ask": "108,66",
-  "spread": "0,07",
+  "bid": "108.59",
+  "ask": "108.66",
+  "spread": "0.07",
   "spreadBp": "6 bp",
-  "restingBid": "7 600",
-  "restingAsk": "10 409"
+  "restingBid": "7,600",
+  "restingAsk": "10,409"
  },
  "capital": {
   "mom": 34255692.42622982,
@@ -1224,146 +1159,155 @@ const DEMO =
   "cmp": 1,
   "switch": 4
  },
+ "buyShare": {
+  "mom": 1.0,
+  "val": 0.03,
+  "noise": 0.48,
+  "etf": 1.0,
+  "lev": 1.0,
+  "mkr": 0.5,
+  "cmp": 0.0
+ },
  "pips": [
   {
    "t": "+122",
-   "c": "#4ad07a"
+   "c": "#1c9a52"
   },
   {
    "t": "+9",
-   "c": "#4ad07a"
+   "c": "#1c9a52"
   },
   {
    "t": "+13",
-   "c": "#4ad07a"
+   "c": "#1c9a52"
   },
   {
    "t": "−1",
-   "c": "#d9584a"
+   "c": "#d43f3f"
   },
   {
    "t": "−18",
-   "c": "#d9584a"
+   "c": "#d43f3f"
   }
  ],
- "lev": "20 · 1,0×",
- "levSub": "34 % des erlaubten Hebels genutzt",
+ "lev": "20 · 1.0×",
+ "levSub": "34% of the allowed leverage in use",
  "alarm": 0,
  "rooms": [
   [
-   "Börsen",
-   "5 Märkte · Buch 10,5 M",
-   "5 Orderbücher, eines je Sektor. Ein Kurs entsteht nur dort, wo eine Order auf eine andere trifft.",
+   "Exchanges",
+   "5 markets · book 10.5M",
+   "5 order books, one per sector. A price only forms where one order meets another.",
    null
   ],
   [
-   "Zentralbank",
-   "Zins 2,06 % · Inflation 2,13 %",
-   "Setzt den Zins. Er erreicht den Markt über Bewertung, Kreditkosten und Zuflüsse — nie direkt den Kurs.",
+   "Central Bank",
+   "Rate 2.06% · inflation 2.13%",
+   "Sets the rate. It reaches the market through valuation, borrowing costs and inflows. It never moves the price directly.",
    null
   ],
   [
-   "Adaptives Viertel",
-   "300 Agenten · 52,9 M",
-   "Wechselt alle 20 Schritte zwischen Trendfolge und Value, je nachdem was zuletzt funktioniert hat.",
+   "Adaptive Quarter",
+   "300 agents · 52.9M",
+   "Switches every 20 steps between trend following and value, depending on what has worked recently.",
    0
   ],
   [
-   "Rausch-Vorstadt",
-   "200 Agenten · 17,7 M",
-   "Handelt ohne Meinung. Liefert die Gegenseite, damit überhaupt gehandelt werden kann.",
+   "Noise Suburb",
+   "200 agents · 17.7M",
+   "Trades without an opinion. Provides the other side, so that trading can happen at all.",
    300
   ],
   [
-   "ETF-Lager",
-   "30 Agenten · 6,5 M",
-   "Kauft alle 40 Schritte nach Plan, unabhängig vom Preis. Liest keine Nachrichten.",
+   "ETF Depot",
+   "30 agents · 6.5M",
+   "Buys on a schedule every 40 steps, regardless of price. Reads no news.",
    500
   ],
   [
-   "Hebel-Fonds",
-   "20 Agenten · 33,6 M",
-   "Handelt auf Kredit, höchstens 3,0×. Fällt das Eigenkapital unter 38 % der Position, wird verkauft — ohne Entscheidung.",
+   "Leveraged funds",
+   "20 agents · 33.6M",
+   "Trades on credit, at most 3.0×. If equity falls below 38% of the position, it sells. No decision is involved.",
    530
   ],
   [
-   "Market Maker",
-   "60 Agenten · Buchtiefe TECH 18 410 Stück",
-   "Stellt dauerhaft Kurse auf beiden Seiten. Die einzige Quelle stehender Liquidität.",
+   "Market Makers",
+   "60 agents · book depth TECH 18,410 shares",
+   "Quotes prices on both sides at all times. The only source of standing liquidity.",
    550
   ],
   [
-   "Emittent",
-   "489 361 Stück im Umlauf ausgegeben",
-   "Gibt neue Aktien aus, sobald der Kurs mehr als 12 % über dem fairen Wert steht. Die einzige Quelle neuen Angebots.",
+   "Issuer",
+   "489,361 shares issued into circulation",
+   "Issues new shares as soon as the price is more than 12% above fair value. The only source of new supply.",
    562
   ]
  ],
  "reviewStep": 0,
  "reviewOf": 20,
  "unit": "#0 AdaptiveTrader",
- "sub": "Adaptives Viertel · Kapital 199 508 € · unterwegs zur Börse",
- "unitGroup": "Adaptives Viertel",
- "unitKind": "ADAPTIV",
+ "sub": "Adaptive Quarter · capital €199,508 · on the way to the exchange",
+ "unitGroup": "Adaptive Quarter",
+ "unitKind": "ADAPTIVE",
  "unitIdx": "1",
  "unitTotal": "615",
  "unitOf": "1 / 615",
  "unitPrev": 614,
  "unitNext": 1,
  "trend": "55",
- "mem": "0,96",
- "dBase": "0,56",
+ "mem": "0.96",
+ "dBase": "0.56",
  "strat": "VALUE",
- "stratFg": "#4fb8a0",
- "stratBg": "rgba(79,184,160,0.16)",
- "stratBd": "rgba(79,184,160,0.4)",
- "body": "#4fb8a0",
- "eq": "199 508",
+ "stratFg": "#2f9e86",
+ "stratBg": "rgba(47,158,134,0.16)",
+ "stratBd": "rgba(47,158,134,0.4)",
+ "body": "#2f9e86",
+ "eq": "199,508",
  "eqW": "4%",
  "trendW": "37%",
  "memW": "96%",
- "levX": "0,4×",
+ "levX": "0.4×",
  "levW": "12%",
- "d1": "= 0,34",
- "d2": "= 0,00",
- "d3": "= 847 Stk",
+ "d1": "= 0.34",
+ "d2": "= 0.00",
+ "d3": "= 847 shares",
  "dSym": "HLTH",
- "dPx": "132,21",
- "order": "VERKAUFT 2 @ 130,83",
- "orderState": "offen",
- "orderFg": "#d9584a",
- "orderBg": "rgba(217,88,74,0.14)",
- "orderBd": "rgba(217,88,74,0.5)",
+ "dPx": "132.21",
+ "order": "SELLS 2 @ 130.83",
+ "orderState": "open",
+ "orderFg": "#d43f3f",
+ "orderBg": "rgba(212,63,63,0.14)",
+ "orderBd": "rgba(212,63,63,0.5)",
  "log": [
   [
-   "4 800",
-   "verkauft 18 @ 108,59",
-   "#d9584a"
+   "4,800",
+   "sells 18 @ 108.59",
+   "#d43f3f"
   ],
   [
-   "4 800",
-   "verkauft 1 @ 108,59",
-   "#d9584a"
+   "4,800",
+   "sells 1 @ 108.59",
+   "#d43f3f"
   ],
   [
-   "4 800",
-   "kauft 13 @ 108,60",
-   "#4ad07a"
+   "4,800",
+   "buys 13 @ 108.60",
+   "#1c9a52"
   ],
   [
-   "4 800",
-   "kauft 9 @ 108,60",
-   "#4ad07a"
+   "4,800",
+   "buys 9 @ 108.60",
+   "#1c9a52"
   ],
   [
-   "4 800",
-   "kauft 122 @ 108,60",
-   "#4ad07a"
+   "4,800",
+   "buys 122 @ 108.60",
+   "#1c9a52"
   ],
   [
-   "4 800",
-   "kauft 13 @ 108,60",
-   "#4ad07a"
+   "4,800",
+   "buys 13 @ 108.60",
+   "#1c9a52"
   ]
  ],
  "running": false,
@@ -1377,65 +1321,55 @@ const DEMO =
 /* demo-state:end */
 
 /* ------------------------------------------------------- town plan (view) */
-/* Plots, roads and the tilt are drawing decisions and stay here. Everything
-   that carries a number comes from the state. */
+/* Plots, streets and routes are drawing decisions and stay here, in plate pixels on
+   an 800 × 800 plate (x east, y south). Everything that carries a number comes from
+   the state.
+
+   The streets are a grid with right-angle corners, and each group's orders travel a
+   route along it from the district's door to the exchange square. A route is a
+   polyline; its width on the map is the group's order flow this step, and the
+   figures walking it carry that group's orders. Long routes with corners are the
+   point: a figure crossing the town is a figure you can follow. */
+const LAYOUT = {
+  streets: [
+    [[30, 205], [770, 205]], [[260, 430], [770, 430]], [[30, 545], [770, 545]],
+    [[260, 205], [260, 770]], [[400, 430], [400, 770]], [[545, 430], [545, 770]],
+    [[595, 30], [595, 430]]
+  ],
+  /* the square in front of the exchanges, where every route ends */
+  plaza: [262, 362, 322, 58],
+  /* district ground plots: x, y, width, depth */
+  zones: {
+    mom: [35, 215, 215, 300], val: [610, 212, 150, 212], noise: [30, 610, 220, 150],
+    etf: [565, 570, 184, 158], bank: [300, 46, 200, 106], lev: [610, 60, 82, 82],
+    mkr: [290, 220, 236, 64], cmp: [410, 570, 108, 94]
+  },
+  /* adaptive agents changing camp walk the northern avenue between the two halves */
+  switchRoutes: [
+    [[237, 262], [260, 262], [260, 205], [595, 205], [595, 262], [620, 262]],
+    [[620, 330], [595, 330], [595, 205], [260, 205], [260, 330], [237, 330]]
+  ],
+  /* the central bank's channel: it reaches the market only through the makers' quotes,
+     valuation and flows, never the price itself */
+  policy: [[400, 142], [400, 228]],
+  ring: [651, 101]
+};
 const ROADS = {
-  mom:   {x:215, y:400, L:131.5, a:-8.7,  anim:1, dur:6.4, c:ORANGE},
-  noise: {x:400, y:615, L:175,   a:-90,   anim:2, dur:7.2, c:'#ffffff'},
-  lev:   {x:605, y:165, L:233,   a:135,   anim:3, dur:8.0, c:RED},
-  val:   {x:585, y:355, L:131.5, a:171.3, anim:4, dur:6.0, c:TEAL},
-  etf:   {x:585, y:575, L:198,   a:225,   anim:5, dur:7.8, c:GREEN},
+  mom:   {pts: [[242, 480], [260, 480], [260, 430], [330, 430], [330, 388]], lane: 0, c: ORANGE},
+  val:   {pts: [[618, 330], [595, 330], [595, 430], [500, 430], [500, 388]], lane: 1, c: TEAL},
+  noise: {pts: [[240, 640], [260, 640], [260, 545], [400, 545], [400, 430], [370, 430], [370, 388]], lane: -1, c: GREY},
+  etf:   {pts: [[575, 649], [545, 649], [545, 430], [460, 430], [460, 388]], lane: -1, c: GREEN},
+  lev:   {pts: [[651, 132], [651, 205], [595, 205], [595, 430], [555, 430], [555, 388]], lane: -1, c: RED},
   /* The makers sit beside the exchange and the issuer supplies it with new stock.
      Both trade every single step and neither had a road, so the steadiest order
      flow in the market was the only one you could not see. */
-  mkr:   {x:430, y:296, L:46,    a:90,    anim:6, dur:3.4, c:STEEL},
-  cmp:   {x:400, y:448, L:58,    a:-90,   anim:7, dur:4.2, c:VIOLET}
+  mkr:   {pts: [[407, 278], [407, 297]], lane: 0, c: STEEL},
+  cmp:   {pts: [[420, 617], [400, 617], [400, 430], [430, 430], [430, 388]], lane: 1, c: VIOLET}
 };
-const SWITCH_ROUTES = [
-  {x:455, y:375, anim:1, dur:6.0}, {x:345, y:380, anim:4, dur:6.4}
-];
-const RGB = {mom:'232,129,76', val:'79,184,160', noise:'216,205,192',
-             etf:'74,208,122', bank:'126,158,230', lev:'217,88,74',
-             mkr:'143,180,200', cmp:'183,155,214',
-             exch:'255,176,110', exchsel:'255,208,150'};
 /* One exchange per market, laid out west to east in the order the backend sends
    them. The single exchange was a single market; the districts stay as they were,
    because the agents are one population holding a portfolio across all of them. */
-const EXCH_X = [252, 318, 384, 450, 516], EXCH_Y = 330, EXCH_W = 58;
-
-function skin(stress) {
-  /* Lit windows = capital at work. In stress the momentum quarter goes dark
-     and the value quarter lights up. */
-  const lit = stress
-    ? {mom:.12, val:.5, noise:.1, etf:.3, bank:.3, lev:.1, mkr:.5, cmp:.2,
-       exch:.5, exchsel:.72}
-    : {mom:.42, val:.2, noise:.16, etf:.24, bank:.3, lev:.36, mkr:.34, cmp:.28,
-       exch:.55, exchsel:.8};
-  const T = {
-    mom:  {roof:'#241b15', wall:'#36281e', dark:'#2a1f17'},
-    val:  {roof:'#161d1c', wall:'#232d2b', dark:'#1a2321'},
-    noise:{roof:'#1d1916', wall:'#2c2622', dark:'#221d1a'},
-    etf:  {roof:'#141d1a', wall:'#20302b', dark:'#182420'},
-    bank: {roof:'#161a24', wall:'#252c3c', dark:'#1c2130'},
-    lev:  {roof:'#231615', wall:'#33211f', dark:'#281918'},
-    mkr:  {roof:'#141b21', wall:'#1f2b34', dark:'#182229'},
-    cmp:  {roof:'#1c1724', wall:'#291f33', dark:'#201928'},
-    exch: {roof:'#2e2115', wall:'#47331f', dark:'#382718'},
-    /* the market the read-outs are about, lit brighter so it is findable */
-    exchsel: {roof:'#3d2c18', wall:'#5d4225', dark:'#48331d'},
-    /* borrowed floors: hatched, so leverage is visible as such */
-    levx: {roof:'rgba(217,88,74,.22)', wall:'rgba(217,88,74,.16)', dark:'rgba(217,88,74,.11)',
-           img:'repeating-linear-gradient(45deg,rgba(217,88,74,.4) 0 1.5px,transparent 1.5px 8px)'},
-    rubble:{roof:'#2a1a18', wall:'#241715', dark:'#1c1210',
-           img:'repeating-linear-gradient(45deg,rgba(217,88,74,.3) 0 2px,transparent 2px 6px)'}
-  };
-  for (const k in RGB) {
-    T[k].img = 'repeating-linear-gradient(0deg,rgba(' + RGB[k] + ',' + lit[k] +
-               ') 0 1.5px,transparent 1.5px 7px),' +
-               'repeating-linear-gradient(90deg,rgba(0,0,0,.4) 0 2px,transparent 2px 6px)';
-  }
-  return T;
-}
+const EXCH_X = [262, 328, 394, 460, 526], EXCH_Y = 300, EXCH_W = 58;
 
 function buildings(S) {
   const cap = S.capital, B = [];
@@ -1446,7 +1380,7 @@ function buildings(S) {
   /* adaptive quarter — ten blocks, two gaps where a camp moved out */
   const mf = [1.15, .85, 1.3, .75, 1.05, .95, 1.2, .7, 1.02, .82];
   let i = 0;
-  [240, 320, 400, 480].forEach((y, ri) => [44, 112, 180].forEach((x, ci) => {
+  [225, 300, 375, 450].forEach((y, ri) => [45, 113, 181].forEach((x, ci) => {
     if ((ri === 3 && ci === 2) || (ri === 1 && ci === 1)) return;
     eur('mom', x, y, 56, 56, cap.mom / 10 * mf[i++]);
   }));
@@ -1454,7 +1388,7 @@ function buildings(S) {
   /* value quarter — five taller, quieter blocks */
   const vf = [1.1, .95, .85, 1.15, .95];
   let vi = 0;
-  [280, 356, 432].forEach((y, ri) => [592, 664].forEach((x, ci) => {
+  [222, 290, 358].forEach((y, ri) => [620, 692].forEach((x, ci) => {
     if (ri === 2 && ci === 1) return;
     eur('val', x, y, 58, 56, cap.val / 5 * vf[vi++]);
   }));
@@ -1462,42 +1396,41 @@ function buildings(S) {
   /* noise suburb — twelve small houses */
   const nf = [1, .92, 1.08, .95, 1.05, .9, 1.1, .98, 1.02, .94, 1.06, 1];
   let ni = 0;
-  [606, 652, 698].forEach(y => [238, 292, 346, 400].forEach(x =>
+  [620, 668, 716].forEach(y => [40, 92, 144, 196].forEach(x =>
     eur('noise', x, y, 44, 34, cap.noi / 12 * nf[ni++])));
 
   /* ETF depot — four sheds */
-  [570, 646].forEach(y => [560, 646].forEach(x =>
+  [580, 660].forEach(y => [575, 665].forEach(x =>
     eur('etf', x, y, 74, 58, cap.etf / 4)));
 
   /* market makers — three quote desks in a row right beside the exchanges */
-  [316, 392, 468].forEach(x => eur('mkr', x, 240, 62, 46, (cap.mkr || 0) / 3));
+  [300, 376, 452].forEach(x => eur('mkr', x, 230, 62, 46, (cap.mkr || 0) / 3));
 
   /* the central bank holds no capital: a fixed landmark */
-  fixed('bank', 120, 62, 180, 86, 66);
+  fixed('bank', 310, 56, 180, 86, 66);
 
   /* The issuer is a landmark too, and deliberately not on the district scale.
      It holds the proceeds of every share it ever sold — roughly three times the
      rest of the town put together — so on the euro ladder it would be the only
-     building you could see and every district would sit on the 14-pixel floor.
+     building you could see and every district would sit on the minimum height.
      Its sign carries the float instead, which is the quantity that matters. */
-  fixed('cmp', 356, 452, 88, 74, 58);
+  fixed('cmp', 420, 580, 88, 74, 58);
 
   /* leverage tower: own capital solid, borrowed capital hatched on top */
   if (cap.lev <= 0) {
-    fixed('rubble', 598, 86, 62, 62, 20);
+    fixed('rubble', 620, 70, 62, 62, 20);
   } else {
-    eur('lev', 598, 86, 62, 62, cap.lev);
-    if (cap.exp > cap.lev) eur('levx', 598, 86, 62, 62, cap.exp - cap.lev, cap.lev);
+    eur('lev', 620, 70, 62, 62, cap.lev);
+    if (cap.exp > cap.lev) eur('levx', 620, 70, 62, 62, cap.exp - cap.lev, cap.lev);
   }
 
   /* One exchange per market, on a scale of their own.
      They are not on the district scale, and deliberately so. A district's height
      is capital standing in it; an exchange's is how deep its book is — different
-     quantities, and putting them on one ladder was already a stretch when there
-     was one exchange. With five, each carries a fifth of the order flow, and on
-     the district scale every one of them hit the 14-pixel floor: five buildings
-     the reader is meant to compare, all exactly the same height. Scaled against
-     each other instead, the comparison is the thing you can actually see. */
+     quantities. With five exchanges each carries a fifth of the order flow, and on
+     the district scale every one of them hit the minimum height: five buildings the
+     reader is meant to compare, all exactly the same height. Scaled against each
+     other instead, the comparison is the thing you can actually see. */
   const markets = S.markets || [{sym: '—', eur: cap.exch, sel: true}];
   const heights = exchangeHeights(S);
   markets.slice(0, 5).forEach((m, i) => fixed(
@@ -1505,9 +1438,7 @@ function buildings(S) {
 
   chooseScale(Math.max(...B.filter(b => b.eur !== undefined).map(b => b.eur + b.z0eur), 1));
 
-  const T = skin(underStress(S));
   return B.map(b => {
-    const t = T[b.t];
     /* The borrowed floors of the leverage tower sit on top of its own capital, so
        the roof belongs at the height of the *total*. Adding two converted heights
        happened to work on a linear scale and is plainly wrong on a logarithmic one
@@ -1516,130 +1447,88 @@ function buildings(S) {
     const z0 = b.z0eur ? hpx(b.z0eur) : 0;
     const top = b.px !== undefined ? z0 + b.px : hpx((b.z0eur || 0) + b.eur);
     const h = Math.max(1, top - z0);
-    return {...b, h, z0, top, z: Math.round(b.x + b.y + b.w + b.d),
-            roof: t.roof, bgA: t.wall, bgB: t.dark, img: t.img};
+    return {...b, h, z0, top};
   });
 }
 
-/* How tall each exchange is drawn. Shared, because the order pips have to float
-   above the same roof the building actually has — they used to be positioned from
-   the district euro scale and ended up 36 px inside it. */
+/* How tall each exchange is drawn, in plate pixels, scaled against the deepest. */
 function exchangeHeights(S) {
   const markets = S.markets || [{sym: '—', eur: S.capital.exch, sel: true}];
   const deepest = Math.max(...markets.map(m => m.eur), 1);
   return markets.slice(0, 5).map(m => Math.round(20 + 62 * (m.eur / deepest)));
 }
 
-/* German thousands are separated by a thin space, so `parseInt` stops at it and
-   reads "1 020" as 1. Both counts pass through here, and a camp of a thousand
-   agents therefore compared as one. */
+/* Counts arrive formatted ("1,020"), so `parseInt` would stop at the comma and a camp
+   of a thousand agents would compare as one. Both counts pass through here. */
 const count = value => Number(String(value ?? '').replace(/[^\d-]/g, '')) || 0;
 
-/* The city looks stressed when the value camp is bigger than the momentum
-   camp or the tower is gone — both are states, not a mode we set. */
+/* The town is under stress when the value camp is bigger than the momentum camp or
+   the tower is gone — both are states, not a mode we set. */
 function underStress(S) {
   return S.capital.lev <= 0 || count(S.val) > count(S.mom);
 }
 
-function streets(S) {
-  return Object.entries(ROADS).map(([key, r]) => {
-    const w = S.flow[key] ?? 4;
-    return {x: r.x, y: r.y - w / 2, L: r.L, w, rot: 'rotate(' + r.a + 'deg)',
-            c: tint(r.c, key === 'noise' ? .11 : .2)};
-  });
-}
-
-function runnerList(S) {
-  const out = [];
-  for (const [key, r] of Object.entries(ROADS)) {
-    const n = S.runners[key] ?? 0;
-    for (let i = 0; i < n; i++) {
-      out.push({x: r.x, y: r.y, c: r.c === '#ffffff' ? GREY : r.c,
-                anim: `mwr${r.anim} ${r.dur}s linear -${(i * r.dur / n).toFixed(2)}s infinite`});
-    }
-  }
-  /* agents changing quarter walk their own routes */
-  const sw = S.runners.switch ?? 0;
-  for (let i = 0; i < sw; i++) {
-    const r = SWITCH_ROUTES[i % SWITCH_ROUTES.length];
-    out.push({x: r.x, y: r.y, c: GOLD,
-              anim: `mwr${r.anim} ${r.dur}s linear -${(i * 1.7).toFixed(2)}s infinite`});
-  }
-  return out;
-}
-
-/* Fills float above the exchange roof, so their height follows the tower. */
-function pipList(S) {
-  /* Fills belong to the market they happened in, so they rise over the selected
-     exchange rather than over a spot that used to be the only one. */
-  const markets = S.markets || [];
-  const i = Math.max(0, markets.findIndex(m => m.sel));
-  const x0 = EXCH_X[Math.min(i, EXCH_X.length - 1)];
-  const spots = [[x0+6,EXCH_Y-8],[x0+38,EXCH_Y-4],[x0+22,EXCH_Y-18],
-                 [x0+14,EXCH_Y+8],[x0+44,EXCH_Y+12]];
-  /* The exchange's own height, not the district scale. Reading the euro ladder here
-     put the numbers 36 px *inside* the building they are supposed to rise out of. */
-  const bottom = (exchangeHeights(S)[i] ?? 40) + 14;
-  const fast = underStress(S) ? 3 : 4.2;
-  return (S.pips || []).slice(0, 5).map((p, i) => ({
-    x: spots[i][0], y: spots[i][1], t: p.t, c: p.c, bottom,
-    anim: `mwrise ${fast}s ease-out -${(i * fast / 5).toFixed(2)}s infinite`
-  }));
-}
-
-function tint(hex, alpha) {
-  if (hex === '#ffffff') return `rgba(255,255,255,${alpha})`;
-  const h = hex.slice(1);
-  const [r, g, b] = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16));
-  return `rgba(${r},${g},${b},${alpha})`;
+/* Everything the 3D town needs, in one object. Nothing in web/town3d.js reads the
+   snapshot directly, so this function is the whole contract between the two. */
+function cityModel(S) {
+  const blocks = buildings(S);
+  const markets = (S.markets || []).slice(0, 5);
+  let m = 0;
+  const exchangeIndex = blocks.map(b => b.t === 'exch' || b.t === 'exchsel' ? m++ : null);
+  const runners = S.runners || {};
+  return {
+    blocks, exchangeIndex, markets, layout: LAYOUT,
+    roads: Object.entries(ROADS).map(([key, r]) => ({
+      key, ...r, flow: (S.flow || {})[key] ?? 4, n: runners[key] ?? 0,
+      buy: (S.buyShare || {})[key] ?? null
+    })),
+    switchers: runners.switch ?? 0,
+    pips: S.pips || [],
+    alarm: !!S.alarm,
+    /* the issuer smokes in a step in which it sold stock */
+    issuing: (runners.cmp ?? 0) > 0,
+    mood: Number(S.mood) || 50,
+    step: S.step,
+    stress: underStress(S),
+    selected: ROOM_KEY[room] || 'mom'
+  };
 }
 
 /* ------------------------------------------------------------- map labels */
-/* Each label is anchored to a plate coordinate and projected with the same
-   transform the plate carries, so it stays over its building at any zoom. They
-   used to be absolute screen pixels, which meant one zoom step and every label
-   pointed at nothing — and two of them overlapped even at the default. */
-const COS45 = Math.SQRT1_2, COSX = Math.cos(52 * Math.PI / 180);
-function project(px, py) {
-  return {x: zoom * COS45 * (px - py), y: zoom * COS45 * COSX * (px + py - 800)};
-}
-
-/* Where each label sits, in plate coordinates, and which district row it selects.
-   The exchanges are labelled by the market bar rather than on the plate. The
+/* Each label names a group of buildings; web/town3d.js anchors it over them and
+   moves it with the camera every frame, pushing overlapping labels apart. The
    adaptive quarter gets two labels because it is two camps in two places: the
-   momentum blocks in the west and the value blocks in the east, and the whole
-   point of the district is that agents walk between them. */
+   momentum blocks in the west and the value blocks in the east, and the whole point
+   of the district is that agents walk between them. */
 const LABELS = [
-  {room: 1, at: [206, 34],  key: 'bank',  name: 'ZENTRALBANK',     f: 'bankRate', s: 'bankSub'},
-  /* West of the quarter rather than north of it. The projection squashes the y axis
-     to a third, so two labels anchored along the northern edge land on top of each
-     other — this one used to cover the central bank's caption. */
-  {room: 2, at: [56, 330],  key: 'mom',   name: 'TRENDFOLGE-LAGER', f: 'mom',
-   s: 'kauft, weil der Kurs steigt'},
-  {room: 2, at: [660, 244], key: 'val',   name: 'VALUE-LAGER',      f: 'val',
-   s: 'kauft, weil der Kurs billig ist'},
-  {room: 3, at: [250, 588], key: 'noise', name: 'RAUSCH-VORSTADT',  f: 'noiseN',
-   s: 'handelt ohne Meinung'},
-  {room: 4, at: [640, 546], key: 'etf',   name: 'ETF-LAGER',        f: 'etfFlow', s: 'etfSub'},
-  {room: 5, at: [600, 84],  key: 'lev',   name: 'HEBEL-TURM',       f: 'lev',     s: 'levSub'},
-  {room: 6, at: [392, 194], key: 'mkr',   name: 'MARKET MAKER',     f: 'mkrN',    s: 'mkrSub'},
-  {room: 7, at: [468, 536], key: 'cmp',   name: 'EMITTENT',         f: 'cmpN',    s: 'cmpSub'}
+  {room: 1, key: 'bank',  name: 'CENTRAL BANK',   f: 'bankRate', s: 'bankSub'},
+  {room: 2, key: 'mom',   name: 'TREND CAMP',     f: 'mom',      s: 'buys because the price is rising'},
+  {room: 2, key: 'val',   name: 'VALUE CAMP',     f: 'val',      s: 'buys because the price is cheap'},
+  {room: 3, key: 'noise', name: 'NOISE SUBURB',   f: 'noiseN',   s: 'trades without an opinion'},
+  {room: 4, key: 'etf',   name: 'ETF DEPOT',      f: 'etfFlow',  s: 'etfSub'},
+  {room: 5, key: 'lev',   name: 'LEVERAGE TOWER', f: 'lev',      s: 'levSub'},
+  {room: 6, key: 'mkr',   name: 'MARKET MAKERS',  f: 'mkrN',     s: 'mkrSub'},
+  {room: 7, key: 'cmp',   name: 'ISSUER',         f: 'cmpN',     s: 'cmpSub'}
 ];
 const LABEL_COLOUR = {bank: 'var(--bank)', mom: 'var(--mom)', noise: 'var(--noise)',
   etf: 'var(--etf)', lev: 'var(--lev)', mkr: 'var(--mkr)', cmp: 'var(--cmp)',
   val: 'var(--val)'};
 
+/* Which label (and pin) belongs to which row of the district list, and which row a
+   clicked building selects. Room 0 is the exchanges; its pin stands on the selected
+   one. */
+const ROOM_KEY = {0: 'exch', 1: 'bank', 2: 'mom', 3: 'noise', 4: 'etf', 5: 'lev', 6: 'mkr', 7: 'cmp'};
+const TYPE_ROOM = {mom: 2, val: 2, noise: 3, etf: 4, lev: 5, levx: 5, rubble: 5,
+  mkr: 6, cmp: 7, bank: 1, exch: 0, exchsel: 0};
+
 function paintTags(S) {
-  const host = $('#tags');
-  host.innerHTML = LABELS.map(L => {
-    const p = project(L.at[0], L.at[1]);
+  const html = LABELS.map(L => {
     const value = S[L.f] ?? '';
     const sub = S[L.s] ?? L.s ?? '';
     const colour = LABEL_COLOUR[L.key] || 'var(--txt)';
     const name = ((S.rooms || [])[L.room] || [])[0] || L.name;
-    return `<div class="tag${L.room === room ? ' sel' : ''}" data-room="${L.room}"
-      style="left:calc(50% + ${p.x.toFixed(1)}px);top:calc(54% + ${p.y.toFixed(1)}px)"
-      title="Anklicken: ${name} auswählen">
+    return `<div class="tag${L.room === room ? ' sel' : ''}" data-room="${L.room}" data-key="${L.key}"
+      title="Click: select ${name}">
       <span class="pill">
         <span class="sw dot" style="width:8px;height:8px;background:${colour}"></span>
         <b>${L.name}</b><span class="num" style="color:${colour}">${value}</span>
@@ -1647,47 +1536,47 @@ function paintTags(S) {
       <span class="sub">${sub}</span>
     </div>`;
   }).join('');
-  host.querySelectorAll('[data-room]').forEach(el =>
-    el.onclick = () => selectRoom(+el.dataset.room));
-  declutter(host);
-}
-
-/* Push overlapping labels apart vertically.
-   The anchors are plate coordinates and the projection squashes the y axis to a
-   third of the x axis, so two districts that are far apart on the ground can land
-   within a few pixels of each other on screen — and at the far end of the zoom range
-   they do. Rather than hand-tuning eight anchors against every zoom level, the
-   overlaps are resolved after layout, which also holds for any label added later. */
-function declutter(host) {
-  const tags = [...host.children];
-  const shift = new Map(tags.map(t => [t, 0]));
-  for (let pass = 0; pass < 4; pass++) {
-    let moved = false;
-    const boxes = tags.map(t => t.getBoundingClientRect());
-    for (let i = 0; i < tags.length; i++) {
-      for (let j = i + 1; j < tags.length; j++) {
-        const a = boxes[i], b = boxes[j];
-        if (a.left >= b.right || b.left >= a.right) continue;
-        const overlap = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
-        if (overlap <= 0) continue;
-        /* Move the lower one down; ties go to the later label. */
-        const lower = a.top <= b.top ? j : i;
-        const by = overlap / 2 + 2;
-        shift.set(tags[lower], shift.get(tags[lower]) + by);
-        tags[lower].style.marginTop = shift.get(tags[lower]) + 'px';
-        boxes[lower] = tags[lower].getBoundingClientRect();
-        moved = true;
-      }
-    }
-    if (!moved) break;
+  const host = $('#tags');
+  if (fresh(host, html)) {
+    host.querySelectorAll('[data-room]').forEach(el =>
+      el.onclick = () => selectRoom(+el.dataset.room));
   }
 }
 
 /* --------------------------------------------------------------- render */
 const $ = s => document.querySelector(s);
-const plate = $('#plate'), app = $('#app');
-let state = DEMO, live = false, zoom = 0.76, paused = false, room = 2;
+const app = $('#app');
+let state = DEMO, live = false, paused = false, room = 2;
 let speed = '1x';
+
+/* The town. Null without WebGL, and then the page says so instead of drawing. */
+const town = window.MarketTown3D && window.MarketTown3D.create($('#world'), {
+  tagLayer: $('#tags'), pipLayer: $('#pips'), alarmTag: $('#mcall'),
+  onPick: hit => {
+    const type = hit.type;
+    if (type === 'exch' || type === 'exchsel') {
+      const m = (state.markets || [])[cityModel(state).exchangeIndex[hit.index]];
+      if (m) selectMarket(m.sym);
+      return;
+    }
+    if (TYPE_ROOM[type] !== undefined) selectRoom(TYPE_ROOM[type]);
+  }
+});
+if (!town) $('#nogl').classList.add('on');
+
+/* The panels cover the edges of the window; the town is centred in what is left. */
+function frameTown() {
+  if (!town) return;
+  const W = app.clientWidth, H = app.clientHeight;
+  const cols = document.querySelectorAll('.body > .col');
+  town.setFrame({
+    left: cols[0].getBoundingClientRect().right,
+    right: W - cols[1].getBoundingClientRect().left,
+    /* below the market bar and the command row, above the key */
+    top: $('.cmdrow').getBoundingClientRect().bottom,
+    bottom: H - $('.key').getBoundingClientRect().top
+  });
+}
 
 /* Every write to /api/control and /api/scenario answers with a fresh snapshot, and
    the page polls in parallel. A poll that was already in flight when a button was
@@ -1698,8 +1587,8 @@ let speed = '1x';
 let stateGen = 0;
 function applyState(S) { stateGen++; state = S; return S; }
 
-const PHASE_COLOUR = {ruhig: 'var(--dim)', aufbauend: 'var(--mom)',
-  'überdehnt': 'var(--mom)', fallend: 'var(--lev)', kaskade: 'var(--lev)'};
+const PHASE_COLOUR = {calm: 'var(--dim)', building: 'var(--mom)',
+  stretched: 'var(--mom)', falling: 'var(--lev)', cascade: 'var(--lev)'};
 
 const mk = (tag, cls, text) => { const n = document.createElement(tag);
   if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; };
@@ -1714,17 +1603,16 @@ function paintReading(E) {
   host.append(head);
 
   const tags = mk('div', 'tags');
-  [E.regime.name, 'Vola ' + E.turbulence.label,
-   'Hebel ' + E.risk.leverage.toString().replace('.', ',') + '×']
+  [E.regime.name, 'vol ' + E.turbulence.label, 'leverage ' + E.risk.leverage + '×']
     .forEach(t => tags.append(mk('span', 'tg', t)));
-  if (E.risk.calls_now) tags.append(mk('span', 'tg', E.risk.calls_now + ' Margin Calls'));
+  if (E.risk.calls_now) tags.append(mk('span', 'tg', E.risk.calls_now + ' margin calls'));
   host.append(tags);
 
   const why = mk('ul');
   E.because.forEach(t => why.append(mk('li', '', t)));
   host.append(why);
 
-  host.append(mk('div', 'lbl', 'Worauf jetzt achten'));
+  host.append(mk('div', 'lbl', 'What to watch now'));
   const watch = mk('ul', 'wt');
   E.watch.forEach(t => watch.append(mk('li', '', t)));
   host.append(watch);
@@ -1750,7 +1638,7 @@ function paintBindings(S) {
   Object.assign($('#stratTag').style, {background: S.stratBg, borderColor: S.stratBd});
   Object.assign($('#orderBox').style, {background: S.orderBg, borderColor: S.orderBd});
   $('#subtitle').textContent =
-    `${(S.markets || []).length} BÖRSEN · ${S.agents} AGENTEN · SEED ${S.seed}`;
+    `${(S.markets || []).length} EXCHANGES · ${S.agents} AGENTS · SEED ${S.seed}`;
 
   /* The three lists below are rewritten wholesale, which at 700 ms means any
      tooltip a reader is reading and any button they have tabbed to is destroyed
@@ -1759,30 +1647,16 @@ function paintBindings(S) {
   const strip = $('#markets');
   const marketHtml = (S.markets || []).map(m => `
     <button class="mk${m.sel ? ' sel' : ''}" data-mk="${m.sym}"
-            title="${m.sym}: Buchtiefe ${m.depth} Stück · ${m.gap} vom fairen Wert.
-Anklicken: alle Anzeigen folgen diesem Markt.">
+            title="${m.sym}: book depth ${m.depth} shares · ${m.gap} from fair value.
+Click: every read-out follows this market. Clicking its tower does the same.">
       <span class="sw dia" style="width:7px;height:7px;background:${
-        m.sel ? 'var(--exchsel)' : 'var(--mom)'}"></span>
+        m.sel ? 'var(--exchsel)' : 'var(--edge)'}"></span>
       <b>${m.sym}</b>
       <span class="num">${m.px}</span>
-      <span class="num" style="font-size:9px;color:${m.chgFg}">${m.chg}</span>
+      <span class="num" style="font-size:10.5px;color:${m.chgFg}">${m.chg}</span>
     </button>`).join('');
   if (fresh(strip, marketHtml)) {
-    strip.querySelectorAll('[data-mk]').forEach(el => el.onclick = async () => {
-      /* Selecting a market only changes what the town reports on — it does not
-         touch the simulation. */
-      if (!live) return;
-      if (replayOn) {
-        await api('/api/control', {action: 'market', symbol: el.dataset.mk});
-        await refreshReplayFrame();
-        pullSeries();
-        return;
-      }
-      applyState(await api('/api/control', {action: 'market', symbol: el.dataset.mk}));
-      seriesStale = true;
-      paint();
-      pullSeries();
-    });
+    strip.querySelectorAll('[data-mk]').forEach(el => el.onclick = () => selectMarket(el.dataset.mk));
   }
 
   /* Districts: name, figures, what it is for, and a member to inspect. The list
@@ -1791,7 +1665,7 @@ Anklicken: alle Anzeigen folgen diesem Markt.">
   const roomHtml = (S.rooms || []).map(([name, meta, what, aid], n) => `
     <div class="room${n === room ? ' sel' : ''}" data-room="${n}"
          data-aid="${aid === null || aid === undefined ? '' : aid}">
-      <span class="plot"${n === room ? ' style="background:var(--mom)"' : ''}></span>
+      <span class="plot"${n === room ? ' style="background:var(--accent)"' : ''}></span>
       <span class="txt"><span class="nm">${name}</span><span class="mt">${meta}</span>
         <span class="wh">${what || ''}</span></span>
     </div>`).join('');
@@ -1806,8 +1680,7 @@ Anklicken: alle Anzeigen folgen diesem Markt.">
   const of_ = S.reviewOf || 20;
   fresh($('#ticks'), Array.from({length: of_},
     (_, i) => `<i${i < (S.reviewStep || 0) ? ' class="on"' : ''}></i>`).join(''));
-  $('#reviewLbl').textContent = `SCHRITT ${S.reviewStep || 0} VON ${of_}`;
-
+  $('#reviewLbl').textContent = `step ${S.reviewStep || 0} of ${of_}`;
 }
 
 /* Replace a container's markup only if it differs. Returns whether it was
@@ -1820,44 +1693,8 @@ function fresh(host, html) {
 }
 
 function paintCity(S) {
-  plate.querySelectorAll('.gen').forEach(el => el.remove());
-  const html = [];
-
-  streets(S).forEach(s => html.push(
-    `<div class="gen street" style="left:${s.x}px;top:${s.y}px;width:${s.L}px;
-      height:${s.w}px;transform:${s.rot};background:${s.c}"></div>`));
-
-  buildings(S).forEach(b => html.push(
-    `<div class="gen bld" style="left:${b.x}px;top:${b.y}px;width:${b.w}px;
-      height:${b.d}px;z-index:${b.z}">
-       <i style="left:0;top:0;width:${b.w}px;height:${b.d}px;
-         transform:translateZ(${b.top}px);background:${b.roof};
-         box-shadow:0 0 0 1px rgba(0,0,0,.55)"></i>
-       <i style="left:0;top:${b.d}px;width:${b.w}px;height:${b.h}px;transform-origin:0 0;
-         transform:translateZ(${b.z0}px) rotateX(-90deg);background-color:${b.bgA};
-         background-image:${b.img}"></i>
-       <i style="left:${b.w}px;top:0;width:${b.h}px;height:${b.d}px;transform-origin:0 0;
-         transform:translateZ(${b.z0}px) rotateY(-90deg);background-color:${b.bgB};
-         background-image:${b.img}"></i>
-     </div>`));
-
-  runnerList(S).forEach(r => html.push(
-    `<div class="gen runner" style="left:${r.x}px;top:${r.y}px;animation:${r.anim}">
-       <i><span class="torso" style="background:${r.c}"></span><span class="head"></span></i>
-     </div>`));
-
-  pipList(S).forEach(p => html.push(
-    `<div class="gen billboard" style="left:${p.x}px;top:${p.y}px;z-index:900">
-       <div class="pip" style="bottom:${p.bottom}px;color:${p.c};animation:${p.anim}">${p.t}</div>
-     </div>`));
-
-  if (S.alarm) html.push(
-    `<div class="gen alarmring"></div>
-     <div class="gen billboard" style="left:629px;top:117px;z-index:950">
-       <div class="mcall">MARGIN CALL</div>
-     </div>`);
-
-  plate.insertAdjacentHTML('beforeend', html.join(''));
+  if (town) town.draw(cityModel(S));
+  else buildings(S);   /* the scale line in the footer still needs choosing */
 }
 
 function paint() {
@@ -1869,6 +1706,7 @@ function paint() {
   paintMarket();
   paintReplayBar();
   applyRate();
+  frameTown();
 }
 
 /* Pause, speed and the live lamp all read the server's answer rather than a local
@@ -1880,10 +1718,10 @@ function paintClock(S) {
   $('#btnPause').classList.toggle('on', paused);
   $('#btnPause').textContent = paused ? '▶' : '❙❙';
   $('#liveTxt').textContent = !live ? 'OFFLINE'
-    : replayOn ? 'AUFZEICHNUNG'
-    : S.failure ? 'GESTOPPT'
-    : S.warming ? 'AUFWÄRMEN'
-    : paused ? 'PAUSE' : (speed === '1x' ? 'LÄUFT' : 'SCHNELL ' + speed);
+    : replayOn ? 'RECORDING'
+    : S.failure ? 'STOPPED'
+    : S.warming ? 'WARMING UP'
+    : paused ? 'PAUSED' : (speed === '1x' ? 'RUNNING' : 'FAST ' + speed);
   document.querySelectorAll('.spd').forEach(el =>
     el.classList.toggle('on', el.dataset.speed === speed));
 
@@ -1900,7 +1738,7 @@ function paintClock(S) {
   /* Offline or stopped, the market cannot be driven, so the controls that drive it
      are visibly unavailable rather than accepting a click and doing nothing. Lives
      here rather than in paintBindings because this is the one paint that still runs
-     when the fetch itself failed. The five footer buttons stay clickable on purpose:
+     when the fetch itself failed. The footer buttons stay clickable on purpose:
      their drawer is where the reason is explained, and an inert button with no
      explanation is the thing being fixed. */
   const driveable = live && !S.failure && !replayOn;
@@ -1908,9 +1746,9 @@ function paintClock(S) {
     el.classList.toggle('off', !driveable);
     if (el.dataset.tip === undefined) el.dataset.tip = el.title;
     el.title = driveable ? el.dataset.tip
-      : replayOn ? 'Eine Aufzeichnung läuft nicht — über „zurück zu Live" verlassen'
-      : live ? 'Die Simulation ist gestoppt — über NEU STARTEN zurücksetzen'
-             : 'Kein Backend verbunden — ./start.sh starten';
+      : replayOn ? 'A recording does not run — leave it with "back to live"'
+      : live ? 'The simulation has stopped — reset it with RESTART'
+             : 'No backend connected — run ./start.sh';
   });
 }
 
@@ -1961,27 +1799,26 @@ function canvas(height) {
 }
 
 function nothingYet(g, w, h, text) {
-  g.fillStyle = '#5e5751'; g.font = '10px system-ui';
-  g.fillText(text, 10, h / 2);
+  g.fillStyle = '#94a0b4'; g.font = '11px system-ui';
+  g.fillText(text, 14, h / 2);
 }
 
 function key(html) { $('#chartKey').innerHTML = html; }
 
-/* Thin space for thousands, the way mes/city.py writes every other number on this
-   page. `toLocaleString('de-DE')` would put a dot there and the book would be the
-   one panel counting differently from the rest of the town. */
-const qty = n => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+/* Share counts with a comma for thousands, the way mes/city.py writes every other
+   number on this page, so the book does not count differently from the town. */
+const qty = n => Math.round(n).toLocaleString('en-US');
 
 function paintLine() {
   const {g, w, h} = canvas(96), d = seriesData;
   if (!d || !d.price || d.price.length < 2) {
-    nothingYet(g, w, h, 'noch keine Kurshistorie');
-    key('<span>wartet auf Daten</span>');
+    nothingYet(g, w, h, 'no price history yet');
+    key('<span>waiting for data</span>');
     return;
   }
   const all = d.price.concat(d.fair);
   const lo = Math.min(...all), hi = Math.max(...all), span = (hi - lo) || 1;
-  const x = i => 6 + i / (d.price.length - 1) * (w - 12);
+  const x = i => 8 + i / (d.price.length - 1) * (w - 16);
   const y = v => h - 8 - (v - lo) / span * (h - 20);
 
   const line = (values, colour, width, dash) => {
@@ -1990,8 +1827,8 @@ function paintLine() {
     g.setLineDash(dash || []); g.strokeStyle = colour; g.lineWidth = width; g.stroke();
     g.setLineDash([]);
   };
-  line(d.fair, '#7e9ee6', 1, [3, 3]);
-  line(d.price, '#e8814c', 1.4);
+  line(d.fair, '#5872c9', 1.2, [3, 3]);
+  line(d.price, '#e07434', 1.6);
 
   /* the gap between them is the thing worth seeing, so shade it */
   g.beginPath();
@@ -1999,38 +1836,38 @@ function paintLine() {
   for (let i = d.fair.length - 1; i >= 0; i--) g.lineTo(x(i), y(d.fair[i]));
   g.closePath();
   const last = d.price.at(-1) >= d.fair.at(-1);
-  g.fillStyle = last ? 'rgba(232,129,76,.12)' : 'rgba(126,158,230,.12)';
+  g.fillStyle = last ? 'rgba(224,116,52,.13)' : 'rgba(88,114,201,.13)';
   g.fill();
 
   const gap = (d.price.at(-1) / (d.fair.at(-1) || 1) - 1) * 100;
-  key(`<span><i style="background:var(--mom)"></i>Kurs</span>
-       <span><i style="background:var(--bank)"></i>fairer Wert</span>
-       <span>${gap >= 0 ? '+' : ''}${gap.toFixed(1).replace('.', ',')} % Abstand</span>`);
+  key(`<span><i style="background:var(--mom)"></i>price</span>
+       <span><i style="background:var(--bank)"></i>fair value</span>
+       <span>${gap >= 0 ? '+' : ''}${gap.toFixed(1)}% gap</span>`);
 }
 
-/* Daily candles. One a day, so a hundred and ten of them do not fit in 226 pixels —
+/* Daily candles. One a day, so a hundred and ten of them do not fit in 240 pixels —
    the last forty are shown and the footer says so, rather than drawing a picket
    fence nobody can read. */
 function paintCandles() {
   const {g, w, h} = canvas(96);
   const all = (barData && barData.bars) || [];
   if (all.length < 2) {
-    nothingYet(g, w, h, 'noch keine Handelstage');
-    key('<span>ein Tag sind 240 Schritte — der erste ist bald da</span>');
+    nothingYet(g, w, h, 'no trading days yet');
+    key('<span>a day is 240 steps — the first one is coming</span>');
     return;
   }
   const bars = all.slice(-40);
   const lo = Math.min(...bars.map(b => b.l)), hi = Math.max(...bars.map(b => b.h));
   const span = (hi - lo) || 1;
-  const slot = (w - 12) / bars.length;
+  const slot = (w - 16) / bars.length;
   const body = Math.max(1.5, Math.min(7, slot - 1.6));
   const y = v => h - 8 - (v - lo) / span * (h - 20);
 
   bars.forEach((b, i) => {
-    const cx = 6 + slot * (i + 0.5);
+    const cx = 8 + slot * (i + 0.5);
     const up = b.c >= b.o;
-    g.strokeStyle = up ? '#4fb8a0' : '#d9584a';
-    g.fillStyle = up ? 'rgba(79,184,160,.55)' : 'rgba(217,88,74,.55)';
+    g.strokeStyle = up ? '#1c9a52' : '#d43f3f';
+    g.fillStyle = up ? 'rgba(28,154,82,.45)' : 'rgba(212,63,63,.45)';
     /* wick */
     g.beginPath(); g.lineWidth = 1;
     g.moveTo(Math.round(cx) + .5, y(b.h)); g.lineTo(Math.round(cx) + .5, y(b.l));
@@ -2043,12 +1880,12 @@ function paintCandles() {
 
   const last = bars.at(-1);
   const move = (last.c / last.o - 1) * 100;
-  key(`<span><i class="box" style="background:rgba(79,184,160,.55);
-         border:1px solid #4fb8a0"></i>Tag im Plus</span>
-       <span><i class="box" style="background:rgba(217,88,74,.55);
-         border:1px solid #d9584a"></i>im Minus</span>
-       <span>${bars.length} von ${all.length} Tagen · heute ${move >= 0 ? '+' : ''}${
-         move.toFixed(1).replace('.', ',')} %</span>`);
+  key(`<span><i class="box" style="background:rgba(28,154,82,.45);
+         border:1px solid #1c9a52"></i>day up</span>
+       <span><i class="box" style="background:rgba(212,63,63,.45);
+         border:1px solid #d43f3f"></i>day down</span>
+       <span>${bars.length} of ${all.length} days · today ${move >= 0 ? '+' : ''}${
+         move.toFixed(1)}%</span>`);
 }
 
 /* The order book. Asks descend to the touch, bids continue below it — the way a
@@ -2060,32 +1897,32 @@ function paintBook() {
   const L = state.ladder;
   const host = $('#bookView');
   if (!L || (!L.bids.length && !L.asks.length)) {
-    host.innerHTML = '<p class="hint" style="margin:6px 0;font-size:10px;color:var(--dim2)">'
-      + 'Keine ruhenden Orders.</p>';
-    key('<span>das Buch ist leer</span>');
+    host.innerHTML = '<p class="hint" style="margin:6px 0;font-size:11px;color:var(--dim)">'
+      + 'No resting orders.</p>';
+    key('<span>the book is empty</span>');
     return;
   }
   const biggest = Math.max(1, ...L.bids.map(l => l[1]), ...L.asks.map(l => l[1]));
   const row = (side, [price, size]) => `
     <div class="lvl ${side}">
       <i style="width:${(size / biggest * 100).toFixed(1)}%;background:${
-        side === 'ask' ? 'rgba(217,88,74,.18)' : 'rgba(79,184,160,.18)'}"></i>
-      <span>${price.toFixed(2).replace('.', ',')}</span>
+        side === 'ask' ? 'rgba(212,63,63,.12)' : 'rgba(28,154,82,.12)'}"></i>
+      <span>${price.toFixed(2)}</span>
       <span class="qty">${qty(size)}</span>
     </div>`;
 
   host.innerHTML =
     /* asks furthest away first, so the touch is in the middle */
     L.asks.slice().reverse().map(l => row('ask', l)).join('')
-    + `<div class="touch"><span>Spanne <b>${L.spread}</b> ${L.spreadBp}</span>
+    + `<div class="touch"><span>spread <b>${L.spread}</b> ${L.spreadBp}</span>
          <span>${L.bid} / ${L.ask}</span></div>`
     + L.bids.map(l => row('bid', l)).join('');
 
-  key(`<span><i class="box" style="background:rgba(79,184,160,.35)"></i>Kauf ${
+  key(`<span><i class="box" style="background:rgba(28,154,82,.3)"></i>bid ${
         L.restingBid}</span>
-       <span><i class="box" style="background:rgba(217,88,74,.35)"></i>Verkauf ${
+       <span><i class="box" style="background:rgba(212,63,63,.3)"></i>ask ${
         L.restingAsk}</span>
-       <span>Stück, ruhend</span>`);
+       <span>shares resting</span>`);
 }
 
 async function pullSeries() {
@@ -2131,10 +1968,10 @@ async function api(path, body, method) {
 function setSource(connected) {
   live = connected;
   $('#source').textContent = connected
-    ? 'Live-Ansicht folgt der Simulation'
-    : 'Kein Backend verbunden — ./start.sh starten';
+    ? 'Live view follows the simulation'
+    : 'No backend connected — run ./start.sh';
   $('#source').previousElementSibling?.style.setProperty(
-    'background', connected ? 'var(--gold)' : 'var(--dim2)');
+    'background', connected ? 'var(--live)' : 'var(--dim2)');
 }
 
 async function pull() {
@@ -2176,25 +2013,35 @@ async function pull() {
     if (E) paintReading(E);
   } catch (err) {
     /* Connected but unpaintable: say so rather than blaming the connection. */
-    $('#source').textContent = 'Verbunden · Zeichnen fehlgeschlagen: ' + err.message;
+    $('#source').textContent = 'Connected · drawing failed: ' + err.message;
     console.error('paint()', err);
   }
   if (seriesStale) pullSeries();
 }
 
 /* ---------------------------------------------------------- interaction */
-function setZoom(z) {
-  zoom = Math.min(1.25, Math.max(0.45, z));
-  plate.style.transform =
-    `translate(-50%,-50%) scale(${zoom}) rotateX(52deg) rotateZ(45deg)`;
-  /* Below this the projected anchors are close enough that the captions overlap, so
-     the map drops them — see .stage.far. */
-  $('#stage').classList.toggle('far', zoom < 0.68);
-  paintTags(state);   /* labels are projected, so they move with the camera */
+/* The camera belongs to the 3D town; these are its buttons and keys. */
+function setZoom(factor) { if (town) town.zoomBy(factor); }
+$('#zIn').onclick = () => setZoom(1.15);
+$('#zOut').onclick = () => setZoom(1 / 1.15);
+$('#zRot').onclick = () => { if (town) town.view.theta += Math.PI / 4; };
+$('#zRst').onclick = () => { if (town) town.reset(); };
+
+/* Selecting a market only changes what the town reports on — it does not touch the
+   simulation. Reached from the market bar and from a click on a tower. */
+async function selectMarket(symbol) {
+  if (!live) return;
+  if (replayOn) {
+    await api('/api/control', {action: 'market', symbol});
+    await refreshReplayFrame();
+    pullSeries();
+    return;
+  }
+  applyState(await api('/api/control', {action: 'market', symbol}));
+  seriesStale = true;
+  paint();
+  pullSeries();
 }
-$('#zIn').onclick = () => setZoom(zoom * 1.15);
-$('#zOut').onclick = () => setZoom(zoom / 1.15);
-$('#zRst').onclick = () => setZoom(0.76);
 
 /* Selecting a district shows what it is for and puts a real member of it in the
    unit panel. Clicking one used to move a highlight and nothing else. */
@@ -2206,6 +2053,7 @@ async function selectRoom(n, aid) {
   }
   paintBindings(state);
   paintTags(state);
+  if (town) town.select(ROOM_KEY[room]);
   if (live && aid !== '' && aid !== undefined) {
     applyState(await api('/api/control', {action: 'select', agent: Number(aid)}));
     paint();
@@ -2230,6 +2078,7 @@ async function setPaused(p) {
   if (replayOn) return;
   paused = p;
   paintClock({...state, running: !p, speed});
+  applyRate();
   if (live) { applyState(await api('/api/control', {action: p ? 'pause' : 'play'})); paint(); }
 }
 $('#btnPause').onclick = () => setPaused(!paused);
@@ -2245,19 +2094,13 @@ async function setSpeed(s) {
 document.querySelectorAll('.spd').forEach(el =>
   el.onclick = () => setSpeed(el.dataset.speed));
 
-/* Fast forward: the backend clock speeds up; the animations follow so the
-   streets stay legible. CSS has no playback rate, hence the rescaling. */
+/* Fast forward: the backend clock speeds up and the figures walk faster, so the
+   roads stay legible. A paused market, a recording and the offline snapshot stand
+   still, because nothing in them is happening. */
 function applyRate() {
-  const f = speed === '16x' ? 0.35 : speed === '4x' ? 0.6 : 1;
-  plate.querySelectorAll('.runner, .pip, .policy, .alarmring, .mcall').forEach(el => {
-    if (!el.dataset.baseDur) {
-      const d = getComputedStyle(el).animationDuration;
-      if (!d || d === '0s') return;
-      el.dataset.baseDur = d;
-    }
-    el.style.animationDuration = el.dataset.baseDur.split(',')
-      .map(d => (parseFloat(d) * f) + 's').join(',');
-  });
+  if (!town) return;
+  const f = speed === '16x' ? 2.6 : speed === '4x' ? 1.6 : 1;
+  town.setTempo(f, paused || replayOn || !live);
 }
 
 /* one step at a time, for reading the market rather than watching it */
@@ -2287,47 +2130,46 @@ $('#unitNext').onclick = () => selectAgent(state.unitNext);
 $('#unitRnd').onclick = () => selectAgent(Math.floor(Math.random() * (state.agents || 1)));
 
 /* ------------------------------------------------------------- the sheet */
-/* One drawer, five contents. Each of the footer buttons reaches a capability the
+/* One drawer, six contents. Each of the footer buttons reaches a capability the
    backend has had all along and no page ever offered. */
 const SHEETS = {
   scenario: {
-    title: 'Szenario laden',
-    note: 'Ein Szenario setzt Bedingungen und liefert Nachrichten, dann startet der '
-        + 'Lauf neu. Was der Kurs daraus macht, ist die Antwort des Modells — '
-        + 'kein Drehbuch.',
+    title: 'Load a scenario',
+    note: 'A scenario sets conditions and supplies headlines, then the run restarts. '
+        + 'What the price makes of them is the model\'s answer — not a script.',
     build: sheetScenarios
   },
   lesson: {
-    title: 'Geführtes Experiment',
-    note: 'Jedes Experiment stellt den Markt ein, sagt worauf zu achten ist — und '
-        + 'prüft danach gemessen, ob es funktioniert hat. Auch wenn nicht.',
+    title: 'Guided experiment',
+    note: 'Each experiment sets the market up, says what to watch — and then checks, '
+        + 'by measurement, whether it worked. Also when it did not.',
     build: sheetLessons
   },
   news: {
-    title: 'Nachricht einspeisen',
-    note: 'Sie bewegt den fairen Wert und die Stimmung, nie den Kurs. Jede Gruppe '
-        + 'liest sie anders, das ETF-Lager liest sie gar nicht — was beim Kurs '
-        + 'ankommt, entscheiden die Agenten.',
+    title: 'Inject a headline',
+    note: 'It moves fair value and sentiment, never the price. Every group reads it '
+        + 'differently and the ETF depot does not read it at all — what reaches the '
+        + 'price is decided by the agents.',
     build: sheetNews
   },
   params: {
-    title: 'Regler',
-    note: 'Alle Regler kommen aus PARAM_SPEC in mes/config.py. Ein · hinter dem Namen '
-        + 'heißt: wirkt erst nach einem Neustart, weil die Population beim Reset '
-        + 'gebaut wird.',
+    title: 'Controls',
+    note: 'Every control comes from PARAM_SPEC in mes/config.py. A · after the name '
+        + 'means it takes effect only after a restart, because the population is '
+        + 'built at reset.',
     build: sheetParams
   },
   replay: {
-    title: 'Aufzeichnung öffnen',
-    note: 'Ein Replay wird aus dem Seed nachgerechnet, nicht aus gespeicherten '
-        + 'Kurven gelesen. Deshalb steht an jeder Position der ganze Zustand zur '
-        + 'Verfügung — Orderbuch, Viertel, Agenten — und die Stadt kann ihn zeichnen.',
+    title: 'Open a recording',
+    note: 'A replay is recomputed from its seed, not read back from stored curves. So '
+        + 'the whole state is available at every position — order book, districts, '
+        + 'agents — and the town can draw it.',
     build: sheetReplay
   },
   reset: {
-    title: 'Neu starten',
-    note: 'Setzt den Lauf auf Schritt 0 zurück und wärmt ihn erneut auf. Die '
-        + 'Parameter bleiben, wie sie sind.',
+    title: 'Restart',
+    note: 'Resets the run to step 0 and warms it up again. The parameters stay as '
+        + 'they are.',
     build: sheetReset
   }
 };
@@ -2342,12 +2184,12 @@ async function openSheet(kind) {
   $('#sheetNote').textContent = spec.note;
   const body = $('#sheetBody');
   body.innerHTML = '';
-  body.append(mk('p', 'hint', 'lädt …'));
+  body.append(mk('p', 'hint', 'loading …'));
   $('#scrim').classList.add('open');
   $('#sheet').classList.add('open');
   if (!live) {
     body.innerHTML = '';
-    body.append(mk('p', 'err', 'Kein Backend verbunden. Starte ./start.sh und lade die Seite neu.'));
+    body.append(mk('p', 'err', 'No backend connected. Run ./start.sh and reload the page.'));
     return;
   }
   try {
@@ -2383,9 +2225,9 @@ async function sheetScenarios(body) {
       b.append(mk('span', 'q', item.question));
       b.append(mk('span', 'd', item.description));
       if (item.events) b.append(mk('span', 'd',
-        `${item.events} Nachrichten sind eingeplant.`));
+        `${item.events} headlines are scheduled.`));
       b.onclick = async () => {
-        b.disabled = true; b.querySelector('b').textContent = item.name + ' — startet …';
+        b.disabled = true; b.querySelector('b').textContent = item.name + ' — starting …';
         try {
           applyState(await api('/api/scenarios/' + item.key, null, 'POST'));
           seriesStale = true; paint(); closeSheet();
@@ -2407,7 +2249,7 @@ const spd = name => String(name).replace('x', '×');
 /* Minutes and hours, not seconds. Used for "how long will this experiment take",
    which is the question the panel used to leave unanswered. */
 function duration(seconds) {
-  if (!isFinite(seconds) || seconds <= 0) return 'gleich';
+  if (!isFinite(seconds) || seconds <= 0) return 'now';
   if (seconds < 90) return `${Math.round(seconds)} s`;
   const minutes = seconds / 60;
   if (minutes < 90) return `${Math.round(minutes)} min`;
@@ -2422,9 +2264,9 @@ async function sheetLessons(body) {
   const fastest = clock.fastest || '16x';
   const perStep = (clock.seconds_per_step || {});
 
-  body.append(mk('p', 'hint', 'Ein Handelstag sind '
-    + `${clock.steps_per_day || 240} Schritte. Der Start schaltet auf ${spd(fastest)} — bei `
-    + 'Echtzeit dauert ein Experiment Stunden, und dann ist die Empfehlung nur eine Zahl.'));
+  body.append(mk('p', 'hint', 'A trading day is '
+    + `${clock.steps_per_day || 240} steps. Starting switches to ${spd(fastest)} — at `
+    + 'real time an experiment takes hours, and then the recommendation is only a number.'));
   for (const lesson of data.lessons) {
     const box = mk('div', 'opt' + (active === lesson.key ? ' on' : ''));
     box.style.cursor = 'default';
@@ -2438,12 +2280,12 @@ async function sheetLessons(body) {
 
     const row = mk('div', 'row2');
     const running = active === lesson.key;
-    const run = mk('button', 'btn', running ? 'neu starten' : 'starten');
+    const run = mk('button', 'btn', running ? 'restart' : 'start');
     run.title = running
-      ? 'Setzt dieses Experiment von Tag 0 neu auf'
-      : 'Stellt den Markt auf die Bedingungen des Experiments ein und startet neu';
+      ? 'Sets this experiment up again from day 0'
+      : 'Sets the market to the experiment\'s conditions and restarts';
     run.onclick = async () => {
-      run.disabled = true; run.textContent = 'startet …';
+      run.disabled = true; run.textContent = 'starting …';
       try {
         await api('/api/lessons/' + lesson.key, null, 'POST');
         /* Straight to the fastest clock. Left at 1× the recommended seventy days
@@ -2452,7 +2294,7 @@ async function sheetLessons(body) {
         await pull();
         openSheet('lesson');
       } catch (err) {
-        run.disabled = false; run.textContent = running ? 'neu starten' : 'starten';
+        run.disabled = false; run.textContent = running ? 'restart' : 'start';
         box.append(mk('p', 'err', String(err.message)));
       }
     };
@@ -2460,10 +2302,10 @@ async function sheetLessons(body) {
     /* Leaving an experiment means leaving its conditions too — a plain reset kept
        the overrides and the market stayed the experiment's market. */
     if (running) {
-      const stop = mk('button', 'btn ghost', 'beenden');
-      stop.title = 'Experiment verlassen: zurück auf die kalibrierten Standardwerte';
+      const stop = mk('button', 'btn ghost', 'end');
+      stop.title = 'Leave the experiment: back to the calibrated defaults';
       stop.onclick = async () => {
-        stop.disabled = true; stop.textContent = 'beendet …';
+        stop.disabled = true; stop.textContent = 'ending …';
         try {
           const {spec, defaults} = await api('/api/params');
           const wanted = {};
@@ -2473,7 +2315,7 @@ async function sheetLessons(body) {
           await pull();
           openSheet('lesson');
         } catch (err) {
-          stop.disabled = false; stop.textContent = 'beenden';
+          stop.disabled = false; stop.textContent = 'end';
           box.append(mk('p', 'err', String(err.message)));
         }
       };
@@ -2486,14 +2328,14 @@ async function sheetLessons(body) {
     const atFastest = duration(steps * (perStep[fastest] ?? 0.03));
     const atNow = duration(steps * (perStep[speed] ?? 0.5));
     const eta = mk('span', 'hint',
-      `empfohlen: ${lesson.days} Handelstage ≈ ${atFastest} bei ${spd(fastest)}`
-      + (speed === fastest ? '' : ` · ${atNow} bei ${spd(speed)}`));
-    eta.title = `${qty(steps)} Schritte`;
+      `recommended: ${lesson.days} trading days ≈ ${atFastest} at ${spd(fastest)}`
+      + (speed === fastest ? '' : ` · ${atNow} at ${spd(speed)}`));
+    eta.title = `${qty(steps)} steps`;
     row.append(eta);
     box.append(row);
 
     if (active === lesson.key) {
-      const result = mk('div', 'hint', 'prüft …');
+      const result = mk('div', 'hint', 'checking …');
       box.append(result);
       checkLesson(lesson, result);
     }
@@ -2501,19 +2343,20 @@ async function sheetLessons(body) {
   }
 }
 
+const VERDICT_CLASS = {shown: 'v-ok', partly: 'v-part'};
+
 async function checkLesson(lesson, host) {
   try {
     const r = await api('/api/lessons/' + lesson.key + '/check');
     host.innerHTML = '';
     const head = mk('div', 'row2');
-    const cls = r.verdict === 'gezeigt' ? 'v-ok' : r.verdict === 'teilweise' ? 'v-part' : 'v-no';
-    head.append(mk('span', 'verdict ' + cls, r.verdict));
-    /* "Tag 12 von 70" says nothing about whether that is two minutes or two hours
+    head.append(mk('span', 'verdict ' + (VERDICT_CLASS[r.verdict] || 'v-no'), r.verdict));
+    /* "Day 12 of 70" says nothing about whether that is two minutes or two hours
        away, and at 1× it is two hours. */
-    head.append(mk('span', 'hint', `Tag ${r.day} von ${r.days_needed}`
+    head.append(mk('span', 'hint', `day ${r.day} of ${r.days_needed}`
       + (r.seconds_left > 0
-         ? ` · noch ≈ ${duration(r.seconds_left)} bei ${spd(r.speed)}`
-         : ' · Empfehlung erreicht')));
+         ? ` · ≈ ${duration(r.seconds_left)} left at ${spd(r.speed)}`
+         : ' · recommendation reached')));
     host.append(head);
     for (const c of r.checks) {
       const row = mk('div', 'check');
@@ -2524,29 +2367,29 @@ async function checkLesson(lesson, host) {
       row.append(txt);
       host.append(row);
     }
-  } catch (err) { host.textContent = 'Prüfung fehlgeschlagen: ' + err.message; }
+  } catch (err) { host.textContent = 'Check failed: ' + err.message; }
 }
 
 const NEWS_PRESETS = [
-  ['Geopolitische Spannungen eskalieren', -0.35],
-  ['Rezessionssorgen belasten den Markt', -0.15],
-  ['Zentralbank signalisiert Zinssenkung', 0.12],
-  ['Unerwartet starke Gewinne gemeldet', 0.25]
+  ['Geopolitical tensions escalate', -0.35],
+  ['Recession fears weigh on the market', -0.15],
+  ['Central bank signals a rate cut', 0.12],
+  ['Unexpectedly strong earnings reported', 0.25]
 ];
 
 async function sheetNews(body) {
   const text = mk('input'); text.type = 'text'; text.value = NEWS_PRESETS[0][0];
-  text.maxLength = 120;
-  const f1 = mk('div', 'field'); f1.append(mk('label', '', 'Schlagzeile'), text);
+  text.maxLength = 120; text.id = 'newsText';
+  const f1 = mk('div', 'field'); f1.append(mk('label', '', 'Headline'), text);
 
   const out = mk('span', '', '');
-  const mag = mk('input'); mag.type = 'range';
+  const mag = mk('input'); mag.type = 'range'; mag.id = 'newsMagnitude';
   mag.min = '-0.6'; mag.max = '0.6'; mag.step = '0.01'; mag.value = '-0.35';
   const show = () => out.textContent =
-    (Number(mag.value) >= 0 ? '+' : '') + (Number(mag.value) * 100).toFixed(0) + ' %';
+    (Number(mag.value) >= 0 ? '+' : '') + (Number(mag.value) * 100).toFixed(0) + '%';
   mag.oninput = show; show();
   const label = mk('div', 'kv');
-  label.append(mk('span', '', 'Wirkung auf den fairen Wert'), out);
+  label.append(mk('span', '', 'Effect on fair value'), out);
   const f2 = mk('div', 'field'); f2.append(label, mag);
 
   body.append(f1, f2);
@@ -2554,15 +2397,14 @@ async function sheetNews(body) {
   const presets = mk('div', 'row2');
   presets.style.flexWrap = 'wrap';
   NEWS_PRESETS.forEach(([t, m]) => {
-    const b = mk('button', 'btn ghost', m >= 0 ? '+' : '−');
-    b.textContent = t.length > 26 ? t.slice(0, 24) + '…' : t;
+    const b = mk('button', 'btn ghost', t.length > 26 ? t.slice(0, 24) + '…' : t);
     b.title = t;
     b.onclick = () => { text.value = t; mag.value = String(m); show(); };
     presets.append(b);
   });
-  body.append(mk('div', 'grp', 'Vorlagen'), presets);
+  body.append(mk('div', 'grp', 'Templates'), presets);
 
-  const send = mk('button', 'btn', 'Nachricht einspeisen');
+  const send = mk('button', 'btn', 'Inject headline');
   send.onclick = async () => {
     send.disabled = true;
     try {
@@ -2572,8 +2414,8 @@ async function sheetNews(body) {
   };
   const row = mk('div', 'row2'); row.append(send);
   body.append(row);
-  body.append(mk('p', 'hint', 'Der Betrag ist ein Sprung im fairen Wert. −35 % ist der '
-    + 'Schock, den der CRASH-Knopf verwendet.'));
+  body.append(mk('p', 'hint', 'The amount is a jump in fair value. −35% is the shock '
+    + 'the CRASH button uses.'));
 }
 
 async function sheetParams(body) {
@@ -2583,9 +2425,9 @@ async function sheetParams(body) {
      run against, so they are the only configuration for which the figures in the
      validation panel mean what the README says they mean — and four moved sliders
      used to be a one-way door. */
-  const restore = mk('button', 'btn ghost', 'Standardwerte wiederherstellen');
+  const restore = mk('button', 'btn ghost', 'Restore defaults');
   restore.onclick = async () => {
-    restore.disabled = true; restore.textContent = 'setzt zurück …';
+    restore.disabled = true; restore.textContent = 'resetting …';
     try {
       /* Only what this panel governs. Sending the whole default configuration would
          include `symbols`, which is not a slider and not this panel's business. */
@@ -2615,16 +2457,16 @@ async function sheetParams(body) {
       const row = mk('div', 'kv');
       const label = mk('span', '', s.label + (s.live ? '' : ' ·'));
       const changed = defaults && Number(values[name]) !== Number(defaults[name]);
-      if (changed) { label.style.color = 'var(--mom)'; label.title = 'vom Standard abweichend'; }
+      if (changed) { label.style.color = 'var(--accent)'; label.title = 'differs from the default'; }
       row.append(label);
       const out = mk('span', '', fmt(values[name], s));
       row.append(out);
-      const slider = mk('input'); slider.type = 'range';
+      const slider = mk('input'); slider.type = 'range'; slider.id = 'param-' + name;
       slider.min = s.min; slider.max = s.max; slider.step = s.step;
       slider.value = values[name];
       slider.title = s.live
-        ? `${name} — wirkt sofort`
-        : `${name} — wirkt erst nach einem Neustart, der Lauf beginnt neu und wärmt auf`;
+        ? `${name} — takes effect immediately`
+        : `${name} — takes effect after a restart; the run starts again and warms up`;
       slider.oninput = () => out.textContent = fmt(slider.value, s);
       slider.onchange = async () => {
         out.style.color = '';
@@ -2633,14 +2475,14 @@ async function sheetParams(body) {
             {values: {[name]: Number(slider.value)}, reset: !s.live});
           values[name] = Number(slider.value);
           label.style.color = Number(slider.value) === Number((defaults || {})[name])
-            ? '' : 'var(--mom)';
+            ? '' : 'var(--accent)';
           seriesStale = true;
           pull();
         } catch (err) {
-          /* A rejected configuration is now a 400 and the running market survives
-             it, so saying so and putting the slider back is the whole recovery. */
-          out.textContent = 'abgelehnt';
-          out.style.color = 'var(--lev)';
+          /* A rejected configuration is a 400 and the running market survives it,
+             so saying so and putting the slider back is the whole recovery. */
+          out.textContent = 'rejected';
+          out.style.color = 'var(--bad)';
           slider.value = values[name];
         }
       };
@@ -2652,15 +2494,15 @@ async function sheetParams(body) {
 
 function fmt(value, spec) {
   const n = Number(value);
-  /* Fundamental-Drift steps in 5e-7 and its whole range fits inside "0,0000", so
+  /* Fundamental drift steps in 5e-7 and its whole range fits inside "0.0000", so
      rounding to a fixed number of decimals showed the same four zeros at every
      position of the slider. Below a millionth the value is printed the way it is
      written in the config: as an exponent. */
   if (spec.step < 1e-4 && n !== 0 && Math.abs(n) < 1e-3) {
-    return n.toExponential(2).replace('.', ',').replace('e', '·10^');
+    return n.toExponential(2).replace('e', '·10^');
   }
   const digits = spec.step < 0.001 ? 6 : spec.step < 0.01 ? 4 : spec.step < 1 ? 2 : 0;
-  return n.toFixed(digits).replace('.', ',');
+  return n.toFixed(digits);
 }
 
 /* ---------------------------------------------------------- the replay */
@@ -2688,22 +2530,22 @@ async function refreshReplayFrame() {
 async function sheetReplay(body) {
   const {runs} = await api('/api/runs');
   if (!runs.length) {
-    body.append(mk('p', 'hint', 'Keine Aufzeichnungen vorhanden. Eine erzeugen:'));
-    const cmd = mk('p', 'hint', 'python scripts/run.py --steps 24000 --name basis');
-    cmd.style.cssText = 'font-family:var(--mono);color:var(--txt);background:#100e0d;'
-      + 'padding:8px 10px;border-radius:7px;border:1px solid var(--line2)';
+    body.append(mk('p', 'hint', 'No recordings yet. To make one:'));
+    const cmd = mk('p', 'hint', 'python scripts/run.py --steps 24000 --name baseline');
+    cmd.style.cssText = 'font-family:var(--mono);color:var(--txt);background:var(--sunk);'
+      + 'padding:9px 11px;border-radius:8px;border:1px solid var(--line2)';
     body.append(cmd);
-    body.append(mk('p', 'hint', 'Der Lauf landet unter runs/ und erscheint dann hier. '
-      + '24 000 Schritte sind 100 Handelstage und brauchen etwa eine Minute.'));
+    body.append(mk('p', 'hint', 'The run lands in runs/ and then appears here. '
+      + '24,000 steps are 100 trading days and take about a minute.'));
     return;
   }
   for (const run of runs) {
     const b = mk('button', 'opt');
-    b.append(mk('b', '', run.name || 'ohne Namen'));
-    b.append(mk('span', 'd', `${run.stamp} · ${run.days} Handelstage · Seed ${run.seed}`
-      + (run.scenario ? ` · Szenario ${run.scenario}` : '')));
+    b.append(mk('b', '', run.name || 'unnamed'));
+    b.append(mk('span', 'd', `${run.stamp} · ${run.days} trading days · seed ${run.seed}`
+      + (run.scenario ? ` · scenario ${run.scenario}` : '')));
     b.onclick = async () => {
-      b.disabled = true; b.querySelector('b').textContent = (run.name || '') + ' — öffnet …';
+      b.disabled = true; b.querySelector('b').textContent = (run.name || '') + ' — opening …';
       try {
         await api('/api/replay', {path: run.path});
         await enterReplay();
@@ -2716,7 +2558,7 @@ async function sheetReplay(body) {
     body.append(b);
   }
   if (replayOn) {
-    const back = mk('button', 'btn ghost', 'Replay schließen');
+    const back = mk('button', 'btn ghost', 'Close replay');
     back.onclick = async () => { await leaveReplay(); closeSheet(); };
     const row = mk('div', 'row2'); row.append(back);
     body.append(row);
@@ -2749,12 +2591,12 @@ function paintReplayBar() {
   if (state.replay) replayInfo = state.replay;
   $('#replayBar').classList.toggle('on', replayOn && !!r);
   if (!r) return;
-  $('#replayWho').textContent = `${r.name} · Seed ${r.seed}`
+  $('#replayWho').textContent = `${r.name} · seed ${r.seed}`
     + (r.scenario ? ` · ${r.scenario}` : '');
   const scrub = $('#replayScrub');
   scrub.max = String(r.days_total);
   if (!replaySeeking) scrub.value = String(r.day);
-  if (!replaySeeking) $('#replayDay').textContent = `Tag ${r.day} / ${r.days_total}`;
+  if (!replaySeeking) $('#replayDay').textContent = `day ${r.day} / ${r.days_total}`;
 }
 
 /* Seeking backwards recomputes from step 0, which takes seconds. The last position
@@ -2763,7 +2605,7 @@ function paintReplayBar() {
 async function replaySeek(day) {
   if (replaySeeking) {
     replayQueued = day;
-    $('#replayDay').textContent = `dann Tag ${day}`;
+    $('#replayDay').textContent = `then day ${day}`;
     return;
   }
   replaySeeking = true;
@@ -2772,7 +2614,7 @@ async function replaySeek(day) {
      from step 0 and the cost is the target. Naming the day beats a bare ellipsis. */
   const from = state.replay?.day ?? 0;
   const distance = Number(day) < from ? Number(day) : Number(day) - from;
-  $('#replayDay').textContent = `Tag ${day} · rechnet ${qty(distance * 240)} Schritte`;
+  $('#replayDay').textContent = `day ${day} · computing ${qty(distance * 240)} steps`;
   try {
     const answer = await api('/api/replay/seek', {day: Number(day)});
     applyState(answer.snapshot);
@@ -2781,7 +2623,7 @@ async function replaySeek(day) {
     paint();
   } catch (err) {
     replaySeeking = false;
-    $('#replayDay').textContent = 'Sprung fehlgeschlagen';
+    $('#replayDay').textContent = 'seek failed';
     console.error(err);
   }
   if (replayQueued !== null) { const next = replayQueued; replayQueued = null; replaySeek(next); }
@@ -2795,10 +2637,10 @@ $('#replayLive').onclick = () => leaveReplay();
 
 async function sheetReset(body) {
   body.append(mk('p', 'hint',
-    `Aktuell bei Schritt ${state.step} · Seed ${state.seed} · ${state.agents} Agenten.`));
-  const go = mk('button', 'btn danger', 'Lauf zurücksetzen');
+    `Currently at step ${state.step} · seed ${state.seed} · ${state.agents} agents.`));
+  const go = mk('button', 'btn danger', 'Reset the run');
   go.onclick = async () => {
-    go.disabled = true; go.textContent = 'setzt zurück …';
+    go.disabled = true; go.textContent = 'resetting …';
     try {
       applyState(await api('/api/control', {action: 'reset'}));
       seriesStale = true; paint(); closeSheet();
@@ -2806,8 +2648,8 @@ async function sheetReset(body) {
   };
   const row = mk('div', 'row2'); row.append(go);
   body.append(row);
-  body.append(mk('p', 'hint', 'Ein anderer Seed steht unter REGLER › Welt › Zufalls-Seed; '
-    + 'er löst denselben Neustart aus.'));
+  body.append(mk('p', 'hint', 'A different seed is under CONTROLS › World › random seed; '
+    + 'it triggers the same restart.'));
 }
 
 /* --------------------------------------------------------------- help */
@@ -2835,8 +2677,8 @@ addEventListener('keydown', e => {
   /* During a replay the live controls are greyed out, and the keyboard has to
      honour that. It did not: `.off` is `opacity` and `pointer-events`, neither of
      which a key press goes through, so space paused the *live* market and C
-     crashed it while the reader was looking at a recording of last Tuesday — with
-     nothing on screen changing to say so. The scrubber keys stay live. */
+     crashed it while the reader was looking at a recording — with nothing on screen
+     changing to say so. The scrubber keys stay live. */
   if (replayOn) {
     if (e.key === ']' || e.key === '[') {
       e.preventDefault();
@@ -2855,18 +2697,18 @@ addEventListener('keydown', e => {
   else if (e.key === 'c' || e.key === 'C') $('#shkCrash').click();
   else if (e.key === 'b' || e.key === 'B') $('#shkBoom').click();
   else if (e.key === 'r' || e.key === 'R') $('#shkCalm').click();
-  else if (e.key === '+') setZoom(zoom * 1.15);
-  else if (e.key === '-') setZoom(zoom / 1.15);
-  else if (e.key === '0') setZoom(0.76);
+  else if (e.key === '+') setZoom(1.15);
+  else if (e.key === '-') setZoom(1 / 1.15);
+  else if (e.key === '0') $('#zRst').click();
 });
 
-/* The projection depends on nothing but the zoom, but the labels are positioned
-   against the stage, so a resize moves them. Throttled to one repaint a frame. */
+/* The panels decide where the free part of the window is, so a resize re-centres
+   the town. Throttled to one repaint a frame. */
 let resizeQueued = false;
 addEventListener('resize', () => {
   if (resizeQueued) return;
   resizeQueued = true;
-  requestAnimationFrame(() => { resizeQueued = false; paintTags(state); paintMarket(); });
+  requestAnimationFrame(() => { resizeQueued = false; frameTown(); paintMarket(); });
 });
 
 /* ------------------------------------------------------------- start */
@@ -2875,11 +2717,11 @@ setMarketView(marketView);
 document.querySelectorAll('#scaleTabs .tab').forEach(el =>
   el.classList.toggle('on', el.dataset.scale === scaleMode));
 paint();
-setZoom(zoom);
+frameTown();
 /* Arriving from the trader list with a name in hand. After the first pull, not
    before it: `selectAgent` does nothing while `live` is false, and `live` only turns
    true once a snapshot has arrived. Without this the roster could say "Agent 417" and
-   the town had no way to be pointed at him — two views of one population that could
+   the town had no way to be pointed at them — two views of one population that could
    not hand a member over. */
 pull().then(() => {
   const wanted = new URLSearchParams(location.search).get('agent');

@@ -8,20 +8,20 @@ PORT="${PORT:-8000}"
 PY=".venv/bin/python"
 
 if [ ! -x "$PY" ]; then
-  echo "Richte virtuelle Umgebung ein..."
+  echo "Setting up the virtual environment..."
   python3 -m venv .venv
   "$PY" -m pip install --quiet --upgrade pip
 fi
 
 # Cheap check: if numpy is missing the environment was never fully installed.
 if ! "$PY" -c "import numpy, scipy, fastapi, uvicorn" 2>/dev/null; then
-  echo "Installiere Abhängigkeiten..."
+  echo "Installing dependencies..."
   "$PY" -m pip install --quiet -r requirements.txt
 fi
 
 echo
-echo "Der Markt wird aufgewärmt — 110 Handelstage, etwa 20 Sekunden."
-echo "Das Validierungspanel braucht 100 Tage, um etwas aussagen zu können."
+echo "Warming up the market: 110 trading days, about 20 seconds."
+echo "The validation panel needs 100 days before it can say anything."
 echo
 echo "  http://127.0.0.1:${PORT}"
 echo

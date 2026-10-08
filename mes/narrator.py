@@ -4,11 +4,11 @@ This module exists because of a fair complaint: watching figures walk and buildi
 change height shows *state*, and state is not insight. You had to already know the
 model to read the town.
 
-Everything here answers three questions, in plain German, from measured numbers:
+Everything here answers three questions, in plain English, from measured numbers:
 
-    Was passiert gerade?   the regime, the valuation, the risk
-    Warum?                 the causal chain behind it
-    Woran erkenne ich es?  what to watch next, and what would falsify it
+    What is happening?     the regime, the valuation, the risk
+    Why?                   the causal chain behind it
+    How do I recognise it? what to watch next, and what would falsify it
 
 Two rules kept this from becoming decoration. Every statement is derived from a
 number the simulation actually holds — nothing is canned, and a quiet market is
@@ -22,7 +22,7 @@ from __future__ import annotations
 import numpy as np
 
 CALM, BUILDING, STRETCHED, FALLING, CASCADE = (
-    "ruhig", "aufbauend", "überdehnt", "fallend", "kaskade")
+    "calm", "building", "stretched", "falling", "cascade")
 
 
 def _percentile(series, value: float) -> float:
@@ -33,12 +33,13 @@ def _percentile(series, value: float) -> float:
     return float((data < value).mean())
 
 
-def _de(value: float, digits: int = 1) -> str:
-    return f"{value:,.{digits}f}".replace(",", " ").replace(".", ",")
+def _num(value: float, digits: int = 1) -> str:
+    return f"{value:,.{digits}f}"
 
 
 def _pct(value: float, digits: int = 0) -> str:
-    return f"{'+' if value >= 0 else ''}{_de(value, digits)} %"
+    """A size in percent, without a sign: the sentence says above or below."""
+    return f"{_num(abs(value), digits)}%"
 
 
 # ------------------------------------------------------------------ readings
@@ -49,17 +50,17 @@ def regime(sim) -> dict:
     swing = float(np.std(history)) if len(history) > 30 else 0.0
 
     if share >= 0.65:
-        name, meaning = "Trendfolge-Regime", (
-            "Die Mehrheit kauft, weil der Kurs steigt, nicht weil er billig ist. "
-            "Das verstärkt sich selbst — und trägt den Kurs vom fairen Wert weg.")
+        name, meaning = "Trend regime", (
+            "The majority buys because the price is rising, not because it is cheap. "
+            "That reinforces itself and carries the price away from fair value.")
     elif share <= 0.35:
-        name, meaning = "Value-Regime", (
-            "Die Mehrheit richtet sich am fairen Wert aus. Der Kurs bewegt sich "
-            "ruhiger und wird zurückgeholt, wenn er zu weit läuft.")
+        name, meaning = "Value regime", (
+            "The majority trades on fair value. The price moves more calmly and is "
+            "pulled back when it runs too far.")
     else:
-        name, meaning = "gemischtes Regime", (
-            "Beide Lager sind ähnlich groß. Keine Seite dominiert den Kurs, "
-            "und genau aus diesem Gleichgewicht kippt es früher oder später.")
+        name, meaning = "Mixed regime", (
+            "Both camps are about the same size. Neither side dominates the price, "
+            "and it is exactly this balance that tips over sooner or later.")
 
     return {
         "name": name,
@@ -67,11 +68,11 @@ def regime(sim) -> dict:
         "meaning": meaning,
         "swing": round(swing, 3),
         "switched": sim.switched_last_review,
-        "note": ("Die Population kippt regelmäßig zwischen den Lagern — das ist die "
-                 "Quelle der Volatilitätscluster."
+        "note": ("The population tips between the camps regularly. That is the "
+                 "source of the volatility clusters."
                  if swing > 0.15 else
-                 "Die Population sitzt derzeit fest. Ohne Regimewechsel bleibt die "
-                 "Volatilität gleichmäßig."),
+                 "The population is currently stuck. Without regime switches, "
+                 "volatility stays even."),
     }
 
 
@@ -86,15 +87,15 @@ def valuation(sim) -> dict:
     average = float(np.mean([abs(g) for _, g in rows]))
 
     if abs(worst_gap) < 10:
-        verdict = "Die Kurse liegen nahe an ihren fairen Werten."
+        verdict = "Prices are close to their fair values."
     elif worst_gap > 0:
-        verdict = (f"{worst_symbol} steht {_pct(worst_gap)} über dem fairen Wert. "
-                   "Niemand hat das beschlossen — es ist das Ergebnis von mehr "
-                   "Kaufdruck als Angebot.")
+        verdict = (f"{worst_symbol} is {_pct(worst_gap)} above fair value. "
+                   "Nobody decided that. It is the result of more buying pressure "
+                   "than supply.")
     else:
-        verdict = (f"{worst_symbol} steht {_pct(worst_gap)} unter dem fairen Wert. "
-                   "Für Value-Investoren wird der Titel damit interessant, was "
-                   "Gegendruck aufbaut.")
+        verdict = (f"{worst_symbol} is {_pct(worst_gap)} below fair value. "
+                   "That makes it interesting to value investors, which builds "
+                   "counter-pressure.")
 
     return {
         "worst": worst_symbol,
@@ -121,7 +122,7 @@ def turbulence(sim) -> dict:
     `realized_vol` is an EMA of |return|; ranking it against the distribution of
     *raw* |return| compares an average with the individual draws it averages. Raw
     step returns are mostly near zero with a long right tail, so the EMA sits above
-    most of them almost always: the rank rarely fell below 0.6 and the "niedrig"
+    most of them almost always: the rank rarely fell below 0.6 and the "low"
     verdict — the one that says leverage is building because risk looks cheap —
     was unreachable in any market state.
     """
@@ -136,17 +137,17 @@ def turbulence(sim) -> dict:
     rank = _percentile(history, now)
 
     if rank > 0.85:
-        label = "hoch"
-        meaning = ("Deutlich unruhiger als dieser Markt sonst ist. In solchen Phasen "
-                   "kommen Margin Calls, weil ein Kursrutsch die Fonds unter ihre "
-                   "Schwelle drückt.")
+        label = "high"
+        meaning = ("Much more turbulent than this market usually is. Phases like this "
+                   "bring margin calls, because a price drop pushes the funds below "
+                   "their threshold.")
     elif rank < 0.25:
-        label = "niedrig"
-        meaning = ("Ruhiger als üblich. Hebel baut sich in solchen Phasen auf, weil "
-                   "Risiko billig aussieht — das ist die Vorstufe zur Kaskade.")
+        label = "low"
+        meaning = ("Calmer than usual. Leverage builds up in phases like this, because "
+                   "risk looks cheap. This is the precursor to the cascade.")
     else:
         label = "normal"
-        meaning = "Im gewohnten Bereich dieses Marktes."
+        meaning = "Within this market's usual range."
 
     return {
         "label": label,
@@ -172,18 +173,19 @@ def risk(sim) -> dict:
     volume = sum(m.step_volume for m in sim.markets.values())
 
     if sim.step_margin_calls:
-        state = ("Es laufen gerade Zwangsverkäufe. Jeder davon drückt den Kurs "
-                 "weiter und kann den nächsten Fonds unter seine Schwelle bringen — "
-                 "das ist die Kaskade.")
+        state = ("Forced sales are under way. Each one pushes the price further down "
+                 "and can take the next fund below its threshold. That is the "
+                 "cascade.")
     elif np.isfinite(headroom) and headroom < 8:
-        state = (f"Die Fonds sind {_de(headroom)} % von einem Margin Call entfernt. "
-                 "Ein normaler Kursrückgang genügt jetzt.")
+        state = (f"The funds are {_num(headroom)}% away from a margin call. "
+                 "An ordinary price decline is now enough.")
     elif median < 0.6:
-        state = ("Die Fonds sind kaum gehebelt. Sie halten sich zurück, weil sie "
-                 "die Kurse für zu teuer halten — ohne Hebel keine Kaskade.")
+        state = ("The funds are barely leveraged. They are holding back because "
+                 "they consider prices too expensive. Without leverage there is no "
+                 "cascade.")
     else:
-        state = (f"Die Fonds stehen bei {_de(median, 2)}× Hebel und haben "
-                 f"{_de(headroom)} % Luft bis zum Margin Call.")
+        state = (f"The funds are at {_num(median, 2)}× leverage and have "
+                 f"{_num(headroom)}% of room before a margin call.")
 
     return {
         "leverage": round(median, 2),
@@ -213,27 +215,27 @@ def phase(sim, val: dict, turb: dict, rsk: dict, reg: dict) -> str:
 
 
 HEADLINES = {
-    CALM: "Ruhiger Markt",
-    BUILDING: "Eine Aufwärtsbewegung baut sich auf",
-    STRETCHED: "Der Markt ist überdehnt",
-    FALLING: "Der Markt gibt nach",
-    CASCADE: "Zwangsverkäufe laufen",
+    CALM: "Calm market",
+    BUILDING: "An upward move is building",
+    STRETCHED: "The market is stretched",
+    FALLING: "The market is giving way",
+    CASCADE: "Forced sales under way",
 }
 
 WATCH = {
-    CALM: ["Ob der Chartisten-Anteil zu kippen beginnt — das kommt vor der Bewegung.",
-           "Ob der Hebel der Fonds steigt, während es ruhig ist."],
-    BUILDING: ["Ob der Abstand zum fairen Wert weiter wächst.",
-               "Ob mehr Trader ins Trendfolge-Lager wechseln — das verstärkt sich selbst."],
-    STRETCHED: ["Der Emittent gibt bei dieser Bewertung neue Aktien aus. Das ist die "
-                "Gegenkraft — beobachten Sie, ob der Abstand aufhört zu wachsen.",
-                "Ob das Value-Lager wieder wächst. Der Rückschlag beginnt dort."],
-    FALLING: ["Ob die Fonds ihre Margin-Schwelle erreichen. Ab dort verkaufen sie, "
-              "weil sie müssen.",
-              "Ob die Buchtiefe einbricht — ohne Liquidität fallen Kurse weiter."],
-    CASCADE: ["Wie viele Fonds nachziehen. Jeder Verkauf senkt den Kurs für den nächsten.",
-              "Ob die Korrelation zwischen den Sektoren springt — ein Fonds in Not "
-              "verkauft alle seine Positionen, nicht nur die problematische."],
+    CALM: ["Whether the chartist share starts to tip. That comes before the move.",
+           "Whether the funds' leverage rises while things are calm."],
+    BUILDING: ["Whether the gap to fair value keeps growing.",
+               "Whether more traders switch to the Trend Camp. That reinforces itself."],
+    STRETCHED: ["At this valuation the Issuer issues new shares. That is the "
+                "counterforce. Watch whether the gap stops growing.",
+                "Whether the Value Camp grows again. The reversal starts there."],
+    FALLING: ["Whether the funds reach their margin threshold. From there on they "
+              "sell because they have to.",
+              "Whether book depth collapses. Without liquidity, prices keep falling."],
+    CASCADE: ["How many funds follow. Each sale lowers the price for the next one.",
+              "Whether the correlation between sectors jumps. A fund in distress "
+              "sells all of its positions, not only the problematic one."],
 }
 
 
@@ -257,21 +259,20 @@ def explain(sim) -> dict:
         "turbulence": turb,
         "risk": rsk,
         "events": recent_events(sim),
-        "reminder": ("Nichts davon ist einprogrammiert. Es gibt keine Formel für den "
-                     "Kurs — jede Bewegung ist eine Order, die auf eine andere trifft."),
+        "reminder": ("None of this is programmed in. There is no formula for the "
+                     "price. Every move is one order meeting another."),
     }
 
 
 EVENT_WHY = {
-    "margin_call": ("Ein gehebelter Fonds ist unter seine Margin-Schwelle gefallen und "
-                    "musste verkaufen. Er hat es nicht entschieden."),
-    "wipeout": ("Ein Fonds hat sein Eigenkapital verloren. Seine Position wird "
-                "vollständig aufgelöst."),
-    "switch_wave": ("Viele Trader haben gleichzeitig die Strategie gewechselt. Solche "
-                    "Wellen gehen Volatilitätsschüben voraus."),
-    "news": ("Eine Nachricht hat den fairen Wert verschoben — nicht den Kurs. Ob der "
-             "Kurs folgt, entscheiden die Agenten."),
-    "scenario": "Ein Szenario hat die Rahmenbedingungen gesetzt.",
+    "margin_call": ("A leveraged fund fell below its margin threshold and had to "
+                    "sell. It did not decide to."),
+    "wipeout": ("A fund has lost its equity. Its position is liquidated in full."),
+    "switch_wave": ("Many traders switched strategy at the same time. Waves like this "
+                    "precede bursts of volatility."),
+    "news": ("A headline moved fair value, not the price. Whether the price follows "
+             "is up to the agents."),
+    "scenario": "A scenario has set the conditions.",
 }
 
 

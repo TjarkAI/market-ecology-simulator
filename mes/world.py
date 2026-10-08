@@ -19,20 +19,20 @@ from .config import Config
 # Headlines are cosmetic — the number that matters is the shock magnitude.
 # They exist so the news ticker in the UI reads like a market, not a log file.
 GOOD_NEWS = [
-    "Quartalszahlen über Erwartung",
-    "Großauftrag aus Asien gemeldet",
-    "Analysten heben Kursziel an",
-    "Neues Produkt übertrifft Prognosen",
-    "Zentralbank signalisiert Zinssenkung",
-    "Übernahmegerüchte am Markt",
+    "Quarterly results beat expectations",
+    "Major order from Asia reported",
+    "Analysts raise price target",
+    "New product beats forecasts",
+    "Central Bank signals rate cut",
+    "Takeover rumours in the market",
 ]
 BAD_NEWS = [
-    "Gewinnwarnung veröffentlicht",
-    "Lieferkette gestört",
-    "Regulierer eröffnet Verfahren",
-    "Großinvestor steigt aus",
-    "Zinserhöhung angekündigt",
-    "Geopolitische Spannungen eskalieren",
+    "Profit warning issued",
+    "Supply chain disrupted",
+    "Regulator opens proceedings",
+    "Major investor pulls out",
+    "Rate hike announced",
+    "Geopolitical tensions escalate",
 ]
 
 

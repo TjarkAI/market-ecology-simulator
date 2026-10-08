@@ -61,8 +61,8 @@ def test_unknown_symbols_are_an_error():
 
 def test_the_common_factor_creates_positive_correlation():
     result = correlation_matrix(returns_of(world()))
-    assert result["average"] > 0.15, f"zu schwach gekoppelt: {result['average']}"
-    assert result["average"] < 0.95, "Sektoren sind praktisch identisch"
+    assert result["average"] > 0.15, f"coupled too weakly: {result['average']}"
+    assert result["average"] < 0.95, "the sectors are practically identical"
 
 
 def test_without_idiosyncratic_noise_the_sectors_move_as_one():

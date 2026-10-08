@@ -1,4 +1,5 @@
-"""The frontend is two files of inline JavaScript with no build step.
+"""The frontend is four pages of inline JavaScript, plus the 3D town in
+`web/town3d.js`, with no build step.
 
 That is a deliberate trade — no toolchain, no dependencies, open the file and read it
 — but it removes the one thing a build step reliably gives you: somebody noticing that
@@ -6,7 +7,7 @@ the script does not parse. A syntax error here does not raise anywhere. The page
 the script never runs, and the town silently falls back to its demo snapshot, which
 looks like a backend problem and is not.
 
-That happened. Two German strings were written one under the other without a `+`,
+That happened. Two strings were written one under the other without a `+`,
 Python-style, and the whole page went dark. These tests are the guard.
 """
 
@@ -33,7 +34,7 @@ def scripts(name: str) -> list[str]:
 def test_page_exists_and_has_a_script(page):
     assert (WEB / page).is_file()
     blocks = scripts(page)
-    assert blocks, f"{page} hat keinen Script-Block"
+    assert blocks, f"{page} has no script block"
     assert sum(len(b) for b in blocks) > 1000
 
 
@@ -52,8 +53,8 @@ def test_brackets_balance_outside_strings_and_comments(page):
         stripped = strip_strings_and_comments(block)
         for opener, closer in ("()", "[]", "{}"):
             assert stripped.count(opener) == stripped.count(closer), (
-                f"{page}, Block {i}: {opener}{closer} unbalanciert "
-                f"({stripped.count(opener)} auf, {stripped.count(closer)} zu)")
+                f"{page}, block {i}: {opener}{closer} unbalanced "
+                f"({stripped.count(opener)} open, {stripped.count(closer)} closed)")
 
 
 def strip_strings_and_comments(source: str) -> str:
@@ -85,7 +86,7 @@ def strip_strings_and_comments(source: str) -> str:
     return "".join(out)
 
 
-@pytest.mark.skipif(NODE is None, reason="node nicht verfügbar")
+@pytest.mark.skipif(NODE is None, reason="node not available")
 @pytest.mark.parametrize("page", PAGES)
 def test_inline_javascript_parses(page):
     for i, block in enumerate(scripts(page)):
@@ -96,7 +97,7 @@ def test_inline_javascript_parses(page):
         result = subprocess.run([NODE, "--check", path],
                                 capture_output=True, text=True)
         assert result.returncode == 0, (
-            f"{page}, Block {i} ist kein gültiges JavaScript:\n{result.stderr[:600]}")
+            f"{page}, block {i} is not valid JavaScript:\n{result.stderr[:600]}")
 
 
 @pytest.mark.parametrize("page", PAGES)
@@ -107,7 +108,7 @@ def test_no_python_style_string_concatenation(page):
     for block in scripts(page):
         offenders = re.findall(r'"\s*\n\s*"[^:,)]', block)
         assert not offenders, (
-            f"{page}: Zeichenketten ohne + verkettet — {offenders[:2]}")
+            f"{page}: strings joined without + — {offenders[:2]}")
 
 
 def test_the_town_reads_the_explanation_endpoint():
@@ -122,7 +123,7 @@ def test_the_town_reads_the_explanation_endpoint():
 def test_the_analysis_page_offers_the_guided_experiments():
     html = (WEB / "sectors.html").read_text()
     for needle in ("/api/lessons", "renderLessons", "checkLesson", "/api/explain"):
-        assert needle in html, f"fehlt in sectors.html: {needle}"
+        assert needle in html, f"missing from sectors.html: {needle}"
 
 
 def test_both_pages_are_reachable_from_each_other():
@@ -146,14 +147,14 @@ def test_every_page_reaches_every_other_page(page):
     for other, route in ROUTES.items():
         if other == page:
             continue
-        assert f'href="{route}"' in html, f"{page} verlinkt {route} nicht"
+        assert f'href="{route}"' in html, f"{page} does not link {route}"
 
 
 # ------------------------------------------------------------- the index board
 def test_the_index_board_draws_from_the_index_endpoint():
     html = (WEB / "indices.html").read_text()
     for needle in ("/api/indices", "function draw(", "renderLegend", "renderTable"):
-        assert needle in html, f"fehlt in indices.html: {needle}"
+        assert needle in html, f"missing from indices.html: {needle}"
 
 
 def test_the_index_board_asks_for_a_window_and_a_point_count_separately():
@@ -161,7 +162,7 @@ def test_the_index_board_asks_for_a_window_and_a_point_count_separately():
     drawn under a label that says five days. It did exactly that once."""
     html = (WEB / "indices.html").read_text()
     assert "points=" in html and "n=${back}" in html, \
-        "die Anfrage trennt Fensterlänge und Punktzahl nicht"
+        "the request does not separate window length and point count"
 
 
 def test_the_index_board_says_which_period_its_figures_cover():
@@ -176,16 +177,16 @@ def test_the_index_board_states_how_the_index_is_built():
     """The weighting is a modelling choice and the page it appears on has to own
     it, not leave it in a docstring nobody opens."""
     html = (WEB / "indices.html").read_text()
-    for claim in ("index_weight", "Verkettet", "Beta ist eine Behauptung",
-                  "bitgenau denselben Lauf"):
-        assert claim in html, f"unbelegt in indices.html: {claim}"
+    for claim in ("index_weight", "Chained, not a ratio of sums", "Beta is a claim, not a setting",
+                  "bit-identical"):
+        assert claim in html, f"unstated in indices.html: {claim}"
 
 
 # ---------------------------------------------------------------- the roster
 def test_the_roster_reads_the_trader_endpoints():
     html = (WEB / "traders.html").read_text()
     for needle in ("/api/traders", "renderRows", "renderGroups", "loadDetail"):
-        assert needle in html, f"fehlt in traders.html: {needle}"
+        assert needle in html, f"missing from traders.html: {needle}"
 
 
 def test_the_roster_sorts_and_filters_on_the_server():
@@ -195,7 +196,7 @@ def test_the_roster_sorts_and_filters_on_the_server():
     script = html.split("<script>")[-1]
     assert "function url(" in script
     for parameter in ("sort", "order", "limit", "offset", "kind", "symbol"):
-        assert f'"{parameter}"' in script, f"Parameter fehlt in der Anfrage: {parameter}"
+        assert f'"{parameter}"' in script, f"parameter missing from the request: {parameter}"
 
 
 def test_the_roster_does_not_rebuild_the_table_on_every_poll():
@@ -203,7 +204,7 @@ def test_the_roster_does_not_rebuild_the_table_on_every_poll():
     hover, the selection and the scroll position with it."""
     html = (WEB / "traders.html").read_text()
     assert "signature" in html and "column.update" in html, \
-        "die Zeilen werden nicht an Ort und Stelle aktualisiert"
+        "the rows are not updated in place"
 
 
 def test_the_roster_can_hand_a_trader_to_the_town():
@@ -211,7 +212,7 @@ def test_the_roster_can_hand_a_trader_to_the_town():
     programs that happen to share a port."""
     assert '"/?agent=" + trader.aid' in (WEB / "traders.html").read_text()
     town = (WEB / "index.html").read_text()
-    assert "get('agent')" in town, "die Stadt liest den Agenten aus der URL nicht"
+    assert "get('agent')" in town, "the town does not read the agent from the URL"
     assert "selectAgent(Number(wanted))" in town
 
 
@@ -243,7 +244,7 @@ def test_every_clickable_element_is_mentioned_by_the_script(page):
     html = (WEB / page).read_text()
     script = html.split("<script>")[-1]
     orphans = sorted(name for name in clickable_ids(page) if f"#{name}" not in script)
-    assert not orphans, f"{page}: sieht anklickbar aus, kommt im Script nicht vor — {orphans}"
+    assert not orphans, f"{page}: looks clickable, never named by the script — {orphans}"
 
 
 def test_the_town_footer_actions_are_wired():
@@ -256,45 +257,48 @@ def test_the_town_footer_actions_are_wired():
         ("actParams", "/api/params"),
         ("actReset", "'reset'"),
     ]:
-        assert f'id="{element}"' in html, f"Knopf fehlt: {element}"
-        assert f"$('#{element}').onclick" in html, f"{element} hat keinen Handler"
-        assert endpoint in html, f"{element} erreicht {endpoint} nicht"
+        assert f'id="{element}"' in html, f"button missing: {element}"
+        assert f"$('#{element}').onclick" in html, f"{element} has no handler"
+        assert endpoint in html, f"{element} does not reach {endpoint}"
 
 
 def test_the_town_offers_a_first_run_explanation():
     """A newcomer got no statement of what the thing is or what to try."""
     html = (WEB / "index.html").read_text()
     assert 'id="help"' in html
-    assert "Was ist das hier?" in html
-    assert "Was zuerst probieren" in html
-    assert "localStorage" in html, "die Erklärung muss beim ersten Besuch von selbst kommen"
+    assert "What is this?" in html
+    assert "What to try first" in html
+    assert "localStorage" in html, "the explanation has to open by itself on the first visit"
 
 
 def test_the_town_documents_its_keyboard_shortcuts():
     """The shortcuts existed and nothing on screen said so."""
     html = (WEB / "index.html").read_text()
-    shortcuts = html[html.index("<h3>Tasten</h3>"):]
-    for key in ("Leertaste", "<kbd>]</kbd>", "<kbd>1</kbd>", "<kbd>C</kbd>", "<kbd>?</kbd>"):
-        assert key in shortcuts, f"nicht dokumentiert: {key}"
+    shortcuts = html[html.index("<h3>Keys</h3>"):]
+    for key in ("Space", "<kbd>]</kbd>", "<kbd>1</kbd>", "<kbd>C</kbd>", "<kbd>?</kbd>"):
+        assert key in shortcuts, f"not documented: {key}"
 
 
 def test_the_town_reports_a_stopped_clock_and_the_warm_up():
     html = (WEB / "index.html").read_text()
-    assert "warmProgress" in html, "kein Fortschritt beim Aufwärmen"
-    assert "S.failure" in html, "eine gestoppte Simulation muss das sagen"
+    assert "warmProgress" in html, "no progress shown while warming up"
+    assert "S.failure" in html, "a stopped simulation has to say so"
 
 
 # ------------------------------------------------------------- fake figures
 # Numbers that were literals in the markup while the backend sent a live value for
 # the same thing. They were left over from the demo snapshots and the page showed
-# them for as long as it was open: a central bank permanently at 104,70, a suburb
-# of exactly 200 and a depot taking in 27 000 € forever.
+# them for as long as it was open: a central bank permanently at 104.70, a suburb
+# of exactly 200 and a depot taking in €27,000 forever.
 STALE_LITERALS = [
-    ("104,70", "Zentralbank-Schild: bankRate binden"),
-    ("+27 000", "ETF-Schild: etfFlow binden"),
-    ("Lv 12", "Einheiten-Karte: unitKind binden"),
-    ("#118 AdaptiveTrader", "Einheiten-Karte: unit binden"),
-    ("SECHS VIERTEL", "Untertitel wird aus markets/agents/seed gebaut"),
+    ("104.70", "central bank label: bind bankRate"),
+    ("104,70", "central bank label: bind bankRate"),
+    ("+€27,000", "ETF label: bind etfFlow"),
+    ("+27 000", "ETF label: bind etfFlow"),
+    ("Lv 12", "unit card: bind unitKind"),
+    ("#118 AdaptiveTrader", "unit card: bind unit"),
+    ("SIX DISTRICTS", "the subtitle is built from markets/agents/seed"),
+    ("SECHS VIERTEL", "the subtitle is built from markets/agents/seed"),
 ]
 
 
@@ -303,7 +307,7 @@ def test_no_hardcoded_demo_figures_in_the_town_markup():
     html = (WEB / "index.html").read_text()
     markup = html.split("<script>")[0]
     offenders = [(needle, why) for needle, why in STALE_LITERALS if needle in markup]
-    assert not offenders, f"feste Zahlen im Markup: {offenders}"
+    assert not offenders, f"fixed figures in the markup: {offenders}"
 
 
 def test_every_landmark_on_the_plate_carries_a_live_binding():
@@ -311,7 +315,7 @@ def test_every_landmark_on_the_plate_carries_a_live_binding():
     html = (WEB / "index.html").read_text()
     labels = html[html.index("const LABELS = ["):html.index("const LABEL_COLOUR")]
     for field in ("bankRate", "noiseN", "etfFlow", "mkrN", "cmpN", "lev"):
-        assert f"'{field}'" in labels, f"Schild ohne Live-Feld: {field}"
+        assert f"'{field}'" in labels, f"label without a live field: {field}"
 
 
 def test_the_offline_snapshot_matches_the_shape_the_backend_sends():
@@ -340,8 +344,8 @@ def test_the_offline_snapshot_matches_the_shape_the_backend_sends():
 
     missing = sorted(set(live) - set(embedded))
     assert not missing, (
-        "Der Offline-Snapshot ist veraltet. Neu erzeugen mit "
-        f"`python scripts/demo_state.py --write`. Fehlt: {missing}")
+        "The offline snapshot is stale. Regenerate it with "
+        f"`python scripts/demo_state.py --write`. Missing: {missing}")
     # Rooms carry four fields now: name, figures, what it is for, a member to show.
     assert all(len(row) == 4 for row in embedded["rooms"])
 
@@ -354,10 +358,10 @@ def test_the_offline_snapshot_matches_the_shape_the_backend_sends():
 def test_the_town_offers_all_three_market_views():
     html = (WEB / "index.html").read_text()
     for view in ("line", "candles", "book"):
-        assert f'data-view="{view}"' in html, f"Ansicht fehlt: {view}"
+        assert f'data-view="{view}"' in html, f"view missing: {view}"
     for painter in ("paintLine", "paintCandles", "paintBook"):
-        assert painter in html, f"Zeichenfunktion fehlt: {painter}"
-    assert "/api/bars" in html, "die Kerzen holen ihre Daten nirgends"
+        assert painter in html, f"painter missing: {painter}"
+    assert "/api/bars" in html, "the candles fetch their data nowhere"
 
 
 def test_the_town_book_reads_the_snapshot_not_a_second_request():
@@ -371,8 +375,8 @@ def test_the_town_book_reads_the_snapshot_not_a_second_request():
 def test_the_analysis_page_shows_one_instrument_up_close():
     html = (WEB / "sectors.html").read_text()
     for needle in ("renderCandles", "renderBook", 'id="instrument"',
-                   "/api/sectors/", "Zuletzt gehandelt"):
-        assert needle in html, f"fehlt in sectors.html: {needle}"
+                   "/api/sectors/", "Last traded"):
+        assert needle in html, f"missing from sectors.html: {needle}"
 
 
 def strip_comments(source: str) -> str:
@@ -383,41 +387,86 @@ def strip_comments(source: str) -> str:
 
 
 @pytest.mark.parametrize("page", PAGES)
-def test_share_counts_use_the_projects_thousands_separator(page):
-    """`mes/city.py` writes 49 296 with a thin space — see THIN. A bare
-    `toLocaleString("de-DE")` writes 49.296, and the book and the tape would be the
-    two panels counting differently from every other number on screen."""
+def test_numbers_use_the_projects_english_format(page):
+    """`mes/city.py` writes 49,296 and 63.19 — comma thousands, point decimals. A
+    German locale call or a thin-space grouping left in one page would make that page
+    the one panel counting differently from every other number on screen."""
     for block in scripts(page):
-        bare = re.findall(r'toLocaleString\(\s*["\']de-DE["\']\s*\)',
-                          strip_comments(block))
-        assert not bare, (
-            f"{page}: {len(bare)}× Stückzahl mit Punkt statt schmalem Leerzeichen")
+        code = strip_comments(block)
+        german = re.findall(r'toLocaleString\(\s*["\']de-DE["\']', code)
+        assert not german, f"{page}: {len(german)}× German number format"
+        assert " " not in code and "\\u2009" not in code, (
+            f"{page}: groups thousands with a thin space")
 
 
-THIN = " "
-
-
-@pytest.mark.parametrize("page", ["sectors.html", "indices.html", "traders.html"])
-def test_the_decimal_formatter_groups_with_a_thin_space_too(page):
-    """The test above only caught the *option-less* call, so the decimal formatter
-    went on grouping with a dot — 1.234,56 here against 1 234,56 in the town, for
-    the same price. `toLocaleString` cannot be told to group with U+2009, so the
-    grouping is swapped afterwards and this is what says so."""
-    source = (WEB / page).read_text()
-    call = re.search(r'toLocaleString\("de-DE",[^;]*?;', source, re.S)
-    assert call, f"{page}: kein Dezimalformatierer gefunden"
-    assert THIN in call.group(0) or "\\u2009" in call.group(0), (
-        f"{page}: gruppiert mit Punkt statt schmalem Leerzeichen")
+@pytest.mark.parametrize("page", PAGES)
+def test_no_decimal_comma_is_written_by_hand(page):
+    """The German pages turned every decimal point into a comma with
+    `.replace('.', ',')`. Left in an English page it turns 63.19 into 63,19."""
+    for block in scripts(page):
+        code = strip_comments(block)
+        assert not re.search(r"""\.replace\(\s*['"]\.['"]\s*,\s*['"],['"]\s*\)""", code), (
+            f"{page}: writes a decimal comma")
 
 
 @pytest.mark.parametrize("page", ["sectors.html", "indices.html", "traders.html"])
-def test_share_counts_insert_a_thin_space_not_an_ordinary_one(page):
-    """`thin()` said thin space in its comment and inserted 0x20 for months."""
+def test_the_decimal_formatter_is_english(page):
     source = (WEB / page).read_text()
-    for match in re.finditer(r'\(\?!\\d\)\)/g, "(.*?)"\)', source):
-        inserted = match.group(1)
-        assert inserted in (THIN, "\\u2009"), (
-            f"{page}: Tausendertrennung ist {inserted!r}, erwartet U+2009")
+    assert re.search(r'toLocaleString\("en-US",', source), (
+        f"{page}: no en-US decimal formatter found")
+
+
+# ------------------------------------------------------------- the 3D town
+TOWN3D = WEB / "town3d.js"
+THREE = WEB / "vendor" / "three.min.js"
+
+
+def test_the_town_loads_its_renderer_by_relative_path():
+    """Relative, so the page still draws when it is opened straight from disk —
+    which is also why three.js is a vendored classic script and not a CDN module."""
+    html = (WEB / "index.html").read_text()
+    assert '<script src="vendor/three.min.js"></script>' in html
+    assert '<script src="town3d.js"></script>' in html
+    assert (html.index('<script src="vendor/three.min.js">') < html.index('<script src="town3d.js">')
+            < html.index("<script>\n"))
+    assert THREE.is_file() and THREE.stat().st_size > 500_000
+    assert (WEB / "vendor" / "THREE-LICENSE").is_file()
+
+
+@pytest.mark.skipif(NODE is None, reason="node not available")
+def test_the_3d_town_parses():
+    for path in (TOWN3D, THREE):
+        result = subprocess.run([NODE, "--check", str(path)], capture_output=True, text=True)
+        assert result.returncode == 0, (
+            f"{path.name} is not valid JavaScript:\n{result.stderr[:600]}")
+
+
+def test_the_3d_town_brackets_balance():
+    stripped = strip_strings_and_comments(TOWN3D.read_text())
+    for opener, closer in ("()", "[]", "{}"):
+        assert stripped.count(opener) == stripped.count(closer), (
+            f"town3d.js: {opener}{closer} unbalanced")
+
+
+def test_the_3d_town_reads_only_the_model_the_page_builds():
+    """Every number on the plate is decided in index.html, where these tests can see
+    it. If the renderer started reading the snapshot itself, a height could come from
+    somewhere no test looks."""
+    source = strip_comments(TOWN3D.read_text())
+    for forbidden in ("/api/", "fetch(", "S.capital", "S.flow", "S.runners"):
+        assert forbidden not in source, f"town3d.js reads the backend directly: {forbidden}"
+    html = (WEB / "index.html").read_text()
+    model = html[html.index("function cityModel("):html.index("const LABELS = [")]
+    for field in ("buildings(S)", "S.flow", "runners", "S.buyShare", "S.pips", "S.alarm",
+                  "S.mood"):
+        assert field in model, f"cityModel does not pass {field} to the town"
+
+
+def test_crate_colours_come_from_the_side_of_the_orders():
+    """Green buy, red sell — so the colour has to be the share of buys the backend
+    measured, not a random draw."""
+    source = TOWN3D.read_text()
+    assert "R.buy" in source and "Math.round(n * buy)" in source
 
 
 # --------------------------------------- what the last three rounds of work added
@@ -426,15 +475,15 @@ def test_the_experiments_state_what_they_cost_in_time():
     and the panel used to print only the days."""
     for page, source in (("index.html", "sheetLessons"), ("sectors.html", "renderLessons")):
         html = (WEB / page).read_text()
-        assert "function duration(" in html, f"{page}: keine Zeitformatierung"
-        assert "seconds_per_step" in html, f"{page}: rechnet nicht mit der Uhr"
-        assert "seconds_left" in html, f"{page}: sagt nicht, wie lange noch"
+        assert "function duration(" in html, f"{page}: no time formatting"
+        assert "seconds_per_step" in html, f"{page}: does not reckon with the clock"
+        assert "seconds_left" in html, f"{page}: does not say how long is left"
         # The *definition*, not the first mention — the name also appears in the
         # sheet registry above it, and anchoring there made this depend on how many
         # characters happened to sit in between.
         start = html.index(f"function {source}(")
         block = html[start:start + 6000]
-        assert "fastest" in block, f"{page}: schaltet nicht aufs schnellste Tempo"
+        assert "fastest" in block, f"{page}: does not switch to the fastest speed"
 
 
 def test_the_town_can_scrub_a_recording():
@@ -444,7 +493,7 @@ def test_the_town_can_scrub_a_recording():
     for needle in ('id="replayBar"', 'id="replayScrub"', 'id="actReplay"',
                    "/api/replay/seek", "function replaySeek", "enterReplay",
                    "leaveReplay"):
-        assert needle in html, f"fehlt in index.html: {needle}"
+        assert needle in html, f"missing from index.html: {needle}"
 
 
 def test_the_live_poll_leaves_a_replay_frame_alone():
@@ -457,7 +506,7 @@ def test_the_live_poll_leaves_a_replay_frame_alone():
         (i for i in (rest.find("\nfunction "), rest.find("\nasync function "))
          if i != -1), default=len(rest))
     pull = html[start:end]
-    assert "if (replayOn)" in pull, "pull() unterscheidet Replay nicht von Live"
+    assert "if (replayOn)" in pull, "pull() does not tell replay from live"
 
 
 def test_the_map_offers_both_scales_and_names_them():
@@ -467,7 +516,7 @@ def test_the_map_offers_both_scales_and_names_them():
     assert 'data-scale="euro"' in html and 'data-scale="log"' in html
     assert "PX_PER_DECADE" in html
     # The comparison mode must say it is not euros — that is the whole licence for it.
-    assert "nicht in Euro" in html
+    assert "not in euros" in html
 
 
 def test_stacked_floors_are_measured_from_the_cumulative_amount():
@@ -476,4 +525,4 @@ def test_stacked_floors_are_measured_from_the_cumulative_amount():
     wrong on a logarithmic one."""
     html = (WEB / "index.html").read_text()
     assert "hpx((b.z0eur || 0) + b.eur)" in html, \
-        "gestapelte Geschosse werden nicht aus der Summe gerechnet"
+        "stacked floors are not measured from the total"

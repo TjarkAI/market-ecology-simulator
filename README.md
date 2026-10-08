@@ -9,9 +9,10 @@ there an equation for the price. Every trade is one order crossing another in a
 continuous double auction. Bubbles, crashes, volatility clusters and forced-selling
 cascades are either produced by that interaction or they are not there at all.
 
-The interface is a small isometric town: every district is a group of agents,
-every building a quantity of capital, every street an order flow. Nothing in it is
-decoration.
+The interface is a small town in 3D, drawn like a strategy game: every district is
+a group of agents, every building a quantity of capital, every road an order flow,
+every walking figure ten agents carrying an order. Nothing in it is decoration.
+English is the project's language — interface, API text, documents and code.
 
 ![The town — five exchanges, seven districts, one running market](docs/screenshots/town.png)
 
@@ -32,7 +33,7 @@ compares the instruments; `/indices` asks the only question a level answers —
 which of these ran, when, and against what; `/traders` shows the population that
 produced all of it.
 
-Or double-click **`Marktstadt.app`** in this folder, which does the same in a visible
+Or double-click **`Market Town.app`** in this folder, which does the same in a visible
 Terminal window and opens the browser when the server answers. Drag it to the Dock
 once and it stays there — the Dock keeps an alias, so the bundle has to stay in the
 project folder next to `mes/` and `start.sh` (`MES_HOME` overrides that, `MES_PORT`
@@ -42,12 +43,12 @@ the port). It is generated, not committed as a blob:
 python scripts/build_app.py
 ```
 
-Two German documents live in [`docs/`](docs/), both generated from the running code
-so neither can quote stale figures:
+Two documents live in [`docs/`](docs/), both generated from the running code so
+neither can quote stale figures:
 
 ```bash
-python docs/build_quickstart.py   # Kurzanleitung, 5 Seiten — what it is, how to work with it
-python docs/build_handbook.py     # das Handbuch — seven guided experiments, where the model is wrong
+python docs/build_quickstart.py   # Quick Start Guide, 5 pages — what it is, how to work with it
+python docs/build_handbook.py     # the Handbook — seven guided experiments, where the model is wrong
 ```
 
 The short one refuses to write a sixth page rather than growing quietly into the
@@ -517,15 +518,15 @@ arrives differently depending on which channel dominates.
 The rate itself comes from a Taylor rule reacting to inflation and an output gap,
 and the macro block reacts back with a lag. That loop is the point: a bank facing an
 economy that does not respond is just a scripted rate path, and then the interesting
-question cannot be asked. Load **Zinswende 2022**, where only an inflation shock is
+question cannot be asked. Load **Rate turn 2022**, where only an inflation shock is
 scripted, and the rest follows:
 
 ```
- Tag   Zins  Inflation  Output-Gap
-   6   2.00%     7.50%       +0.00     der Schock
-  50   8.58%     6.58%       -0.16     Gipfel — Inflation fällt schon
- 200   1.86%     1.87%       -1.71     Rezession
- 300   0.34%    -0.33%       -1.69     Unterschießen, Nullgrenze
+ Day   Rate  Inflation  Output gap
+   6   2.00%     7.50%       +0.00     the shock
+  50   8.58%     6.58%       -0.16     peak — inflation already falling
+ 200   1.86%     1.87%       -1.71     recession
+ 300   0.34%    -0.33%       -1.69     undershoot, zero bound
 ```
 
 The bank keeps tightening while inflation is already falling, because what the
@@ -547,18 +548,31 @@ everything else and the validation fell from five criteria to three.
 Nothing in it is decoration, and every number on it comes from
 [`mes/city.py`](mes/city.py) — the one place simulation state is turned into the
 quantities the drawing code uses, so that code never has to interpret anything.
+`cityModel()` in [`web/index.html`](web/index.html) turns those quantities into
+blocks, roads and figures on an 800 × 800 plate; [`web/town3d.js`](web/town3d.js)
+draws that model with three.js and reads nothing else. A test holds it to that.
 
 | On screen | What it is |
 |---|---|
 | block height | capital standing in that district; the footer states the scale, which steps down as the market compounds |
-| street width | order flow on that road, this step |
+| coloured lane on the streets | one group's route from its district to the exchange square, along the street grid with its corners; the lane's width is that group's order flow this step, its chevrons run towards the exchanges |
 | one figure | ten agents carrying an order to the exchange |
-| the five towers | the five exchanges, one per sector, scaled against each other by book depth |
+| the crate it carries | the side of that group's orders this step: green buy, red sell, in the measured proportion (`buyShare`) |
+| golden figures between the camps | adaptive agents switching strategy |
+| trucks | the ETF depot's scheduled purchases (green cargo) and the issuer's new shares (red cargo) — two groups that trade in lumps; a truck leaves when its group traded this step and parks again after the trip |
+| smoke over the issuer | it sold stock this step |
+| the five blue towers | the five exchanges, one per sector, scaled against each other by book depth; the band shows symbol and price, the selected one is brighter |
 | numbers above a tower | the fills that actually happened, in the selected market |
 | hatched floors on the red tower | borrowed capital: exposure above equity |
-| red ring | a margin call — a fund is selling because it must, not because it decided to |
+| red beacon and ring | a margin call — a fund is selling because it must, not because it decided to |
+| light and rain | sentiment: warm sun when greedy, overcast when fearful, rain in panic |
+| blue pin | the selected district |
 
-The **MARKT** panel on the left shows the selected instrument three ways: the price
+Trees and the faint town on the horizon claim nothing. Drag to turn the camera,
+scroll to zoom, right-drag to pan; clicking a building selects its district, clicking
+a tower selects its market. Without WebGL the page says so and the panels still work.
+
+The **Market** panel on the left shows the selected instrument three ways: the price
 against its fair value, the daily candles, and the order book. The last one is where
 a price in this model comes from — every trade is one order crossing another — and it
 is worth looking at at least once: nearly all the resting size sits at the touch,
@@ -584,13 +598,13 @@ followers hold most of the capital and the spread between the largest and the
 smallest block reaches 135× — the ladder then has to serve the giant, and 21 of 35
 blocks sit on the minimum height, indistinguishable. **EURO** is the default and the
 honest one: a single flat district beside one tower *is* the concentration, drawn
-correctly. **VERGLEICH** is logarithmic, 72 px per tenfold, and says so in the same
+correctly. **COMPARE** is logarithmic, 14.4 floors per tenfold, and says so in the same
 line — it exists so the small districts can be compared with each other. Exactly the
 argument the exchanges already won.
 
 The footer reaches the five things the model can be asked to do — load a **scenario**,
-run a guided **experiment**, inject a **headline**, move a **parameter**, open a
-**recording** — plus a reset. The `?` in the corner states what the town is and what
+run a guided **experiment**, inject a **headline**, move a **control**, open a
+**recording** — plus a restart. Shock and speed sit on the map, in the command bar. The `?` in the corner states what the town is and what
 to try first.
 
 A recording opens *in the town*: the scrubber moves the whole map, book and districts
@@ -682,14 +696,14 @@ measures nothing.
 
 ```bash
 ./start.sh                                              # interface
-python scripts/run.py --steps 120000 --name basis       # headless + Parquet export
+python scripts/run.py --steps 120000 --name baseline    # headless + Parquet export
 python scripts/calibrate.py --runs 3 --steps 90000      # validation, per instrument
 python scripts/sweep.py ablate --steps 80000            # switch each mechanism off in turn
 python scripts/sweep.py param --name n_passive --values 0,50,100,200
 python scripts/demo_state.py --write                    # regenerate the offline snapshot
-python scripts/build_app.py                             # rebuild Marktstadt.app and its icon
+python scripts/build_app.py                             # rebuild Market Town.app and its icon
 python scripts/screenshots.py                           # rebuild the images in this README
-pytest                                                  # 315 tests
+pytest                                                  # 324 tests
 ```
 
 `web/index.html` also works without the backend: it falls back to one snapshot and
@@ -752,8 +766,8 @@ only the curves that happened to be written out. The cost is time on a backward
 seek instead of disk.
 
 ```bash
-python scripts/run.py --steps 60000 --name basis   # record
-./start.sh                                          # then open /sectors
+python scripts/run.py --steps 60000 --name baseline   # record
+./start.sh                                             # then open /sectors
 ```
 
 ## Not built
@@ -803,11 +817,14 @@ mes/
 ├── city.py         simulation state → town view (the only translation point)
 ├── traders.py      simulation state → roster (the other translation point)
 └── api.py          FastAPI: read state, turn parameters, load scenarios
-web/index.html      the town (2.5D, no build step, no dependencies)
+web/index.html      the town: panels, and the model the 3D view draws (no build step)
+web/town3d.js       the 3D view: draws cityModel(), reads nothing else
+web/vendor/         three.js r159, vendored so the town works offline and from disk
 web/sectors.html    the sector view: tiles, heatmap, bank, validation, A/B, replay
 web/indices.html    the index board: every index on one rebased axis, live
 web/traders.html    the roster: every agent, sortable, filterable, with a detail panel
 scripts/            run.py, calibrate.py, sweep.py, demo_state.py, build_app.py, screenshots.py
-Marktstadt.app      Dock launcher: starts the server, opens the town (generated)
-tests/              315 tests
+Market Town.app     Dock launcher: starts the server, opens the town (generated)
+docs/               Quick Start Guide and Handbook (PDF, generated by build_*.py)
+tests/              324 tests
 ```

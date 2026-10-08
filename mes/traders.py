@@ -22,35 +22,35 @@ import numpy as np
 from .simulation import Simulation
 
 # What an agent *is*, which is not what it is currently doing: an adaptive trader is
-# ADAPTIV and may be running the value rule this minute. Same labels as the town's
+# ADAPTIVE and may be running the value rule this minute. Same labels as the town's
 # unit card, deliberately — the two views name the same thing the same way.
 KIND_LABELS = {
-    "adaptive": "Adaptiv", "noise": "Rausch", "passive": "ETF",
-    "leveraged": "Hebel", "maker": "Market Maker", "company": "Emittent",
+    "adaptive": "Adaptive", "noise": "Noise", "passive": "ETF",
+    "leveraged": "Leveraged", "maker": "Maker", "company": "Issuer",
 }
 
 STRATEGY_LABELS = {
-    "momentum": "Momentum", "value": "Value", "noise": "Rausch",
-    "passive": "Sparplan", "leveraged": "Hebel", "maker": "Quotierung",
-    "company": "Emission",
+    "momentum": "Momentum", "value": "Value", "noise": "Noise",
+    "passive": "Savings plan", "leveraged": "Leverage", "maker": "Quoting",
+    "company": "Issuance",
 }
 
 GROUP_NAMES = {
-    "momentum": "Adaptiv · Momentum", "value": "Adaptiv · Value",
-    "noise": "Rausch-Vorstadt", "passive": "ETF-Lager", "leveraged": "Hebel-Fonds",
-    "maker": "Market Maker", "company": "Emittent",
+    "momentum": "Adaptive · Momentum", "value": "Adaptive · Value",
+    "noise": "Noise Suburb", "passive": "ETF Depot", "leveraged": "Leveraged funds",
+    "maker": "Market Makers", "company": "Issuer",
 }
 
 # One line saying what the group is for, so the roster explains itself the way the
 # district list in the town does.
 GROUP_NOTES = {
-    "momentum": "Extrapoliert die letzte Bewegung und ignoriert die Bewertung.",
-    "value": "Kauft unter der eigenen Schätzung des fairen Werts, verkauft darüber.",
-    "noise": "Handelt ohne Meinung — die Gegenseite, damit gehandelt werden kann.",
-    "passive": "Bekommt nach Plan Geld und kauft zu jedem Preis.",
-    "leveraged": "Handelt auf Kredit. Fällt das Eigenkapital zu weit, wird verkauft.",
-    "maker": "Stellt dauerhaft beide Seiten — die einzige stehende Liquidität.",
-    "company": "Gibt Aktien aus, wenn sie teuer sind, und kauft zurück, wenn sie billig sind.",
+    "momentum": "Extrapolates the last move and ignores valuation.",
+    "value": "Buys below its own estimate of fair value, sells above it.",
+    "noise": "Trades without an opinion. It is the other side, so that trading can happen.",
+    "passive": "Receives money on a schedule and buys at any price.",
+    "leveraged": "Trades on credit. If equity falls too far, it sells.",
+    "maker": "Quotes both sides at all times. The only standing liquidity.",
+    "company": "Issues shares when they are expensive and buys back when they are cheap.",
 }
 
 # The columns the table may be sorted by, and how each is read off a row. A
@@ -110,7 +110,7 @@ def _row(sim: Simulation, agent) -> dict:
             "step": order["ts"], "symbol": order["symbol"],
             "side": order["side"], "qty": order["qty"], "price": order["price"],
             # Only while it is this step's order. `last_orders` keeps the last one
-            # for ever, and a table that says "kauft 300" for an agent that has not
+            # for ever, and a table that says "buys 300" for an agent that has not
             # traded in twenty thousand steps is a lie with a timestamp beside it.
             "open": order["ts"] >= sim.t - 1,
         },

@@ -1,242 +1,238 @@
-# Integrationsnotiz Simulationskern → Ansicht
+# Integration note: simulation core → view
 
-Stand: Kalibrierung des Kerns. Diese Datei beschreibt, was sich in `mes/` geändert
-hat und was die Ansicht davon braucht. Sie ersetzt keine Absprache, sie hält nur
-den Vertrag fest.
+Status: calibration of the core. This file describes what has changed in `mes/` and
+what the view needs from it. It does not replace talking to each other; it only
+records the contract.
 
-## Zwei neue Ansichten und zwei neue Lesepunkte
+## Two new views and two new read points
 
-`Simulation.indices` (aus [`mes/indices.py`](mes/indices.py)) wird bei jedem Reset
-neu gebaut und in jedem Schritt fortgeschrieben. Sie zieht **keine Zufallszahlen**
-und ändert keinen Zustand — derselbe Seed ergibt mit und ohne sie bitgenau denselben
-Lauf, und `tests/test_indices.py` prüft das über den RNG-Zustand.
+`Simulation.indices` (from [`mes/indices.py`](mes/indices.py)) is rebuilt on every
+reset and updated on every step. It draws **no random numbers** and changes no
+state: the same seed gives a bit-identical run with and without it, and
+`tests/test_indices.py` checks that through the RNG state.
 
-`mes/traders.py` ist zu `/traders` das, was `mes/city.py` zur Stadt ist: der einzige
-Punkt, an dem Simulationszustand zu Anzeigezahlen wird. Sortierung, Filter und
-Blättern liegen dort, nicht im Browser.
+`mes/traders.py` is to `/traders` what `mes/city.py` is to the town: the only point
+at which simulation state becomes display figures. Sorting, filtering and paging
+live there, not in the browser.
 
-Für die Ansicht wichtig:
+Important for the view:
 
-- **`Agent.start_equity`** ist neu: das Eigenkapital beim Spawn.
-  `Agent.last_wealth` ist die Basislinie des Strategie-Reviews und wandert bei jedem
-  Review, taugt also nicht als Vergleich für „wie hat dieser Trader abgeschnitten".
-- **`Market.step_orders`** zählt Orders je Buch. `Simulation.step_orders` zählt sie
-  über alle Märkte; die Stadtzeile mischte beide.
-- **`Simulation.script_source`** hält die Szenario-Zeitleiste unverbraucht, damit
-  eine Aufzeichnung sie mitschreiben und ein Replay sie zurücklegen kann.
-- **`Simulation.cfg_start`** ist die Konfiguration, mit der der Lauf *begonnen* hat.
-  `Config.update_live` verändert das Objekt in place, das Aufzeichnungsformat braucht
-  aber den Anfangszustand.
+- **`Agent.start_equity`** is new: the equity at spawn.
+  `Agent.last_wealth` is the baseline of the strategy review and moves with every
+  review, so it is no use as a comparison for "how has this trader done".
+- **`Market.step_orders`** counts orders per book. `Simulation.step_orders` counts
+  them across all markets; the town line mixed the two.
+- **`Simulation.script_source`** holds the scenario timeline unconsumed, so that a
+  recording can write it down and a replay can put it back.
+- **`Simulation.cfg_start`** is the configuration the run *started* with.
+  `Config.update_live` changes the object in place, but the recording format needs
+  the initial state.
 
-## Zwei neue Agentengruppen
+## Two new agent groups
 
-`Simulation.group_of()` gibt jetzt sieben Gruppen zurück statt fünf:
+`Simulation.group_of()` now returns seven groups instead of five:
 
-| Gruppe | Klasse | Rolle | Warum sie existiert |
+| Group | Class | Role | Why it exists |
 |---|---|---|---|
-| `momentum` | `AdaptiveTrader` | Trendfolge | wie bisher |
-| `value` | `AdaptiveTrader` | Bewertung | wie bisher |
-| `noise` | `NoiseTrader` | Rauschen | wie bisher |
-| `passive` | `PassiveInvestor` | ETF / Sparplan | wie bisher |
-| `leveraged` | `LeveragedFund` | Hebel, Margin Calls | wie bisher |
-| **`maker`** | `MarketMaker` | **neu** — beidseitige Quotes | ohne ihn hatte das Buch ~600 Stück Tiefe gegen Orders von mehreren Tausend; jede Order räumte das Buch ab, die Volatilität lag bei 129 % p. a. |
-| **`company`** | `Company` | **neu** — Emittent | ohne ihn gab es kein Aktienangebot: Value-Investoren verkauften ihre Bestände leer, Market Maker liefen ins Bestandslimit, danach stieg der Kurs ungebremst auf das Doppelte des Fundamentalwerts |
+| `momentum` | `AdaptiveTrader` | trend following | as before |
+| `value` | `AdaptiveTrader` | valuation | as before |
+| `noise` | `NoiseTrader` | noise | as before |
+| `passive` | `PassiveInvestor` | ETF / savings plan | as before |
+| `leveraged` | `LeveragedFund` | leverage, margin calls | as before |
+| **`maker`** | `MarketMaker` | **new**: two-sided quotes | without it the book had ~600 shares of depth against orders of several thousand; every order cleared the book, and volatility was 129% a year |
+| **`company`** | `Company` | **new**: Issuer | without it there was no supply of shares: value investors sold their holdings down to nothing, market makers ran into their inventory limit, and then the price rose unchecked to twice the fundamental value |
 
-Beide handeln in **jedem** Schritt (`Simulation.always_active`), nicht nach
-`activation_rate` — sonst verschwindet ihre Wirkung zwischen den Zügen.
+Both trade on **every** step (`Simulation.always_active`), not according to
+`activation_rate`. Otherwise their effect disappears between turns.
 
-Besonderheiten für die Darstellung:
+Points to note for the display:
 
-- **Market Maker** dürfen negative Bestände haben (bis `mm_inventory_limit`).
-  Ein negativer Bestand ist eine Short-Position.
-- **Der Emittent** hat systematisch negative Bestände. Das ist kein Fehler:
-  `-shares` **ist** der ausgegebene Streubesitz. Sein Kapital liegt in der Kasse.
-- `Simulation.strategy_performance()` leitet die Gruppen jetzt aus der Population
-  ab statt aus einer festen Liste — neue Typen fallen nicht mehr stillschweigend
-  aus dem Vergleich.
+- **Market makers** may hold negative positions (down to `mm_inventory_limit`).
+  A negative position is a short position.
+- **The Issuer** holds systematically negative positions. That is not a bug:
+  `-shares` **is** the free float it has issued. Its capital sits in its cash.
+- `Simulation.strategy_performance()` now derives the groups from the population
+  instead of from a fixed list, so new types no longer silently drop out of the
+  comparison.
 
-**Erledigt:** `city.py` kennt die beiden Viertel `mkr` und `cmp` inzwischen, in
-`_ROADS`, `capital` und `rooms`. Die Summenprüfung im Test schneidet pro Agent bei
-0 ab, wie `_equity_by_group` es tut — gehebelte Fonds können negatives
-Eigenkapital haben.
+**Done:** `city.py` now knows the two districts `mkr` and `cmp`, in `_ROADS`,
+`capital` and `rooms`. The sum check in the test clips each agent at 0, as
+`_equity_by_group` does, because leveraged funds can have negative equity.
 
-## Preis, Kurse und Bars
+## Price, quotes and bars
 
-- `sim.price` ist der **Mid des Orderbuchs**, nicht der letzte Handelspreis.
-  Auf den letzten Trade zu markieren erzeugte eine Autokorrelation von −0,29 in
-  den Renditen, die reine Mikrostruktur war.
-- `sim.last_trade` ist der letzte tatsächliche Ausführungspreis — der richtige
-  Wert für Tape und Orderbuchanzeige.
-- **Neu: `sim.bars`** — Tages-OHLC (`t, step, o, h, l, c, v`). Ein Tag sind
-  `cfg.steps_per_day` Schritte (Standard 240). Der Schluss ist über die letzten
-  5 % des Tages gemittelt, wie eine Schlussauktion.
-- **Neu: `sim.daily_returns`** — die Reihe, auf der die Validierung rechnet.
-  Die Stylized Facts sind Eigenschaften von *Tages*renditen; auf Schrittebene
-  kommt jede Kennzahl falsch heraus.
-- **Neu: `sim.fitness`** — `{"momentum": float, "value": float}`, wie gut jede
-  Regel zuletzt gewesen wäre. Treibt den Strategiewechsel und ist als
-  Anzeige interessant: man sieht, welches Lager gerade Recht hat.
+- `sim.price` is the **mid of the order book**, not the last trade price.
+  Marking to the last trade produced an autocorrelation of −0.29 in the returns
+  that was pure microstructure.
+- `sim.last_trade` is the last actual execution price, the right value for the
+  tape and the order book display.
+- **New: `sim.bars`**: daily OHLC (`t, step, o, h, l, c, v`). A day is
+  `cfg.steps_per_day` steps (default 240). The close is averaged over the last
+  5% of the day, like a closing auction.
+- **New: `sim.daily_returns`**: the series the validation computes on.
+  The stylized facts are properties of *daily* returns; at step level every
+  measure comes out wrong.
+- **New: `sim.fitness`**: `{"momentum": float, "value": float}`, how well each
+  rule would have done lately. Drives strategy switching and is interesting to
+  display: it shows which camp is right at the moment.
 
-## Kalibrierte Standardwerte
+## Calibrated defaults
 
-Die Defaults in `config.py` sind jetzt kalibriert und **nicht** frei wählbar,
-ohne die Validierung neu zu prüfen. Insbesondere:
+The defaults in `config.py` are now calibrated and **cannot** be changed freely
+without re-checking the validation. In particular:
 
 ```
-steps_per_day        240        ein Tag muss einen vollen Anpassungszyklus fassen
-fundamental_drift    7 %/Jahr   geteilt durch 252*steps_per_day
-fundamental_vol      15 %/Jahr  geteilt durch sqrt(252*steps_per_day)
-chartist_aggression  100        darunter verschwindet das Volatilitätscluster
-mm_skew              0.9        Bestandsneigung über Ordergrößen, nicht über Preise
-passive_inflow       30         ca. 5 % der Marktkapitalisierung pro Jahr
+steps_per_day        240        a day must hold a full adjustment cycle
+fundamental_drift    7%/year    divided by 252*steps_per_day
+fundamental_vol      15%/year   divided by sqrt(252*steps_per_day)
+chartist_aggression  100        below this the volatility clustering disappears
+mm_skew              0.9        inventory lean through order sizes, not prices
+passive_inflow       30         about 5% of market capitalisation per year
 ```
 
-Bei `steps_per_day=240` entsteht ein Tagesbar alle 240 Schritte. Die Ansicht
-sollte für das Validierungspanel darauf vorbereitet sein, dass zu Beginn
-weniger als 50 Tage vorliegen — `metrics.analyse` gibt dann
-`{"insufficient": True}` zurück.
+With `steps_per_day=240` a daily bar is produced every 240 steps. For the
+validation panel the view should be prepared for fewer than 50 days being
+available at the start; `metrics.analyse` then returns `{"insufficient": True}`.
 
-## Stand der Validierung
+## State of the validation
 
-Die Rendite-Autokorrelation, die hier als offener Punkt stand (−0,4), ist mit den
-fünf Sektoren behoben. Offen ist jetzt der Tail-Index. Beides samt Herleitung im
-`README.md`.
+The return autocorrelation that was listed here as an open point (−0.4) is fixed
+with the five sectors. The open point is now the tail index. Both, with how they
+were derived, are in the `README.md`.
 
-Die Standardwerte oben sind teilweise überholt: `chartist_aggression` steht auf 55,
-`fundamental_vol` auf 60 %/Jahr. Verbindlich ist immer `mes/config.py`; die Werte
-dort sind die, gegen die `scripts/calibrate.py` gelaufen ist.
+Some of the defaults above are out of date: `chartist_aggression` is set to 55,
+`fundamental_vol` to 60%/year. `mes/config.py` is always binding; the values there
+are the ones `scripts/calibrate.py` ran against.
 
 
 ---
 
-# Nachtrag: fünf Sektoren
+# Addendum: five sectors
 
-Der Kern handelt jetzt **fünf Instrumente** gleichzeitig. Für die Ansicht ändert
-sich nichts, was sie schon nutzt — alle Einzelmarkt-Zugriffe funktionieren weiter
-und zeigen das erste Instrument (`TECH`).
+The core now trades **five instruments** at once. Nothing the view already uses
+changes: all single-market accessors keep working and show the first instrument
+(`TECH`).
 
-## Was gleich geblieben ist
+## What stayed the same
 
 `sim.price`, `sim.prices`, `sim.book`, `sim.bars`, `sim.daily_returns`,
 `sim.volumes`, `sim.returns`, `sim.recent_trades`, `sim.step_volume`,
-`sim.step_trades`, `sim.step_fills`, `sim.trend`, `sim.realized_vol` — alle
-vorhanden, alle auf `sim.primary` bezogen. `agent.equity(sim.price)` funktioniert
-weiter: der Float wird bewusst ignoriert und die Portfoliobewertung der letzten
-Bewertungsmarken verwendet, weil eine einzelne Zahl die Frage bei einem Portfolio
-nicht beantworten kann.
+`sim.step_trades`, `sim.step_fills`, `sim.trend`, `sim.realized_vol`: all
+present, all referring to `sim.primary`. `agent.equity(sim.price)` keeps working:
+the float is deliberately ignored and the portfolio is valued at the latest
+valuation marks, because a single number cannot answer the question for a
+portfolio.
 
-## Was neu ist
+## What is new
 
-| Zugriff | Inhalt |
+| Accessor | Contents |
 |---|---|
-| `sim.markets` | `dict[symbol, Market]` — Buch, Kursreihe, Bars je Instrument |
+| `sim.markets` | `dict[symbol, Market]`: book, price series, bars per instrument |
 | `sim.symbols` | `['TECH','ENRG','FINL','HLTH','CONS']` |
-| `sim.primary` | Symbol des Instruments, auf das die Einzelmarkt-Zugriffe zeigen |
-| `sim.fair` | Fundamentalwert des primären Instruments (**ersetzt `sim.world.fundamental`**) |
-| `sim.sector_returns()` | Tagesrenditen je Instrument, Eingabe für die Heatmap |
-| `agent.positions` | `dict[symbol, int]` — `agent.shares` ist jetzt die read-only Summe |
-| `agent.symbol` | gesetzt bei Market Makern und Emittenten, sonst `None` |
-| `GET /api/sectors` | alle Instrumente plus gemessene Korrelationsmatrix |
-| `GET /api/sectors/{symbol}` | ein Instrument: Historie, Buch, Tape, eigene Validierung |
+| `sim.primary` | symbol of the instrument the single-market accessors point to |
+| `sim.fair` | fundamental value of the primary instrument (**replaces `sim.world.fundamental`**) |
+| `sim.sector_returns()` | daily returns per instrument, input for the heatmap |
+| `agent.positions` | `dict[symbol, int]`; `agent.shares` is now the read-only sum |
+| `agent.symbol` | set for market makers and issuers, otherwise `None` |
+| `GET /api/sectors` | all instruments plus the measured correlation matrix |
+| `GET /api/sectors/{symbol}` | one instrument: history, book, tape, its own validation |
 
-**Achtung, eine Umbenennung:** `sim.world.fundamental` existiert nicht mehr. Die
-Fundamentalwerte gehören den Instrumenten; zwei Quellen der Wahrheit waren ein
-echter Fehler (eine Nachricht bewegte die eine und nicht die andere). `city.py` ist
-bereits angepasst.
+**Watch out, a rename:** `sim.world.fundamental` no longer exists. The
+fundamental values belong to the instruments; two sources of truth were a real bug
+(a headline moved one and not the other). `city.py` has already been adapted.
 
-## Aufwärmen läuft jetzt im Hintergrund
+## Warm-up now runs in the background
 
-Der Server antwortet nach wenigen Sekunden und spult den Markt danach im
-Hintergrund auf 110 Handelstage vor. Der Snapshot hat zwei neue Felder:
-`warming` (bool) und `warmProgress` (0…1). Ein Fortschrittsbalken wäre dort
-sinnvoll.
+The server answers within a few seconds and then fast-forwards the market to 110
+trading days in the background. The snapshot has two new fields: `warming` (bool)
+and `warmProgress` (0…1). A progress bar would make sense there.
 
-## Was für die Ansicht offen ist
+## What is open for the view
 
-Die Stadt zeichnet weiterhin nur das primäre Instrument. Sinnvoll wären fünf
-Sektor-Kacheln mit Sparkline, eine Korrelations-Heatmap und ein Umschalter, welcher
-Sektor die Detailansicht füllt. Die Daten dafür liegen alle in `/api/sectors`.
+The town still draws only the primary instrument. Five sector tiles with a
+sparkline, a correlation heatmap and a switch for which sector fills the detail
+view would make sense. All the data for them is in `/api/sectors`.
 
 
 ---
 
-# Nachtrag: Zentralbank
+# Addendum: Central Bank
 
-Neu: `mes/centralbank.py`. Sie handelt nicht, sie setzt **eine Zahl** — den
-Leitzins — und dieser erreicht den Markt über drei Kanäle.
+New: `mes/centralbank.py`. It does not trade; it sets **one number**, the policy
+rate, and that reaches the market through three channels.
 
-## Zugriff
+## Access
 
-| Zugriff | Inhalt |
+| Accessor | Contents |
 |---|---|
-| `sim.bank` | die `CentralBank` |
-| `sim.bank.rate` | Leitzins, annualisiert (0,02 = 2 %). **Abgeleitet**, nicht gespeichert — im Handmodus liest er direkt die Konfiguration |
-| `sim.bank.inflation`, `.output_gap`, `.real_rate`, `.stance` | Makrozustand |
-| `sim.bank.to_dict()` | anzeigefertig, alles in **Prozent**, mit `history` für das Chart |
-| `GET /api/centralbank` | Zins, Makro, plus Duration je Sektor und die drei Kanäle |
-| `POST /api/centralbank` | `{"rate": 0.045}` setzt von Hand, `{"manual": false}` gibt an die Regel zurück |
+| `sim.bank` | the `CentralBank` |
+| `sim.bank.rate` | policy rate, annualised (0.02 = 2%). **Derived**, not stored: in manual mode it reads the configuration directly |
+| `sim.bank.inflation`, `.output_gap`, `.real_rate`, `.stance` | macro state |
+| `sim.bank.to_dict()` | ready for display, everything in **percent**, with `history` for the chart |
+| `GET /api/centralbank` | rate, macro, plus duration per sector and the three channels |
+| `POST /api/centralbank` | `{"rate": 0.045}` sets it by hand, `{"manual": false}` hands it back to the rule |
 
-`to_dict()` gibt Prozentwerte (4.5 für 4,5 %), die internen Felder sind Dezimalzahlen
-(0.045). Für ein Zins-Chart eignet sich `history`: Liste aus
-`{step, rate, inflation, output_gap}`, alle fünf Handelstage ein Punkt.
+`to_dict()` returns percentages (4.5 for 4.5%); the internal fields are decimals
+(0.045). For a rate chart, use `history`: a list of
+`{step, rate, inflation, output_gap}`, one point every five trading days.
 
-## Die drei Kanäle
+## The three channels
 
-1. **Bewertung** — eine Zinsbewegung bewertet die Fundamentalwerte neu, mit der
-   Duration des Sektors. FINL hat Duration 8,8, ENRG 1,6 — dieselbe Entscheidung
-   trifft die Sektoren also unterschiedlich hart. Getrieben von der *Änderung* des
-   Zinses, nicht vom Niveau: eine Senkung gibt zurück, was eine Erhöhung nahm.
-2. **Finanzierungskosten** — gehebelte Fonds zahlen `Zins + borrow_spread` auf
-   geliehenes Geld. Ihr Eigenkapital erodiert, Margin Calls kommen früher.
-   Einseitig: Sparer bekommen keine Zinsen, weil das Geld in den Markt injizieren
-   und die Kalibrierung für einen Effekt zweiter Ordnung verschieben würde.
-3. **Zuflüsse** — `bank.flow_multiplier()` skaliert die Sparplan-Zuflüsse. Bei 10 %
-   Zins fließt etwa halb so viel in Aktien.
+1. **Valuation**: a rate move revalues the fundamental values, with the sector's
+   duration. FINL has duration 8.8, ENRG 1.6, so the same decision hits the sectors
+   with different force. Driven by the *change* in the rate, not its level: a cut
+   gives back what a hike took.
+2. **Financing costs**: leveraged funds pay `rate + borrow_spread` on borrowed
+   money. Their equity erodes, and margin calls come sooner.
+   One-sided: savers earn no interest, because that would inject money into the
+   market and shift the calibration for a second-order effect.
+3. **Inflows**: `bank.flow_multiplier()` scales the savings-plan inflows. At a 10%
+   rate about half as much flows into equities.
 
-## Was sich für die Ansicht anbietet
+## What suggests itself for the view
 
-Ein Panel mit dem Leitzins groß, darunter Inflation und Output-Gap als Linien, und
-ein Umschalter „Regel / von Hand" mit einem Zins-Slider. Der interessante Moment ist
-sichtbar: die Bank strafft weiter, während die Inflation schon fällt, weil die
-Wirkung verzögert eintritt. Im Szenario **Zinswende 2022** läuft das durch —
-Zinsgipfel 8,6 %, danach Rezession und Unterschießen bis unter null Inflation.
-Der Zinspfad ist **nicht** geskriptet, nur der Inflationsschock.
+A panel with the policy rate in large type, inflation and output gap below it as
+lines, and a "rule / by hand" switch with a rate slider. The interesting moment is
+visible: the bank keeps tightening while inflation is already falling, because the
+effect arrives with a delay. The **Rate turn 2022** scenario (`rates2022`) runs
+through it: rate peak 8.6%, then recession and an undershoot to below zero
+inflation. The rate path is **not** scripted, only the inflation shock.
 
-## Zwei Fallen, die hier steckten
+## Two traps that were hidden here
 
-- **Eigener Zufallsstrom.** Die Bank zieht aus ihrem eigenen Generator
-  (`cfg.seed + 7919`). Ein optionales Modul, das aus dem gemeinsamen Strom zieht,
-  verschiebt jede spätere Zahl — dann ist „Bank aus" nicht dieselbe Welt ohne Bank,
-  sondern eine andere Welt. Dieser Fehler hat hier zweimal zu falschen Schlüssen
-  geführt, bevor er behoben war.
-- **`macro_shock` ist mächtiger als es aussieht.** Bei 0,02 wanderte der Zins so
-  stark, dass die Neubewertung mit Duration alles andere im Modell dominierte und
-  die Validierung von fünf auf drei Kriterien fiel. Standard ist jetzt 0,006;
-  Szenarien drehen ihn hoch, wenn es um den Zins geht.
+- **Its own random stream.** The bank draws from its own generator
+  (`cfg.seed + 7919`). An optional module that draws from the shared stream shifts
+  every later number. Then "bank off" is not the same world without a bank but a
+  different world. This bug led to wrong conclusions here twice before it was
+  fixed.
+- **`macro_shock` is more powerful than it looks.** At 0.02 the rate moved so much
+  that the duration revaluation dominated everything else in the model, and the
+  validation fell from five criteria to three. The default is now 0.006; scenarios
+  turn it up when the rate is the point.
 
 
 ---
 
-# Nachtrag: Einzelaktien
+# Addendum: individual stocks
 
-`stocks_per_sector` (Standard **0**) schaltet zwischen zwei Welten. Bei 0 handeln die
-fünf Sektoren selbst — das ist die kalibrierte Konfiguration und bleibt Standard.
-Über 0 handeln Einzelaktien (`TECH-1`, `TECH-2`, …) und der Sektor ist kein
-Instrument mehr, sondern ein gemeinsamer Schock mit Index.
+`stocks_per_sector` (default **0**) switches between two worlds. At 0 the five
+sectors trade themselves; that is the calibrated configuration and remains the
+default. Above 0 individual stocks trade (`TECH-1`, `TECH-2`, …) and the sector is
+no longer an instrument but a common shock with an index.
 
-## Zugriff
+## Access
 
-| Zugriff | Inhalt |
+| Accessor | Contents |
 |---|---|
-| `sim.sectors` | `dict[sector, [symbols]]` — bei Sektor-Instrumenten `{"TECH": ["TECH"], …}` |
+| `sim.sectors` | `dict[sector, [symbols]]`; with sector instruments `{"TECH": ["TECH"], …}` |
 | `sim.sector_of` | `dict[symbol, sector]` |
-| `sim.sector_index(sector)` | gleichgewichteter Kursindex der Mitglieder |
-| `sim.sector_fair(sector)` | dasselbe für die Fundamentalwerte |
-| `sim.inject_news(text, mag, symbol=…)` | `symbol` darf ein Instrument (`TECH-1`), ein **Sektor** (`TECH`, trifft alle Mitglieder) oder `None` sein (marktweit, mit Beta skaliert) |
+| `sim.sector_index(sector)` | equal-weighted price index of the members |
+| `sim.sector_fair(sector)` | the same for the fundamental values |
+| `sim.inject_news(text, mag, symbol=…)` | `symbol` may be an instrument (`TECH-1`), a **sector** (`TECH`, hits all members) or `None` (market-wide, scaled by beta) |
 
-## `/api/sectors` ist jetzt gruppiert
+## `/api/sectors` is now grouped
 
-Die flache Liste ist weg. Neue Form:
+The flat list is gone. New shape:
 
 ```json
 {
@@ -251,82 +247,84 @@ Die flache Liste ist weg. Neue Form:
 }
 ```
 
-`tradable` sagt, ob der Sektor selbst ein Instrument ist — die Ansicht muss also
-nicht raten. Bei `tradable=false` hat die Gruppe einen Index, aber keinen eigenen
-Kurs; die Einzelnamen darunter haben beides.
+`tradable` says whether the sector itself is an instrument, so the view does not
+have to guess. With `tradable=false` the group has an index but no price of its
+own; the individual names under it have both.
 
-`within_across` ist die interessante Zahl bei Einzelaktien: Korrelation innerhalb
-eines Sektors gegen sektorübergreifend. Nichts davon ist konfiguriert.
+`within_across` is the interesting figure with individual stocks: correlation
+within a sector against correlation across sectors. None of it is configured.
 
-## Was für die Ansicht offen ist
+## What is open for the view
 
-Bei Einzelaktien wären zwei Ebenen sinnvoll: Sektor-Kacheln mit Index und
-darunter aufklappbar die Einzelnamen. `groups` ist genau dafür geformt.
+With individual stocks two levels would make sense: sector tiles with an index and,
+expandable below them, the individual names. `groups` is shaped for exactly that.
 
-Laufzeit: der Orderfluss skaliert pro Instrument, zehn Instrumente laufen mit
-~225 Schritten/s gegen ~440 bei fünf. Ein Umschalter in der UI sollte also einen
-Neustart auslösen (`stocks_per_sector` ist bewusst **nicht** live).
+Run time: order flow scales per instrument; ten instruments run at ~225 steps/s
+against ~440 with five. A switch in the UI should therefore trigger a restart
+(`stocks_per_sector` is deliberately **not** live).
 
 
 ---
 
-# Nachtrag: was die letzte Runde geändert hat
+# Addendum: what the last round changed
 
-Vier Korrekturen, die für die Ansicht relevant sind.
+Four corrections that matter for the view.
 
-## Kapital skaliert mit der Zahl der Märkte
+## Capital scales with the number of markets
 
-`initial_cash` und `initial_shares` gelten jetzt **pro Instrument**, nicht verteilt
-über alle. Ein Agent mit fünf Märkten startet also mit fünffachem Kapital. Grund: mit
-einem Fünftel des Kapitals pro Markt konnten die Kurse den Fundamentalwerten nicht
-folgen, und die Korrelation aus dem Faktormodell erreichte die Kurse nicht (0,07
-statt realistischer 0,4–0,6). Jetzt **0,42**.
+`initial_cash` and `initial_shares` now apply **per instrument**, not spread across
+all of them. An agent with five markets therefore starts with five times the
+capital. The reason: with a fifth of the capital per market, prices could not
+follow the fundamental values, and the correlation from the factor model did not
+reach the prices (0.07 instead of a realistic 0.4–0.6). Now **0.42**.
 
-Für die Ansicht heißt das nur: die absoluten Kapitalzahlen in den Vierteln sind
-fünfmal größer als vorher. Der Maßstab passt sich automatisch an (`chooseScale`).
+For the view this only means that the absolute capital figures in the districts are
+five times larger than before. The scale adjusts automatically (`chooseScale`).
 
-## Market Maker skalieren mit
+## Market makers scale too
 
-Sie sind an ein Instrument gebunden, ihr Kapital wuchs also nicht mit — das Buch war
-um genau den Instrumentenfaktor zu dünn und die Volatilität verdoppelte sich. Neu ist
-`Agent.scale`: bei marktgebundenen Agenten die Zahl der Märkte, sonst 1. Sie
-multipliziert `mm_quote_size` und die Normierung des Bestands-Skews.
+They are tied to one instrument, so their capital did not grow with the rest. The
+book was too thin by exactly the instrument factor, and volatility doubled. New is
+`Agent.scale`: for agents tied to a market, the number of markets, otherwise 1. It
+multiplies `mm_quote_size` and the normalisation of the inventory skew.
 
-**Achtung, die beiden Seiten der Bestandsgrenze sind nicht dieselbe Zahl.**
-`MarketMaker.act` normiert seinen Skew gegen `mm_inventory_limit * agent.scale`
-([`mes/agents.py`](mes/agents.py)), die harte Verkaufsgrenze in
-`Simulation._submit` ist aber `-mm_inventory_limit` **ohne** `scale`. Im Standard mit
-fünf Instrumenten heißt das: der Maker quotiert die fünffache Größe, hält seine Grenze
-für 30 000 Stück und wird bei 6 000 abgeschnitten — sein Skew erreicht an der Kappung
-kaum 0,2 und kann seine Aufgabe nie erfüllen. Im Ein-Instrument-Fall ist `scale = 1`
-und die beiden Definitionen fallen zusammen, weshalb der ursprünglich kalibrierte
-Markt das nie gezeigt hat.
+**Watch out, the two sides of the inventory limit are not the same number.**
+`MarketMaker.act` normalises its skew against `mm_inventory_limit * agent.scale`
+([`mes/agents.py`](mes/agents.py)), but the hard selling limit in
+`Simulation._submit` is `-mm_inventory_limit` **without** `scale`. Under the
+defaults with five instruments this means: the maker quotes five times the size,
+believes its limit is 30,000 shares and is cut off at 6,000. Its skew barely reaches
+0.2 at the cap and can never do its job. In the single-instrument case `scale = 1`
+and the two definitions coincide, which is why the originally calibrated market
+never showed it.
 
-Das ist **eine offene Frage, keine Erledigung.** Welche der beiden Definitionen gilt,
-verändert die Buchtiefe und damit jede Zahl in der Validierungstabelle des README, und
-`tests/test_simulation.py::test_market_makers_respect_their_inventory_limit` prüft
-derzeit die unskalierte Form — sie schlägt fehl, sobald die andere gewählt wird. Diese
-Zeile beschreibt daher, was der Code tut, nicht was er tun sollte.
+This is **an open question, not a fix.** Which of the two definitions applies
+changes the book depth and with it every figure in the README's validation table,
+and `tests/test_simulation.py::test_market_makers_respect_their_inventory_limit`
+currently checks the unscaled form. It fails as soon as the other is chosen. This
+section therefore describes what the code does, not what it should do.
 
-## Margin Calls sind im Standard aktiv
+## Margin calls are active under the defaults
 
-`maintenance_margin` steht jetzt auf **0,38** statt 0,25. Die Fonds erreichen ~1,6×
-Hebel, ihr Verhältnis Eigenkapital zu Engagement liegt also bei ~0,62 — eine Schwelle
-von 0,25 wurde nie berührt, die Kaskade war toter Code. Bei 0,38 kommen Calls
-gelegentlich (654 über 90.000 Schritte), bei 0,44 in jedem zweiten Schritt.
+`maintenance_margin` is now **0.38** instead of 0.25. The funds reach ~1.6×
+leverage, so their ratio of equity to exposure is about 0.62. A threshold of 0.25
+was never touched, and the cascade was dead code. At 0.38 calls come occasionally
+(654 over 90,000 steps), at 0.44 on every second step.
 
-Der Alarm auf dem Hebel-Turm (`alarm`, `mcFg`) feuert damit im Normalbetrieb.
+The alarm on the Leverage Tower (`alarm`, `mcFg`) therefore fires in normal
+operation.
 
-## Ein Zufallsstrom pro Agent
+## One random stream per agent
 
-`agent.rng`, gesetzt aus `[seed, aid]`. Für die Ansicht unsichtbar, aber es macht den
-A/B-Vergleich belastbar: ein Parameter ohne Wirkung erzeugt jetzt bitidentische Läufe.
-Der Warnhinweis im Vergleichs-Panel ist entsprechend umformuliert — er warnt nicht
-mehr vor Pfaddivergenz, sondern nur noch davor, aus einem Seed-Paar zu viel zu lesen.
+`agent.rng`, seeded from `[seed, aid]`. Invisible to the view, but it makes the
+A/B comparison reliable: a parameter without effect now produces bit-identical
+runs. The warning in the comparison panel has been reworded accordingly. It no
+longer warns about path divergence, only about reading too much into one pair of
+seeds.
 
-## Fehlerbehandlung im Frontend
+## Error handling in the frontend
 
-`pull()` in `index.html` unterschied nicht zwischen „Abruf fehlgeschlagen" und
-„Zeichnen fehlgeschlagen" und meldete beides als „kein Backend". Das kostete mich
-eine Fehlersuche an der falschen Stelle. Jetzt getrennt: ein Zeichenfehler meldet
-„Verbunden · Zeichnen fehlgeschlagen: …" und landet zusätzlich in der Konsole.
+`pull()` in `index.html` did not distinguish between "fetch failed" and "drawing
+failed" and reported both as "no backend". That cost me a search for the fault in
+the wrong place. Now they are separate: a drawing error reports
+"Connected · drawing failed: …" and is also logged to the console.

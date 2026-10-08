@@ -7,7 +7,7 @@ the exchange. This module is the only place where simulation state is turned
 into those numbers, so the drawing code never has to interpret anything.
 
 Heights are reported as plain euro amounts. Turning euro into floors is the
-view's job: it starts at 30 000 € per floor and steps the scale down only when
+view's job: it starts at €30,000 per floor and steps the scale down only when
 the tallest block would grow out of the plate, then prints the scale it used.
 `SCALE` states the starting point so the API can be read without the frontend.
 """
@@ -29,45 +29,53 @@ _ROADS = {
 }
 
 ORANGE, TEAL, GOLD, GREY, RED, GREEN, BLUE = (
-    "#e8814c", "#4fb8a0", "#c9a227", "#8d847b", "#d9584a", "#4ad07a", "#7e9ee6",
+    "#e07434", "#2f9e86", "#b7891f", "#65728a", "#d43f3f", "#1c9a52", "#5872c9",
 )
+# Text colour for a read-out with nothing to flag, on the light panels.
+INK = "#172033"
 
-# The German name of the district an agent belongs to. `Simulation.group_of`
+# The display name of the district an agent belongs to. `Simulation.group_of`
 # returns the internal key; the panel should say what the reader sees on the map.
 _GROUP_NAMES = {
-    "momentum": "Adaptives Viertel",
-    "value": "Adaptives Viertel",
-    "noise": "Rausch-Vorstadt",
-    "passive": "ETF-Lager",
-    "leveraged": "Hebel-Turm",
-    "maker": "Market Maker",
-    "company": "Emittent",
+    "momentum": "Adaptive Quarter",
+    "value": "Adaptive Quarter",
+    "noise": "Noise Suburb",
+    "passive": "ETF Depot",
+    "leveraged": "Leverage Tower",
+    "maker": "Market Makers",
+    "company": "Issuer",
 }
 
 # What kind of agent it is, which is not the same as what it is currently doing:
-# an adaptive trader is ADAPTIV and may be running the value rule this minute. The
+# an adaptive trader is ADAPTIVE and may be running the value rule this minute. The
 # unit card used to print "Lv 12" here — a level from no game, tied to nothing.
 _KIND_LABELS = {
-    "adaptive": "ADAPTIV", "noise": "RAUSCH", "passive": "ETF",
-    "leveraged": "HEBEL", "maker": "MAKER", "company": "EMITTENT",
+    "adaptive": "ADAPTIVE", "noise": "NOISE", "passive": "ETF",
+    "leveraged": "LEVERAGED", "maker": "MAKER", "company": "ISSUER",
 }
 
 
 # --------------------------------------------------------------- formatting
-THIN = "\u2009"  # thin space: the German thousands separator, as in "49 296"
+def num(value: float, digits: int = 2) -> str:
+    """A number with comma thousands and a point decimal: 1,234.50."""
+    return f"{value:,.{digits}f}"
 
 
-def de(value: float, digits: int = 2) -> str:
-    """German number: comma decimal, thin space thousands."""
-    return f"{value:,.{digits}f}".replace(",", THIN).replace(".", ",")
-
-
-def de_int(value: float) -> str:
-    return f"{int(round(value)):,}".replace(",", THIN)
+def num_int(value: float) -> str:
+    """A whole number with comma thousands: 49,296."""
+    return f"{int(round(value)):,}"
 
 
 def millions(value: float) -> str:
-    return de(value / 1e6, 1) + " M"
+    """An amount in millions, one decimal: 240.2M."""
+    return num(value / 1e6, 1) + "M"
+
+
+def eur(value: float, sign: bool = False) -> str:
+    """A whole euro amount: €171,727, or +€900 with `sign`. The minus goes
+    before the symbol, as in -€5."""
+    prefix = "-" if value < 0 else ("+" if sign else "")
+    return f"{prefix}€{num_int(abs(value))}"
 
 
 def pct(part: float, whole: float) -> str:
@@ -121,7 +129,7 @@ def _change(sim: Simulation, lookback: int = 20, market=None) -> tuple[str, str]
     change = (price / max(past, 1e-9) - 1.0) * 100
     arrow = "▲" if change >= 0 else "▼"
     colour = TEAL if change >= 0 else RED
-    return f"{arrow} {abs(change):.1f} %".replace(".", ","), colour
+    return f"{arrow} {abs(change):.1f}%", colour
 
 
 def _issued(sim: Simulation) -> int:
@@ -161,14 +169,14 @@ def _ladder(sim: Simulation, symbol: str, levels: int = 8) -> dict:
         # Best first on both sides, the way the book is read outwards from the touch.
         "bids": [[round(price, 2), qty] for price, qty in bids],
         "asks": [[round(price, 2), qty] for price, qty in asks],
-        "bid": de(best_bid) if best_bid is not None else "—",
-        "ask": de(best_ask) if best_ask is not None else "—",
-        "spread": de(spread) if spread is not None else "—",
+        "bid": num(best_bid) if best_bid is not None else "—",
+        "ask": num(best_ask) if best_ask is not None else "—",
+        "spread": num(spread) if spread is not None else "—",
         # In basis points, which is how a spread is usually compared across prices.
-        "spreadBp": (f"{spread / market.price * 10_000:.0f} bp".replace(".", ",")
+        "spreadBp": (f"{spread / market.price * 10_000:.0f} bp"
                      if spread is not None and market.price > 0 else "—"),
-        "restingBid": de_int(sum(qty for _, qty in bids)),
-        "restingAsk": de_int(sum(qty for _, qty in asks)),
+        "restingBid": num_int(sum(qty for _, qty in bids)),
+        "restingAsk": num_int(sum(qty for _, qty in asks)),
     }
 
 
@@ -188,15 +196,15 @@ def _markets(sim: Simulation, selected: str) -> list[dict]:
         change = (market.price / max(past, 1e-9) - 1.0) * 100
         out.append({
             "sym": symbol,
-            "px": de(market.price),
-            "chg": f"{'▲' if change >= 0 else '▼'} {abs(change):.1f} %".replace(".", ","),
+            "px": num(market.price),
+            "chg": f"{'▲' if change >= 0 else '▼'} {abs(change):.1f}%",
             "chgFg": TEAL if change >= 0 else RED,
             "eur": _book_value(sim, symbol),
-            "depth": de_int(sum(market.depth())),
+            "depth": num_int(sum(market.depth())),
             "sel": symbol == selected,
             # How far this market sits from its own fair value, which is the thing
             # the districts cannot show.
-            "gap": f"{(market.price / max(market.instrument.fundamental, 1e-9) - 1) * 100:+.0f} %".replace(".", ","),
+            "gap": f"{(market.price / max(market.instrument.fundamental, 1e-9) - 1) * 100:+.0f}%",
         })
     return out
 
@@ -227,6 +235,7 @@ def snapshot(sim: Simulation, selected_id: int | None = None,
     agent = _selected(sim, selected_id)
     review_step = sim.t % max(1, cfg.switch_interval)
     busiest = max(orders.values()) if orders else 0
+    buys = sim.step_buys_by_group
 
     return {
         "seed": cfg.seed,
@@ -234,12 +243,12 @@ def snapshot(sim: Simulation, selected_id: int | None = None,
         "scale": SCALE,
 
         # --- header read-outs -------------------------------------------
-        "step": de_int(sim.t),
+        "step": num_int(sim.t),
         "cap": millions(total_wealth),
         "mood": f"{mood:.0f}",
         "moodFg": _mood_colour(mood),
-        "vol": de_int(market.step_volume),
-        "px": de(market.price),
+        "vol": num_int(market.step_volume),
+        "px": num(market.price),
         # Which market the read-outs are about, and all of them for the exchanges.
         "focus": focus,
         "markets": markets,
@@ -252,42 +261,42 @@ def snapshot(sim: Simulation, selected_id: int | None = None,
         # --- what the landmarks on the plate say -------------------------
         # Every one of these was a fixed number in the HTML: the central bank
         # showed a fair value from a demo snapshot, the suburb always had 200
-        # inhabitants and the depot always took in 27 000 €. A label that never
+        # inhabitants and the depot always took in €27,000. A label that never
         # moves while the thing it labels does is worse than no label.
-        "day": de_int(sim.t // max(1, cfg.steps_per_day)),
-        "bankRate": de(sim.bank.rate * 100, 2) + " %",
-        "bankSub": f"Inflation {de(sim.bank.inflation * 100, 2)} % · "
-                   f"Ziel {de(cfg.inflation_target * 100, 2)} %",
-        "noiseN": de_int(counts.get("noise", 0)),
-        "etfN": de_int(counts.get("passive", 0)),
-        "etfFlow": "+" + de_int(cfg.passive_inflow * counts.get("passive", 0)) + " €",
-        "etfSub": f"alle {cfg.passive_interval} Schritte · preisunabhängig",
-        "mkrN": de_int(counts.get("maker", 0)),
-        "mkrSub": f"Buchtiefe {de_int(sum(market.depth()))} Stück",
-        "cmpN": de_int(-min(0, _issued(sim))),
-        "cmpSub": f"ab {de(cfg.issue_threshold * 100, 0)} % über fair",
+        "day": num_int(sim.t // max(1, cfg.steps_per_day)),
+        "bankRate": num(sim.bank.rate * 100, 2) + "%",
+        "bankSub": f"Inflation {num(sim.bank.inflation * 100, 2)}% · "
+                   f"target {num(cfg.inflation_target * 100, 2)}%",
+        "noiseN": num_int(counts.get("noise", 0)),
+        "etfN": num_int(counts.get("passive", 0)),
+        "etfFlow": eur(cfg.passive_inflow * counts.get("passive", 0), sign=True),
+        "etfSub": f"every {cfg.passive_interval} steps · price-insensitive",
+        "mkrN": num_int(counts.get("maker", 0)),
+        "mkrSub": f"book depth {num_int(sum(market.depth()))} shares",
+        "cmpN": num_int(-min(0, _issued(sim))),
+        "cmpSub": f"issues from {num(cfg.issue_threshold * 100, 0)}% above fair value",
 
         # --- the adaptive quarter ---------------------------------------
-        "mom": de_int(counts.get("momentum", 0)),
+        "mom": num_int(counts.get("momentum", 0)),
         "momW": pct(counts.get("momentum", 0), adaptive_total),
-        "val": de_int(counts.get("value", 0)),
+        "val": num_int(counts.get("value", 0)),
         "valW": pct(counts.get("value", 0), adaptive_total),
-        "mov": de_int(sim.switched_last_review),
+        "mov": num_int(sim.switched_last_review),
         "movW": pct(sim.switched_last_review, adaptive_total),
         "quarter": f"{counts.get('momentum', 0)} / {counts.get('value', 0)}",
 
         # --- this step ---------------------------------------------------
-        "act": de_int(max(1, int(len(sim.agents) * cfg.activation_rate))),
-        "ord": de_int(sim.step_orders),
-        "trd": de_int(sim.step_trades),
-        "mc": de_int(sim.step_margin_calls),
-        "mcFg": RED if sim.step_margin_calls else "#ece6e0",
+        "act": num_int(max(1, int(len(sim.agents) * cfg.activation_rate))),
+        "ord": num_int(sim.step_orders),
+        "trd": num_int(sim.step_trades),
+        "mc": num_int(sim.step_margin_calls),
+        "mcFg": RED if sim.step_margin_calls else INK,
         # Every figure on this line is the focused market's. It used to open with
         # the symbol and then quote `sim.step_orders`, which counts orders across
         # all five books, next to that market's own trade count — so the line read
-        # "TECH · 300 Orders · 12 Trades" in a market that had seen sixty orders.
-        "book": f"{focus} · {market.step_orders} Orders · {market.step_trades} Trades · "
-                f"Buch {millions(_book_value(sim, focus))}",
+        # "TECH · 300 orders · 12 trades" in a market that had seen sixty orders.
+        "book": f"{focus} · {market.step_orders} orders · {market.step_trades} trades · "
+                f"book {millions(_book_value(sim, focus))}",
         # The resting orders themselves, for the book view. See _ladder.
         "ladder": _ladder(sim, focus),
 
@@ -312,11 +321,19 @@ def snapshot(sim: Simulation, selected_id: int | None = None,
                for key, group in _ROADS.items()},
             "switch": min(4, sim.switched_last_review // 8),
         },
+        # Per road, the share of this step's orders from that group that were buys,
+        # 0 to 1. None for a group that sent no order, which is not the same as a
+        # group that only sold. The figures' crates are coloured from this.
+        "buyShare": {
+            key: (round(buys.get(group, 0) / orders[group], 2)
+                  if orders.get(group, 0) > 0 else None)
+            for key, group in _ROADS.items()
+        },
         "pips": _pips(sim, focus),
 
         # --- the leverage tower -----------------------------------------
-        "lev": f"{lev_count} · {de(lev_ratio, 1)}×" if lev_count and lev_exposure > 0
-               else f"{lev_count} · liquidiert",
+        "lev": f"{lev_count} · {num(lev_ratio, 1)}×" if lev_count and lev_exposure > 0
+               else f"{lev_count} · liquidated",
         "levSub": _lev_sub(sim, lev_ratio, lev_count),
         "alarm": 1 if sim.step_margin_calls else 0,
 
@@ -350,17 +367,19 @@ def _rooms(sim: Simulation, markets: list[dict], equity: dict, counts: dict,
     # differing, on the same screen.
     focused = sim.markets[focus]
     rows = [
-        ["Börsen", f"{len(markets)} Märkte · Buch {millions(sum(m['eur'] for m in markets))}"],
-        ["Zentralbank", f"Zins {de(sim.bank.rate * 100, 2)} % · "
-                        f"Inflation {de(sim.bank.inflation * 100, 2)} %"],
-        ["Adaptives Viertel", f"{adaptive_total} Agenten · "
-                              f"{millions(equity.get('momentum', 0) + equity.get('value', 0))}"],
-        ["Rausch-Vorstadt", f"{counts.get('noise', 0)} Agenten · {millions(equity.get('noise', 0))}"],
-        ["ETF-Lager", f"{counts.get('passive', 0)} Agenten · {millions(equity.get('passive', 0))}"],
-        ["Hebel-Fonds", f"{lev_count} Agenten · {millions(lev_equity)}"],
-        ["Market Maker", f"{counts.get('maker', 0)} Agenten · Buchtiefe {focus} "
-                         f"{de_int(sum(focused.depth()))} Stück"],
-        ["Emittent", f"{de_int(-min(0, _issued(sim)))} Stück im Umlauf ausgegeben"],
+        ["Exchanges", f"{len(markets)} markets · book {millions(sum(m['eur'] for m in markets))}"],
+        ["Central Bank", f"Rate {num(sim.bank.rate * 100, 2)}% · "
+                         f"inflation {num(sim.bank.inflation * 100, 2)}%"],
+        ["Adaptive Quarter", f"{num_int(adaptive_total)} agents · "
+                             f"{millions(equity.get('momentum', 0) + equity.get('value', 0))}"],
+        ["Noise Suburb", f"{num_int(counts.get('noise', 0))} agents · "
+                         f"{millions(equity.get('noise', 0))}"],
+        ["ETF Depot", f"{num_int(counts.get('passive', 0))} agents · "
+                      f"{millions(equity.get('passive', 0))}"],
+        ["Leveraged funds", f"{num_int(lev_count)} agents · {millions(lev_equity)}"],
+        ["Market Makers", f"{num_int(counts.get('maker', 0))} agents · book depth {focus} "
+                          f"{num_int(sum(focused.depth()))} shares"],
+        ["Issuer", f"{num_int(-min(0, _issued(sim)))} shares issued into circulation"],
     ]
     return [[name, meta, notes.get(name, ""), _representative(sim, name)]
             for name, meta in rows]
@@ -372,10 +391,10 @@ def _ticker(sim: Simulation, fresh_for: int = 15, market=None) -> dict:
         event = sim.events[-1]
         crash = event.kind in ("margin_call", "wipeout")
         return {
-            "tickStep": f"SCHRITT {de_int(event.ts)}",
+            "tickStep": f"STEP {num_int(event.ts)}",
             "tick": event.text,
             "tickFg": RED if crash else ORANGE,
-            "tickBd": "rgba(217,88,74,.55)" if crash else "rgba(232,129,76,.4)",
+            "tickBd": _alpha(RED, .55) if crash else _alpha(ORANGE, .4),
         }
     # The market the read-outs are about, not always the first one: the book line
     # followed the selection and the ticker did not, which read as a bug because
@@ -383,10 +402,10 @@ def _ticker(sim: Simulation, fresh_for: int = 15, market=None) -> dict:
     market = market or sim.markets[sim.primary]
     stretch = (market.price / max(market.instrument.fundamental, 1e-9) - 1.0) * 100
     return {
-        "tickStep": f"SCHRITT {de_int(sim.t)}",
-        "tick": f"{market.symbol} {de(market.price)} · {de(stretch, 1)} % vom fairen Wert",
+        "tickStep": f"STEP {num_int(sim.t)}",
+        "tick": f"{market.symbol} {num(market.price)} · {num(stretch, 1)}% from fair value",
         "tickFg": ORANGE,
-        "tickBd": "rgba(232,129,76,.4)",
+        "tickBd": _alpha(ORANGE, .4),
     }
 
 
@@ -401,7 +420,7 @@ def _pips(sim: Simulation, symbol: str) -> list[dict]:
     for fill in sim.markets[symbol].step_fills[-5:]:
         buy = fill["side"] > 0
         out.append({
-            "t": ("+" if buy else "−") + de_int(fill["qty"]),
+            "t": ("+" if buy else "−") + num_int(fill["qty"]),
             "c": GREEN if buy else RED,
         })
     return out
@@ -409,13 +428,14 @@ def _pips(sim: Simulation, symbol: str) -> list[dict]:
 
 def _lev_sub(sim: Simulation, ratio: float, count: int) -> str:
     if count == 0 or ratio <= 0:
-        return "Turm eingestürzt · alle Fonds ausgelöscht"
+        return "Tower collapsed · all funds wiped out"
     if sim.step_margin_calls:
-        return f"{sim.step_margin_calls} Margin Calls in diesem Schritt"
+        calls = sim.step_margin_calls
+        return f"{calls} margin call{'' if calls == 1 else 's'} this step"
     headroom = ratio / max(sim.cfg.max_leverage, 1e-6)
     if headroom > 0.8:
-        return "ein Margin Call von der Straße entfernt"
-    return f"{de(headroom * 100, 0)} % des erlaubten Hebels genutzt"
+        return "one bad move away from a margin call"
+    return f"{num(headroom * 100, 0)}% of the allowed leverage in use"
 
 
 def _selected(sim: Simulation, selected_id: int | None):
@@ -434,34 +454,34 @@ def _selected(sim: Simulation, selected_id: int | None):
 def _district_notes(sim: Simulation) -> dict[str, str]:
     cfg = sim.cfg
     return {
-        "Börsen": f"{len(sim.markets)} Orderbücher, eines je Sektor. Ein Kurs entsteht nur "
-                  "dort, wo eine Order auf eine andere trifft.",
-        "Zentralbank": "Setzt den Zins. Er erreicht den Markt über Bewertung, Kreditkosten "
-                       "und Zuflüsse — nie direkt den Kurs.",
-        "Adaptives Viertel": f"Wechselt alle {cfg.switch_interval} Schritte zwischen "
-                             "Trendfolge und Value, je nachdem was zuletzt funktioniert hat.",
-        "Rausch-Vorstadt": "Handelt ohne Meinung. Liefert die Gegenseite, damit überhaupt "
-                           "gehandelt werden kann.",
-        "ETF-Lager": f"Kauft alle {cfg.passive_interval} Schritte nach Plan, unabhängig vom "
-                     "Preis. Liest keine Nachrichten.",
-        "Hebel-Fonds": f"Handelt auf Kredit, höchstens {de(cfg.max_leverage, 1)}×. Fällt das "
-                       f"Eigenkapital unter {de(cfg.maintenance_margin * 100, 0)} % der "
-                       "Position, wird verkauft — ohne Entscheidung.",
-        "Market Maker": "Stellt dauerhaft Kurse auf beiden Seiten. Die einzige Quelle "
-                        "stehender Liquidität.",
-        "Emittent": f"Gibt neue Aktien aus, sobald der Kurs mehr als "
-                    f"{de(cfg.issue_threshold * 100, 0)} % über dem fairen Wert steht. Die "
-                    "einzige Quelle neuen Angebots.",
+        "Exchanges": f"{len(sim.markets)} order books, one per sector. A price only forms "
+                     "where one order meets another.",
+        "Central Bank": "Sets the rate. It reaches the market through valuation, borrowing "
+                        "costs and inflows. It never moves the price directly.",
+        "Adaptive Quarter": f"Switches every {cfg.switch_interval} steps between trend "
+                            "following and value, depending on what has worked recently.",
+        "Noise Suburb": "Trades without an opinion. Provides the other side, so that "
+                        "trading can happen at all.",
+        "ETF Depot": f"Buys on a schedule every {cfg.passive_interval} steps, regardless "
+                     "of price. Reads no news.",
+        "Leveraged funds": f"Trades on credit, at most {num(cfg.max_leverage, 1)}×. If "
+                           f"equity falls below {num(cfg.maintenance_margin * 100, 0)}% of "
+                           "the position, it sells. No decision is involved.",
+        "Market Makers": "Quotes prices on both sides at all times. The only source of "
+                         "standing liquidity.",
+        "Issuer": f"Issues new shares as soon as the price is more than "
+                  f"{num(cfg.issue_threshold * 100, 0)}% above fair value. The only source "
+                  "of new supply.",
     }
 
 
 # Which agent kind stands for each district, so clicking one can show a real
 # member of it in the unit panel. The two districts without agents map to None.
 _DISTRICT_KIND = {
-    "Börsen": None, "Zentralbank": None,
-    "Adaptives Viertel": "adaptive", "Rausch-Vorstadt": "noise",
-    "ETF-Lager": "passive", "Hebel-Fonds": "leveraged",
-    "Market Maker": "maker", "Emittent": "company",
+    "Exchanges": None, "Central Bank": None,
+    "Adaptive Quarter": "adaptive", "Noise Suburb": "noise",
+    "ETF Depot": "passive", "Leveraged funds": "leveraged",
+    "Market Makers": "maker", "Issuer": "company",
 }
 
 
@@ -481,7 +501,7 @@ def _unit(sim: Simulation, agent) -> dict:
     The arithmetic is reported for the market the agent's last order was actually in,
     falling back to the primary. It used to divide by `sim.price` — the primary
     market — while the header showed whichever market the reader had selected, so the
-    line "Ziel = 0,84 · Vermögen / Kurs" did not reconcile with the two numbers on
+    line "target = 0.84 · wealth / price" did not reconcile with the two numbers on
     either side of it. Naming the market is part of the fix: the reader can see which
     price the division used.
     """
@@ -506,14 +526,14 @@ def _unit(sim: Simulation, agent) -> dict:
     target = max(equity, 1.0) / max(price, 0.01) * (0.5 + signal + sim.world.sentiment * 0.25)
 
     if order:
-        side = "KAUFT" if order["side"] > 0 else "VERKAUFT"
+        side = "BUYS" if order["side"] > 0 else "SELLS"
         colour_order = GREEN if order["side"] > 0 else RED
-        text = f"{side} {de_int(order['qty'])} @ {de(order['price'])}"
+        text = f"{side} {num_int(order['qty'])} @ {num(order['price'])}"
     else:
-        colour_order, text = GREY, "wartet ab"
+        colour_order, text = GREY, "waiting"
 
     # Stepping through the population needs neighbours, and a panel that says
-    # "3 von 615" tells the reader the arrows are not decoration.
+    # "3 of 615" tells the reader the arrows are not decoration.
     index = next((i for i, a in enumerate(sim.agents) if a.aid == agent.aid), 0)
     total = len(sim.agents)
 
@@ -522,44 +542,44 @@ def _unit(sim: Simulation, agent) -> dict:
         # Names the district rather than repeating the strategy, so the card and the
         # map agree on where this agent is.
         "sub": f"{_GROUP_NAMES.get(sim.group_of(agent), sim.group_of(agent))} · "
-               f"Kapital {de_int(equity)} € · "
-               f"{'unterwegs zur Börse' if order else 'im Viertel'}",
+               f"capital {eur(equity)} · "
+               f"{'on the way to the exchange' if order else 'in the district'}",
         "unitGroup": _GROUP_NAMES.get(sim.group_of(agent), sim.group_of(agent)),
         "unitKind": _KIND_LABELS.get(agent.kind, agent.kind.upper()),
-        "unitIdx": de_int(index + 1),
-        "unitTotal": de_int(total),
+        "unitIdx": num_int(index + 1),
+        "unitTotal": num_int(total),
         "unitOf": f"{index + 1} / {total}",
         "unitPrev": sim.agents[(index - 1) % total].aid,
         "unitNext": sim.agents[(index + 1) % total].aid,
         # The two rule parameters the panel prints. They were literals in the
-        # markup — "45" and "0,96" — next to bars that did move, so the bars and
+        # markup — "45" and "0.96" — next to bars that did move, so the bars and
         # the numbers disagreed as soon as a slider was touched.
-        "trend": de(cfg.chartist_aggression, 0),
-        "mem": de(cfg.memory, 2),
+        "trend": num(cfg.chartist_aggression, 0),
+        "mem": num(cfg.memory, 2),
         # The base weight the target position starts from, so the formula line is
         # the formula the agent actually used this step.
-        "dBase": de(0.5 + signal, 2),
+        "dBase": num(0.5 + signal, 2),
         "strat": strat,
         "stratFg": colour,
         "stratBg": _alpha(colour, 0.16),
         "stratBd": _alpha(colour, 0.4),
         "body": colour,
-        "eq": de_int(equity),
+        "eq": num_int(equity),
         "eqW": pct(equity, max(a.equity(price) for a in sim.agents)),
         "trendW": pct(cfg.chartist_aggression, 150),
         "memW": pct(cfg.memory, 1.0),
-        "levX": de(leverage, 1) + "×" if leverage != float("inf") else "∞",
+        "levX": num(leverage, 1) + "×" if leverage != float("inf") else "∞",
         "levW": pct(min(leverage, cfg.max_leverage), cfg.max_leverage),
-        "d1": "= " + de(z, 2),
-        "d2": "= " + de(sim.world.sentiment * 0.25, 2),
-        "d3": f"= {de_int(max(0, target))} Stk",
+        "d1": "= " + num(z, 2),
+        "d2": "= " + num(sim.world.sentiment * 0.25, 2),
+        "d3": f"= {num_int(max(0, target))} shares",
         # Which market the division used, so the line can be checked against a price
         # the reader can see.
         "dSym": symbol,
-        "dPx": de(price),
+        "dPx": num(price),
         "order": text,
-        # "offen" was a fixed word in the markup and it sat next to "wartet ab".
-        "orderState": "offen" if order else "keine Order",
+        # "open" was a fixed word in the markup and it sat next to "waiting".
+        "orderState": "open" if order else "no order",
         "orderFg": colour_order,
         "orderBg": _alpha(colour_order, 0.14),
         "orderBd": _alpha(colour_order, 0.5),
@@ -574,15 +594,15 @@ def _log(sim: Simulation, symbol: str) -> list[list]:
     """
     colours = {"margin_call": RED, "wipeout": RED, "switch_wave": GOLD, "news": GREY}
     rows = [
-        [de_int(event.ts), event.text, colours.get(event.kind, GREY)]
+        [num_int(event.ts), event.text, colours.get(event.kind, GREY)]
         for event in reversed(sim.events[-6:])
     ]
     for fill in reversed(sim.markets[symbol].recent_trades[-6:]):
         if len(rows) >= 6:
             break
-        side = "kauft" if fill["side"] > 0 else "verkauft"
-        rows.append([de_int(fill["ts"]),
-                     f"{side} {de_int(fill['qty'])} @ {de(fill['price'])}",
+        side = "buys" if fill["side"] > 0 else "sells"
+        rows.append([num_int(fill["ts"]),
+                     f"{side} {num_int(fill['qty'])} @ {num(fill['price'])}",
                      GREEN if fill["side"] > 0 else RED])
     return rows
 

@@ -120,7 +120,7 @@ class Runner:
         It used to be a bare `while True` around `sim.step()`. When a step raised —
         which a bad configuration could arrange, see `Config.from_dict` — the task
         died, `/api/state` went on answering happily, the page went on showing
-        "LÄUFT", and the step counter simply never moved again. A market that has
+        "RUNNING", and the step counter simply never moved again. A market that has
         stopped has to say that it has stopped.
         """
         while True:
@@ -141,7 +141,7 @@ class Runner:
                     # server keeps answering while it happens. The chunk was 400,
                     # which is about 600 ms of blocked event loop — long enough that
                     # the analysis page, which waits on five endpoints at once,
-                    # showed nothing but "lädt …" for the whole warm-up. That is the
+                    # showed nothing but "loading …" for the whole warm-up. That is the
                     # first thirty seconds a new reader ever sees.
                     async with self.lock:
                         for _ in range(WARM_CHUNK):
@@ -278,8 +278,8 @@ def stylized_facts() -> dict:
             "insufficient": True,
             "days": days,
             "min_days": MIN_DAYS,
-            "basis": f"{days} von {MIN_DAYS} Tagen",
-            "note": "Die Stylized Facts gelten für Tagesrenditen. Noch zu wenig Daten.",
+            "basis": f"{days} of {MIN_DAYS} days",
+            "note": "The stylized facts apply to daily returns. Not enough data yet.",
             "stylized_facts": [],
             "wealth": sim.wealth_stats(),
             "strategies": sim.strategy_performance(),
@@ -290,7 +290,7 @@ def stylized_facts() -> dict:
         np.array([bar["v"] for bar in sim.bars[1:]]),
     )
     report["days"] = days
-    report["basis"] = f"{days} Tage"
+    report["basis"] = f"{days} days"
     report["wealth"] = sim.wealth_stats()
     report["strategies"] = sim.strategy_performance()
     report["fitness"] = {k: round(v, 6) for k, v in sim.fitness.items()}
@@ -388,7 +388,7 @@ def sector(symbol: str, n: int = 240) -> dict:
     sim = runner.sim
     market = sim.markets.get(symbol.upper())
     if market is None:
-        raise HTTPException(404, f"unbekanntes Instrument: {symbol}")
+        raise HTTPException(404, f"unknown instrument: {symbol}")
     n = max(10, min(n, 5000))
 
     days = len(market.daily_returns)
@@ -506,12 +506,12 @@ def index_book(n: int = 1200, scale: str = "step", points: int = 400) -> dict:
         "points": len(out[0]["series"]) if out else 0,
         # What the window actually covers, which is not always what was asked for:
         # the run may be younger than `n`, and the per-step history only reaches back
-        # MAX_STEPS. A chart labelled "60 Tage" over a run of twelve has to say twelve.
+        # MAX_STEPS. A chart labelled "60 days" over a run of twelve has to say twelve.
         "covers": (min(n, len(market.closes)) if daily
                    else min(n, len(market.levels), indices.MAX_STEPS)),
-        # Dative: the page reads "… Punkte aus 110 Tagen".
-        "window": (f"{min(n, len(market.closes))} Tagen" if daily
-                   else f"{min(n, len(market.levels), indices.MAX_STEPS)} Schritten"),
+        # The page reads "… points from 110 days".
+        "window": (f"{min(n, len(market.closes)):,} days" if daily
+                   else f"{min(n, len(market.levels), indices.MAX_STEPS):,} steps"),
         "indices": out,
     }
 
@@ -541,15 +541,15 @@ def trader_list(
         )
     except KeyError as error:
         raise HTTPException(
-            400, f"unbekannte Sortierung: {error.args[0]} — "
-                 f"erlaubt sind {sorted(traders.SORTS)}") from error
+            400, f"unknown sort: {error.args[0]}. "
+                 f"Allowed are {sorted(traders.SORTS)}") from error
 
 
 @app.get("/api/traders/{aid}")
 def trader_detail(aid: int) -> dict:
     """One trader in full, including its position in each instrument."""
     if aid not in runner.sim.by_id:
-        raise HTTPException(404, f"kein Agent #{aid}")
+        raise HTTPException(404, f"no agent #{aid}")
     return traders.detail(runner.sim, aid)
 
 
@@ -604,7 +604,7 @@ async def set_rate(setting: RateSetting) -> dict:
 
 @app.get("/api/explain")
 def explain() -> dict:
-    """What is happening, why, and what to watch — in plain German.
+    """What is happening, why, and what to watch — in plain English.
 
     Exists because a visualisation shows state, and state is not insight: you had to
     know the model already to read the town. Every sentence here comes from a number
@@ -620,7 +620,7 @@ def lesson_catalogue() -> dict:
 
     The clock block is not decoration. Every lesson recommends between 45 and 70
     trading days, and at 1× that is two to five hours of wall clock while the panel
-    says only "empfohlen: 70 Handelstage". A recommendation nobody can price is a
+    says only "recommended: 70 trading days". A recommendation nobody can price is a
     recommendation nobody follows, so the arithmetic is shipped from here, where
     SPEEDS actually lives, rather than duplicated into two pages.
     """
@@ -645,7 +645,7 @@ async def start_lesson(key: str) -> dict:
     """Set a lesson up and restart the market under its conditions."""
     lesson = lessons.get(key)
     if lesson is None:
-        raise HTTPException(404, f"unbekanntes Experiment: {key}")
+        raise HTTPException(404, f"unknown experiment: {key}")
     async with runner.lock:
         if lesson.scenario:
             scenario = scenarios.get(lesson.scenario)
@@ -677,14 +677,14 @@ async def start_lesson(key: str) -> dict:
 def check_lesson(key: str) -> dict:
     """Has the experiment shown what it set out to show? Measured, not asserted."""
     if key not in lessons.ALL:
-        raise HTTPException(404, f"unbekanntes Experiment: {key}")
+        raise HTTPException(404, f"unknown experiment: {key}")
     sim = runner.sim
     result = lessons.evaluate(key, sim)
     day = sim.t // max(1, sim.cfg.steps_per_day)
     needed = lessons.get(key).days
     result["day"] = day
     result["days_needed"] = needed
-    # How much longer, at the speed the clock is actually set to. "Tag 12 von 70"
+    # How much longer, at the speed the clock is actually set to. "Day 12 of 70"
     # says nothing about whether that is two minutes away or two hours.
     remaining = max(0, needed - day) * sim.cfg.steps_per_day
     result["steps_left"] = remaining
@@ -696,7 +696,7 @@ def check_lesson(key: str) -> dict:
 @app.get("/api/agents/{aid}")
 def agent(aid: int) -> dict:
     if aid not in runner.sim.by_id:
-        raise HTTPException(404, f"kein Agent #{aid}")
+        raise HTTPException(404, f"no agent #{aid}")
     runner.selected = aid
     return runner.snapshot()
 
@@ -736,7 +736,7 @@ async def set_params(patch: ParamPatch) -> dict:
             # A rejected configuration is a 400, not a 500, and the market that was
             # running is still running — `Runner.reset` builds before it swaps.
             raise HTTPException(
-                400, f"Konfiguration nicht baubar: {type(error).__name__}: {error}"
+                400, f"configuration cannot be built: {type(error).__name__}: {error}"
             ) from error
         return {"applied": sorted(patch.values), "reset": True}
     # All or nothing, and a bad value is a 400. `update_live` casts as it goes, so
@@ -747,7 +747,7 @@ async def set_params(patch: ParamPatch) -> dict:
         applied = runner.sim.cfg.update_live(patch.values)
     except (TypeError, ValueError) as error:
         raise HTTPException(
-            400, f"Wert nicht verwendbar: {type(error).__name__}: {error}"
+            400, f"value not usable: {type(error).__name__}: {error}"
         ) from error
     return {"applied": applied, "reset": False}
 
@@ -772,7 +772,7 @@ async def control(cmd: Control) -> dict:
         await runner.reset()
     elif cmd.action == "speed":
         if cmd.speed not in SPEEDS:
-            raise HTTPException(400, f"Tempo muss eines von {list(SPEEDS)} sein")
+            raise HTTPException(400, f"speed must be one of {list(SPEEDS)}")
         runner.speed = cmd.speed
     elif cmd.action == "select":
         # Validated, because it was not: any integer was accepted, and `_selected`
@@ -780,14 +780,14 @@ async def control(cmd: Control) -> dict:
         # The panel then showed a different agent than the one that was asked for,
         # with nothing anywhere saying so.
         if cmd.agent is not None and cmd.agent not in runner.sim.by_id:
-            raise HTTPException(404, f"kein Agent #{cmd.agent}")
+            raise HTTPException(404, f"no agent #{cmd.agent}")
         runner.selected = cmd.agent
     elif cmd.action == "market":
         if cmd.symbol not in runner.sim.markets:
-            raise HTTPException(400, f"unbekanntes Instrument: {cmd.symbol}")
+            raise HTTPException(400, f"unknown instrument: {cmd.symbol}")
         runner.symbol = cmd.symbol
     else:
-        raise HTTPException(400, f"unbekannte Aktion: {cmd.action}")
+        raise HTTPException(400, f"unknown action: {cmd.action}")
     return runner.snapshot()
 
 
@@ -805,7 +805,7 @@ async def scenario(name: str) -> dict:
             # Two channels, because a bubble ignores information: the fundamental
             # value drops for the value camp, and the mood collapses for the trend
             # followers. Which one transmits is up to the market's composition.
-            sim.inject_news("Geopolitische Spannungen eskalieren", -0.35)
+            sim.inject_news("Geopolitical tensions escalate", -0.35)
             sim.world.sentiment -= 3.0
             sim.cfg.update_live({"chartist_aggression": 120.0, "activation_rate": 0.35})
             for _ in range(60):
@@ -817,12 +817,12 @@ async def scenario(name: str) -> dict:
                 sim.step()
     elif name == "boom":
         async with runner.lock:
-            sim.inject_news("Zentralbank signalisiert Zinssenkung", 0.12)
+            sim.inject_news("Central Bank signals rate cut", 0.12)
             sim.cfg.update_live({"chartist_aggression": 110.0})
             for _ in range(60):
                 sim.step()
     else:
-        raise HTTPException(404, f"unbekannter Schock: {name}")
+        raise HTTPException(404, f"unknown shock: {name}")
     return runner.snapshot()
 
 
@@ -843,7 +843,7 @@ async def load_scenario(key: str) -> dict:
     """Restart the run under a scenario's conditions and queue its events."""
     scenario = scenarios.get(key)
     if scenario is None:
-        raise HTTPException(404, f"unbekanntes Szenario: {key}")
+        raise HTTPException(404, f"unknown scenario: {key}")
     async with runner.lock:
         runner.sim.load_scenario(scenario)
         # A scenario replaces whatever set the market up before it, a lesson
@@ -857,7 +857,7 @@ async def load_scenario(key: str) -> dict:
 
 
 class Headline(BaseModel):
-    text: str = "Eilmeldung"
+    text: str = "Breaking news"
     magnitude: float = -0.1  # log shock to fair value; negative is bad news
 
 
@@ -924,7 +924,7 @@ class Advance(BaseModel):
 @app.post("/api/compare/advance")
 def advance_comparison(request: Advance) -> dict:
     if comparison is None:
-        raise HTTPException(404, "kein Vergleich aktiv")
+        raise HTTPException(404, "no comparison running")
     comparison.advance(max(0, min(request.steps, 100_000)))
     return comparison.to_dict()
 
@@ -982,7 +982,7 @@ def open_replay(request: ReplayRequest) -> dict:
     try:
         replay = recorder.Replay.open(request.path)
     except (FileNotFoundError, OSError, KeyError) as error:
-        raise HTTPException(404, f"Aufzeichnung nicht lesbar: {error}") from error
+        raise HTTPException(404, f"recording not readable: {error}") from error
     return replay.to_dict()
 
 
@@ -1033,7 +1033,7 @@ def seek_replay(request: Seek) -> dict:
     replay is its own simulation.
     """
     if replay is None:
-        raise HTTPException(404, "kein Replay geöffnet")
+        raise HTTPException(404, "no replay open")
     if request.day is not None:
         replay.seek(request.day * max(1, replay.cfg.steps_per_day))
     elif request.step is not None:

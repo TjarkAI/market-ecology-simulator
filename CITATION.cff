@@ -13,9 +13,10 @@ abstract: >-
   the model. The project asks whether such a population reproduces the
   statistical properties real return series share — fat tails, clustered
   volatility, a tail index between 2 and 6, near-zero return
-  autocorrelation — when none of them are built in. Four of six criteria
-  hold across every one of 25 measurements; two fail, and the reason they
-  fail is reported rather than tuned away.
+  autocorrelation — when none of them are built in. Across 25 measurements
+  four of six criteria hold, two of them in every measurement and two in 24
+  and 22 of them; two fail, and the reason they fail is reported rather than
+  tuned away.
 keywords:
   - agent-based model
   - market microstructure

@@ -15,5 +15,5 @@ pytest>=8.0
 # Generated artefacts. Both are documented in the README as things to run and
 # neither was listed here, so a fresh environment installed from this file could
 # not build either of them — `start.sh` installs exactly what is in here.
-reportlab>=4.0      # docs/build_handbook.py — the German handbook
-pillow>=10.0        # scripts/build_app.py — the Marktstadt.app icon
+reportlab>=4.0      # docs/build_handbook.py — the handbook
+pillow>=10.0        # scripts/build_app.py — the Market Town.app icon

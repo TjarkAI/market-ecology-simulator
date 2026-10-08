@@ -109,7 +109,7 @@ def test_a_missing_leverage_sorts_last_rather_than_crashing(sim):
         if value is None:
             seen_null = True
         else:
-            assert not seen_null, "null steht vor einer Zahl in absteigender Sortierung"
+            assert not seen_null, "null sorts before a number in descending order"
 
 
 # ------------------------------------------------------------------ filtering
@@ -139,7 +139,7 @@ def test_filtering_by_instrument_finds_holders_and_the_makers_of_it(sim):
 def test_the_search_matches_a_number_or_a_type(sim):
     by_id = traders.overview(sim, query="#3", limit=2000)["traders"]
     assert all("3" in str(r["aid"]) for r in by_id)
-    by_kind = traders.overview(sim, query="hebel", limit=2000)["traders"]
+    by_kind = traders.overview(sim, query="leveraged", limit=2000)["traders"]
     assert by_kind and all(r["kind"] == "leveraged" for r in by_kind)
 
 
@@ -163,14 +163,14 @@ def test_paging_covers_everyone_without_gaps_or_repeats(sim):
 
 def test_an_offset_past_the_end_still_answers(sim):
     page = traders.overview(sim, limit=10, offset=10_000)
-    assert page["traders"], "eine Seite hinter dem Ende darf nicht leer zurückkommen"
+    assert page["traders"], "a page past the end must not come back empty"
 
 
 # --------------------------------------------------------------------- fields
 def test_profit_is_measured_against_the_start_of_the_run():
     fresh = Simulation(small())
     rows = traders.overview(fresh, limit=2000)["traders"]
-    assert all(abs(r["pnl"]) < 1e-6 for r in rows), "ein frischer Lauf hat kein Ergebnis"
+    assert all(abs(r["pnl"]) < 1e-6 for r in rows), "a fresh run has no result"
     assert all(r["pnlPct"] == pytest.approx(0.0, abs=1e-6) for r in rows
                if r["pnlPct"] is not None)
 
@@ -210,7 +210,7 @@ def test_the_detail_lists_the_held_instruments_marked_to_the_current_price(sim):
     holder = next(a for a in sim.agents if a.kind == "adaptive" and a.shares > 0)
     row = traders.detail(sim, holder.aid)
     assert row["aid"] == holder.aid
-    assert row["book"], "ein Halter ohne Depotzeilen"
+    assert row["book"], "a holder without book rows"
     for line in row["book"]:
         assert line["qty"] == holder.position(line["symbol"])
         assert line["price"] == pytest.approx(

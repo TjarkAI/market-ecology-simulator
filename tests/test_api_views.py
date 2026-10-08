@@ -79,7 +79,7 @@ def test_the_day_scale_serves_daily_closes(live):
 def test_the_market_index_reports_no_beta_against_itself(live):
     data = api.index_book()
     market = next(i for i in data["indices"] if i["kind"] == "market")
-    assert market["beta"] is None, "Regression auf sich selbst ist keine Messung"
+    assert market["beta"] is None, "a regression on itself is not a measurement"
     assert market["corr"] is None
     # The configured beta is still meaningful: it is the weighted average loading.
     assert market["betaSpec"] > 0

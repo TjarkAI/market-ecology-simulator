@@ -34,7 +34,7 @@ def garch_like(n: int = 4000, seed: int = 0) -> np.ndarray:
 def test_gaussian_noise_fails_the_fat_tail_check():
     result = facts(analyse(gaussian()))
     assert result["Fat Tails"] is False
-    assert result["Nicht-Normalität"] is False
+    assert result["Non-Normality"] is False
 
 
 def test_gaussian_noise_fails_the_clustering_check():
@@ -44,7 +44,7 @@ def test_gaussian_noise_fails_the_clustering_check():
 def test_gaussian_noise_passes_the_no_autocorrelation_check():
     """It is a random walk increment, so this one *should* pass — otherwise the
     check is measuring something other than predictability."""
-    assert facts(analyse(gaussian()))["Keine Rendite-Autokorrelation"] is True
+    assert facts(analyse(gaussian()))["No Return Autocorrelation"] is True
 
 
 def test_garch_series_passes_clustering_and_fat_tails():
@@ -59,7 +59,7 @@ def test_trending_series_fails_the_autocorrelation_check():
     r = np.zeros(3000)
     for i in range(1, 3000):
         r[i] = 0.6 * r[i - 1] + rng.standard_normal() * 0.01
-    assert facts(analyse(r))["Keine Rendite-Autokorrelation"] is False
+    assert facts(analyse(r))["No Return Autocorrelation"] is False
 
 
 def test_autocorr_recovers_a_known_coefficient():

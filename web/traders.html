@@ -1,69 +1,85 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Market Ecology Simulator · Trader</title>
+<title>Market Ecology Simulator · Traders</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+/* Look A, "Diorama": the light palette of the town page. The token names are the
+   ones this page always used; only the values changed. */
 :root{
-  --bg:#0d0f12; --panel:#14171c; --line:#22272f; --line2:#2c333d;
-  --ink:#ece6e0; --dim:#8d867d; --dimmer:#5d5952;
-  --up:#4fb8a0; --down:#d9584a; --warn:#e8814c; --gold:#c9a227; --blue:#7e9ee6;
+  --bg:#e9eef5; --panel:#ffffff; --sunken:#f1f4f9; --line:#e2e8f0; --line2:#d3dbe6;
+  --ink:#172033; --dim:#65728a; --dimmer:#94a0b4;
+  --accent:#2f5bea; --accent-soft:#e8eeff;
+  --up:#1c9a52; --up-soft:#e3f5ea; --down:#d43f3f; --down-soft:#fde8e8;
+  --warn:#b7791f; --warn-soft:#fdf3dc; --gold:#b7791f; --blue:#2f5bea;
+  /* the town's group colours */
+  --g-mom:#e07434; --g-val:#2f9e86; --g-noise:#8a7fa3; --g-etf:#2f9e5e;
+  --g-lev:#d14a3c; --g-mkr:#3d8fb5; --g-iss:#8f6fd0; --g-cb:#5872c9;
+  --shadow:0 8px 28px rgba(28,48,92,.10);
+  --r-card:14px; --r-ctl:8px;
+  --sans:'IBM Plex Sans',system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);
-  font:13px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-.num,input,td.n,th.n{font-variant-numeric:tabular-nums;
-  font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-a{color:var(--blue)}
+body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.45 var(--sans)}
+.num,input,td.n,th.n{font-variant-numeric:tabular-nums;font-family:var(--mono)}
+a{color:var(--accent)}
 header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
-  padding:12px 18px;border-bottom:1px solid var(--line);background:#101318}
+  padding:12px 18px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.92)}
 h1{font-size:14px;margin:0;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
 .sub{color:var(--dim);font-size:11px}
 .grow{flex:1}
 nav{display:flex;gap:2px}
 nav a{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;text-decoration:none;
-  color:var(--dim);border:1px solid transparent;border-radius:3px;padding:3px 9px}
+  color:var(--dim);border:1px solid transparent;border-radius:var(--r-ctl);padding:3px 9px}
 nav a:hover{color:var(--ink);border-color:var(--line2)}
-nav a.here{color:var(--warn);border-color:rgba(232,129,76,.5)}
-button{background:#1b2027;color:var(--ink);border:1px solid var(--line2);
-  border-radius:3px;padding:4px 10px;font-size:12px;cursor:pointer}
-button:hover{border-color:#3c4652;background:#212832}
-button.on{border-color:var(--warn);color:var(--warn)}
+nav a.here{color:var(--accent);border-color:rgba(47,91,234,.35);background:var(--accent-soft)}
+button{background:#fff;color:var(--ink);border:1px solid var(--line2);font-family:var(--sans);
+  border-radius:var(--r-ctl);padding:4px 10px;font-size:12px;cursor:pointer}
+button:hover{border-color:#c3ccda;background:var(--sunken)}
+button.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 button:disabled{opacity:.4;cursor:default}
-input[type=text],select{background:#0f1216;color:var(--ink);border:1px solid var(--line2);
-  border-radius:3px;padding:4px 6px;font-size:12px}
+input[type=text],select{background:#fff;color:var(--ink);border:1px solid var(--line2);
+  border-radius:var(--r-ctl);padding:4px 6px;font-size:12px;font-family:var(--sans)}
+input[type=text]::placeholder{color:var(--dimmer)}
 main{display:grid;grid-template-columns:1fr 300px;gap:14px;padding:14px;align-items:start}
 @media(max-width:1200px){main{grid-template-columns:1fr}}
 .stack{display:flex;flex-direction:column;gap:14px;min-width:0}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:4px;min-width:0}
-.panel>h2{margin:0;padding:8px 12px;font-size:10.5px;letter-spacing:.16em;
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-card);
+  box-shadow:var(--shadow);min-width:0}
+.panel>h2{margin:0;padding:9px 14px;font-size:10.5px;letter-spacing:.16em;
   text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--line);
   font-weight:600;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .panel>h2 .grow{flex:1}
-.panel>.body{padding:12px}
-.hint{color:var(--dimmer);font-size:11px;line-height:1.55}
-.warnbox{border:1px solid rgba(232,129,76,.4);background:rgba(232,129,76,.07);
-  border-radius:3px;padding:8px 10px;color:var(--warn);font-size:11.5px;line-height:1.5}
-.bar{height:4px;background:#1e242c;border-radius:2px;overflow:hidden;margin-top:3px}
-.bar i{display:block;height:100%;background:var(--warn)}
+.panel>.body{padding:12px 14px}
+.hint{color:var(--dim);font-size:11px;line-height:1.55}
+.warnbox{border:1px solid rgba(183,121,31,.35);background:var(--warn-soft);
+  border-radius:var(--r-ctl);padding:8px 10px;color:var(--warn);font-size:11.5px;line-height:1.5}
+.warnbox.bad{border-color:rgba(212,63,63,.35);background:var(--down-soft);color:var(--down)}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:3px}
+.bar i{display:block;height:100%;background:var(--accent)}
+.warnbox .bar i{background:var(--warn)}
 .err{color:var(--down);font-size:11.5px}
 .up{color:var(--up)} .down{color:var(--down)} .dim{color:var(--dim)}
 /* summary tiles */
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
-.tile{border:1px solid var(--line2);border-radius:4px;padding:7px 9px;background:#121519}
+.tile{border:1px solid var(--line);border-radius:10px;padding:7px 9px;background:var(--sunken)}
 .tile .k{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--dimmer)}
 .tile .v{font-size:17px;line-height:1.3}
 .tile .s{font-size:10.5px;color:var(--dim)}
 /* group cards */
 .groups{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:8px}
-.gcard{border:1px solid var(--line2);border-radius:4px;padding:8px 10px;background:#121519;
+.gcard{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--sunken);
   cursor:pointer}
-.gcard:hover{border-color:#3c4652}
-.gcard.on{border-color:var(--warn)}
+.gcard:hover{border-color:#c3ccda;background:#fff}
+.gcard.on{border-color:var(--accent);background:var(--accent-soft)}
 .gcard .top{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
 .gcard b{font-size:12px}
-.gcard .note{font-size:10.5px;color:var(--dimmer);line-height:1.45;margin-top:4px}
+.gcard .note{font-size:10.5px;color:var(--dim);line-height:1.45;margin-top:4px}
 /* table */
 .scroll{overflow:auto;max-height:62vh}
 table{width:100%;border-collapse:collapse;font-size:12px}
@@ -73,103 +89,107 @@ th{text-align:left;color:var(--dim);font-weight:500;font-size:10.5px;
   border-bottom:1px solid var(--line)}
 th:hover{color:var(--ink)}
 th.n{text-align:right}
-th.sorted{color:var(--warn)}
-td{padding:2px 6px 2px 0;border-top:1px solid #1b1f25;white-space:nowrap}
+th.sorted{color:var(--accent)}
+td{padding:2px 6px 2px 0;border-top:1px solid var(--line);white-space:nowrap}
 td.n{text-align:right}
 tbody tr{cursor:pointer}
-tbody tr:hover td{background:#181c22}
-tbody tr.sel td{background:#1d242c}
+tbody tr:hover td{background:var(--sunken)}
+tbody tr.sel td{background:var(--accent-soft)}
 .pill{display:inline-block;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;
-  border:1px solid var(--line2);border-radius:9px;padding:0 6px;color:var(--dim)}
-.pill.mom{color:var(--warn);border-color:rgba(232,129,76,.45)}
-.pill.val{color:var(--up);border-color:rgba(79,184,160,.45)}
-.pill.lev{color:var(--down);border-color:rgba(217,88,74,.45)}
-.pill.mkr{color:var(--blue);border-color:rgba(126,158,230,.45)}
-.pill.cmp{color:var(--gold);border-color:rgba(201,162,39,.45)}
+  border:1px solid var(--line2);border-radius:var(--r-ctl);padding:0 6px;color:var(--dim);
+  background:#fff}
+.pill.mom{color:var(--g-mom);border-color:rgba(224,116,52,.45);background:rgba(224,116,52,.08)}
+.pill.val{color:var(--g-val);border-color:rgba(47,158,134,.45);background:rgba(47,158,134,.08)}
+.pill.nse{color:var(--g-noise);border-color:rgba(138,127,163,.45);background:rgba(138,127,163,.08)}
+.pill.etf{color:var(--g-etf);border-color:rgba(47,158,94,.45);background:rgba(47,158,94,.08)}
+.pill.lev{color:var(--g-lev);border-color:rgba(209,74,60,.45);background:rgba(209,74,60,.08)}
+.pill.mkr{color:var(--g-mkr);border-color:rgba(79,124,240,.45);background:rgba(79,124,240,.08)}
+.pill.cmp{color:var(--g-iss);border-color:rgba(143,111,208,.45);background:rgba(143,111,208,.08)}
 .deciles{display:flex;gap:2px;align-items:flex-end;height:40px;margin-top:6px}
-.deciles i{flex:1;background:#2c333d;border-radius:1px 1px 0 0;display:block}
-.deciles i:last-child{background:var(--warn)}
-footer{padding:10px 18px;border-top:1px solid var(--line);color:var(--dimmer);font-size:11px}
+.deciles i{flex:1;background:#c9d3e2;border-radius:2px 2px 0 0;display:block}
+.deciles i:last-child{background:var(--accent)}
+footer{padding:10px 18px;border-top:1px solid var(--line);color:var(--dim);font-size:11px}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Market Ecology · Trader</h1>
+  <h1>Market Ecology · Traders</h1>
   <nav>
-    <a href="/" title="Die isometrische Stadt: dieselbe Simulation als Karte">Stadt</a>
-    <a href="/sectors" title="Sektoren, Korrelation, Validierung, A/B, Aufzeichnungen">Analyse</a>
-    <a href="/indices" title="Alle Indizes live gegeneinander">Indizes</a>
-    <a href="/traders" class="here">Trader</a>
+    <a href="/" title="The isometric town: the same simulation as a map">Town</a>
+    <a href="/sectors" title="Sectors, correlation, validation, A/B, recordings">Analysis</a>
+    <a href="/indices" title="All indices live against each other">Indices</a>
+    <a href="/traders" class="here">Traders</a>
   </nav>
   <span class="grow"></span>
-  <span class="sub">Schritt <b id="step" class="num">–</b></span>
-  <span class="sub">Tag <b id="day" class="num">–</b></span>
-  <button id="play" title="Denselben Markt anhalten, den die Stadtansicht zeigt">Pause</button>
-  <button data-speed="1x" class="spd" title="Echtzeit">1×</button>
-  <button data-speed="4x" class="spd" title="Vierfach">4×</button>
-  <button data-speed="16x" class="spd" title="Sechzehnfach">16×</button>
+  <span class="sub">Step <b id="step" class="num">–</b></span>
+  <span class="sub">Day <b id="day" class="num">–</b></span>
+  <button id="play" title="Pause the same market the town view shows">Pause</button>
+  <button data-speed="1x" class="spd" title="Real time">1×</button>
+  <button data-speed="4x" class="spd" title="Four times as fast">4×</button>
+  <button data-speed="16x" class="spd" title="Sixteen times as fast">16×</button>
 </header>
 
 <p class="hint" style="margin:0;padding:8px 18px;border-bottom:1px solid var(--line)">
-  Jede Zeile ist ein Agent aus derselben laufenden Simulation, die die
-  <a href="/">Stadt</a> zeichnet — zu den Preisen dieses Schritts bewertet. Die Stadt
-  zeigt einen Trader gründlich, diese Seite alle nebeneinander: wer Kapital hat, wer
-  am Hebel hängt und wer gerade verliert.</p>
+  Every row is an agent from the same running simulation the
+  <a href="/">town</a> draws, valued at this step's prices. The town shows one trader
+  in depth; this page shows all of them side by side: who has capital, who depends on
+  leverage and who is losing right now.</p>
 
 <div id="warming" style="display:none;padding:10px 18px">
-  <div class="warnbox">Der Markt wird aufgewärmt — <span id="warmpct" class="num">0</span> %.
+  <div class="warnbox">The market is warming up: <span id="warmpct" class="num">0</span>%.
     <div class="bar"><i id="warmbar" style="width:0"></i></div>
   </div>
 </div>
 
 <div id="broke" style="display:none;padding:10px 18px">
-  <div class="warnbox" style="border-color:rgba(217,88,74,.5);background:rgba(217,88,74,.08);
-    color:var(--down)">Die Simulation ist gestoppt: <b id="brokewhy">—</b>.
-    In der Stadtansicht setzt NEU STARTEN den Lauf zurück.</div>
+  <div class="warnbox bad">The simulation has stopped: <b id="brokewhy">—</b>.
+    RESTART in the town view resets the run.</div>
 </div>
 
 <div id="stale" style="display:none;padding:10px 18px">
-  <div class="warnbox">Die Zahlen unten sind der letzte erfolgreiche Abruf —
-    die Verbindung antwortet gerade nicht (<span id="stalewhy">—</span>).</div>
+  <div class="warnbox">The figures below are from the last successful request.
+    The connection is not answering right now (<span id="stalewhy">—</span>).</div>
 </div>
 
 <main>
   <div class="stack">
 
     <section class="panel">
-      <h2>Die Population</h2>
+      <h2>The population</h2>
       <div class="body">
         <div class="tiles" id="tiles"></div>
         <p class="hint" id="wealthnote" style="margin-bottom:2px"></p>
-        <div class="deciles" id="deciles" title="Vermögensanteil je Zehntel der Agenten,
-vom ärmsten links zum reichsten rechts"></div>
+        <div class="deciles" id="deciles" title="Share of wealth per tenth of the agents,
+from the poorest on the left to the richest on the right"></div>
       </div>
     </section>
 
     <section class="panel">
-      <h2>Viertel — anklicken filtert die Liste</h2>
+      <h2>Districts: click one to filter the list</h2>
       <div class="body"><div class="groups" id="groups"></div></div>
     </section>
 
     <section class="panel">
       <h2>
-        <span>Alle Trader</span>
+        <span>All traders</span>
         <span class="grow"></span>
-        <input type="text" id="search" placeholder="Nummer oder Typ …" style="width:150px"
-               title="Filtert nach Agentennummer, Typ oder Strategie">
-        <select id="symbol" title="Nur Trader, die dieses Instrument halten oder bedienen">
-          <option value="">alle Instrumente</option>
+        <input type="text" id="search" placeholder="Number or type …" style="width:150px"
+               title="Filters by agent number, type or strategy"
+               aria-label="Search by agent number, type or strategy">
+        <select id="symbol" title="Only traders who hold or quote this instrument"
+                aria-label="Instrument filter">
+          <option value="">all instruments</option>
         </select>
-        <select id="limit" title="Wie viele Zeilen je Seite">
+        <select id="limit" title="How many rows per page" aria-label="Rows per page">
           <option value="50">50</option>
           <option value="150" selected>150</option>
           <option value="400">400</option>
-          <option value="2000">alle</option>
+          <option value="2000">all</option>
         </select>
-        <button id="prev" title="eine Seite zurück">‹</button>
+        <button id="prev" title="one page back" aria-label="Previous page">‹</button>
         <span class="sub num" id="page">–</span>
-        <button id="next" title="eine Seite vor">›</button>
+        <button id="next" title="one page forward" aria-label="Next page">›</button>
       </h2>
       <div class="body" style="padding:0">
         <div class="scroll"><table id="table">
@@ -186,9 +206,9 @@ vom ärmsten links zum reichsten rechts"></div>
 
   <div class="stack">
     <section class="panel">
-      <h2>Ausgewählter Trader</h2>
+      <h2>Selected trader</h2>
       <div class="body" id="detail">
-        <p class="hint">Eine Zeile anklicken.</p>
+        <p class="hint">Click a row.</p>
       </div>
     </section>
   </div>
@@ -201,28 +221,30 @@ vom ärmsten links zum reichsten rechts"></div>
 const $ = s => document.querySelector(s);
 const el = (tag, cls, text) => { const n = document.createElement(tag);
   if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; };
-/* German number, with the project’s own thousands separator. `toLocaleString`
-   groups with a dot, and mes/city.py groups with a thin space (THIN, U+2009) —
-   so every four-figure price printed here disagreed with the same price in the
-   town. The decimal comma comes from the locale; only the grouping is swapped. */
-const de = (v, d = 2) => v === null || v === undefined || Number.isNaN(v) ? "–"
-  : Number(v).toLocaleString("de-DE", {minimumFractionDigits: d, maximumFractionDigits: d})
-      .replace(/\./g, "\u2009");
-const pct = (v, d = 1) => v === null || v === undefined ? "–" : (v >= 0 ? "+" : "") + de(v, d) + " %";
-/* Stück counts with the thin space mes/city.py uses, so the roster counts shares the
-   same way every other panel in the project does. */
-const thin = n => Math.round(Number(n) || 0).toString()
-  .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+/* Numbers in en-US, the convention of the whole project: comma thousands, point
+   decimal, "2.35%". The backend formats the same way, so a price printed here
+   matches the same price in the town. */
+const fmt = (v, d = 2) => v === null || v === undefined || Number.isNaN(Number(v)) ? "–"
+  : Number(v).toLocaleString("en-US", {minimumFractionDigits: d, maximumFractionDigits: d});
+const pct = (v, d = 1) => v === null || v === undefined ? "–" : (v >= 0 ? "+" : "") + fmt(v, d) + "%";
+/* Share counts and other whole numbers, grouped the same way as every other number in
+   the project. A string from the API is already formatted and is shown as it came. */
+const count = n => typeof n === "string" ? n : Math.round(Number(n) || 0).toLocaleString("en-US");
 const sign = v => v > 0 ? "up" : v < 0 ? "down" : "dim";
 /* Capital runs from a few thousand to hundreds of millions in the same column. Full
    euros would be unreadable at both ends, so the magnitude carries a suffix and the
    column stays scannable. */
 const money = v => {
   const n = Number(v) || 0, a = Math.abs(n);
-  if (a >= 1e9) return de(n / 1e9, 2) + " Mrd";
-  if (a >= 1e6) return de(n / 1e6, 2) + " Mio";
-  if (a >= 1e3) return de(n / 1e3, 1) + " k";
-  return de(n, 0);
+  if (a >= 1e9) return fmt(n / 1e9, 2) + "B";
+  if (a >= 1e6) return fmt(n / 1e6, 2) + "M";
+  if (a >= 1e3) return fmt(n / 1e3, 1) + "k";
+  return fmt(n, 0);
+};
+/* The same with the currency in front: "€1.23M", "-€12.3k". */
+const euro = v => {
+  const n = Number(v) || 0;
+  return (n < 0 ? "-" : "") + "€" + money(Math.abs(n));
 };
 
 async function api(path, options) {
@@ -233,8 +255,9 @@ async function api(path, options) {
 const post = (path, body) => api(path, {method: "POST",
   headers: {"content-type": "application/json"}, body: JSON.stringify(body || {})});
 
-const PILL = {momentum: "mom", value: "val", leveraged: "lev", maker: "mkr",
-  company: "cmp"};
+/* Strategy key to pill colour, in the town's group colours. */
+const PILL = {momentum: "mom", value: "val", noise: "nse", passive: "etf",
+  leveraged: "lev", maker: "mkr", company: "cmp"};
 
 /* ------------------------------------------------------------------- state */
 const params = new URLSearchParams(location.search);
@@ -262,18 +285,18 @@ function renderTiles(s) {
     if (sub) box.append(el("div", "s", sub));
     host.append(box);
   };
-  tile("Agenten", thin(s.count), s.matched + " im Filter");
-  tile("Kapital", money(s.equity) + " €", "davon " + money(s.cash) + " € Bargeld");
-  tile("Median", money(s.median) + " €", "Mittel " + money(s.mean) + " €");
-  tile("Gini", de(s.gini, 3),
-    "oberste 10 % halten " + de(s.top10 * 100, 0) + " %");
-  tile("Im Plus", thin(s.winners), s.losers + " im Minus",
+  tile("Agents", count(s.count), count(s.matched) + " in the filter");
+  tile("Capital", euro(s.equity), "of which " + euro(s.cash) + " cash");
+  tile("Median", euro(s.median), "mean " + euro(s.mean));
+  tile("Gini", fmt(s.gini, 3),
+    "top 10% hold " + fmt(s.top10 * 100, 0) + "%");
+  tile("In profit", count(s.winners), count(s.losers) + " at a loss",
     s.winners >= s.losers ? "up" : "down");
-  tile("Aktien", thin(s.shares), "über alle Depots");
-  tile("Margin Calls", thin(s.margin_calls),
-    s.wipeouts + " Fonds ausgelöscht", s.margin_calls ? "down" : "dim");
-  tile("Chartisten", de(s.chartist_share * 100, 0) + " %",
-    "der adaptiven Trader");
+  tile("Shares", count(s.shares), "across all accounts");
+  tile("Margin calls", count(s.margin_calls),
+    count(s.wipeouts) + " funds wiped out", s.margin_calls ? "down" : "dim");
+  tile("Chartists", fmt(s.chartist_share * 100, 0) + "%",
+    "of the adaptive traders");
 
   const bars = $("#deciles");
   bars.innerHTML = "";
@@ -281,12 +304,12 @@ function renderTiles(s) {
   s.deciles.forEach(share => {
     const bar = el("i");
     bar.style.height = Math.max(2, share / top * 100) + "%";
-    bar.title = de(share * 100, 1) + " % des Vermögens";
+    bar.title = fmt(share * 100, 1) + "% of wealth";
     bars.append(bar);
   });
-  $("#wealthnote").textContent = "Vermögensverteilung: jedes Zehntel der Agenten, "
-    + "vom ärmsten links. Das reichste Zehntel hält "
-    + de(s.top10 * 100, 0) + " % des Kapitals.";
+  $("#wealthnote").textContent = "Wealth distribution: each tenth of the agents, "
+    + "poorest on the left. The richest tenth holds "
+    + fmt(s.top10 * 100, 0) + "% of the capital.";
 }
 
 /* ------------------------------------------------------------------ groups */
@@ -297,11 +320,11 @@ function renderGroups(groups) {
     const card = el("div", "gcard" + (query.strategy === group.group ? " on" : ""));
     const top = el("div", "top");
     top.append(el("b", "", group.name));
-    top.append(el("span", "num", money(group.equity) + " €"));
+    top.append(el("span", "num", euro(group.equity)));
     card.append(top);
     const meta = el("div", "hint");
-    meta.textContent = `${group.count} Agenten · ${de(group.share, 1)} % des Kapitals · `
-      + `Mittel ${money(group.mean)} € · ${group.wins} im Plus`;
+    meta.textContent = `${count(group.count)} agents · ${fmt(group.share, 1)}% of capital · `
+      + `mean ${euro(group.mean)} · ${count(group.wins)} in profit`;
     card.append(meta);
     const bar = el("div", "bar");
     const fill = el("i");
@@ -309,8 +332,7 @@ function renderGroups(groups) {
     bar.append(fill);
     card.append(bar);
     card.append(el("div", "note", group.note));
-    card.title = "Filtert die Liste auf dieses Viertel. Noch einmal klicken hebt "
-      + "den Filter auf.";
+    card.title = "Filters the list to this district. Click again to clear the filter.";
     card.onclick = () => {
       query.strategy = query.strategy === group.group ? "" : group.group;
       query.kind = "";
@@ -327,12 +349,12 @@ function renderGroups(groups) {
    the hover, the selection and the scroll position on every poll. */
 const COLUMNS = [
   {key: "aid", label: "#", cls: "n",
-   title: "Agentennummer — dieselbe wie in der Stadtansicht",
+   title: "Agent number, the same as in the town view",
    text: t => "#" + t.aid},
-  {key: "kind", label: "Typ", cls: "", title: "Was der Agent ist",
+  {key: "kind", label: "Type", cls: "", title: "What the agent is",
    text: t => t.kindLabel + (t.symbol ? " " + t.symbol : "")},
-  {key: "strategy", label: "Regel", cls: "",
-   title: "Welche Regel er gerade fährt. Adaptive Trader wechseln zwischen zwei",
+  {key: "strategy", label: "Rule", cls: "",
+   title: "Which rule it is running right now. Adaptive traders switch between two",
    node: t => {
      const pill = el("span", "pill " + (PILL[t.strategy] || ""), t.strategyLabel);
      return pill;
@@ -341,34 +363,34 @@ const COLUMNS = [
      node.textContent = t.strategyLabel;
      node.className = "pill " + (PILL[t.strategy] || "");
    }},
-  {key: "equity", label: "Kapital", cls: "n",
-   title: "Bargeld plus Positionen, zu den Kursen dieses Schritts",
+  {key: "equity", label: "Capital", cls: "n",
+   title: "Cash plus positions, at this step's prices",
    text: t => money(t.equity)},
-  {key: "cash", label: "Bargeld", cls: "n",
-   title: "Negativ heißt geliehen — nur Hebel-Fonds dürfen das",
+  {key: "cash", label: "Cash", cls: "n",
+   title: "Negative means borrowed. Only leveraged funds may do that",
    text: t => money(t.cash), cell: t => t.cash < 0 ? "down" : ""},
-  {key: "shares", label: "Stücke", cls: "n",
-   title: "Summe über alle Instrumente. Negativ ist der Emittent oder ein Maker",
-   text: t => thin(t.shares)},
-  {key: "leverage", label: "Hebel", cls: "n",
-   title: "Position geteilt durch Eigenkapital",
-   text: t => t.leverage === null ? "–" : de(t.leverage, 2) + "×",
+  {key: "shares", label: "Shares", cls: "n",
+   title: "Sum across all instruments. Negative is the issuer or a maker",
+   text: t => count(t.shares)},
+  {key: "leverage", label: "Leverage", cls: "n",
+   title: "Position divided by equity",
+   text: t => t.leverage === null ? "–" : fmt(t.leverage, 2) + "×",
    cell: t => t.leverage !== null && t.leverage > 2 ? "down" : ""},
-  {key: "pnl", label: "Ergebnis", cls: "n",
-   title: "Kapital heute gegen Kapital beim Start des Laufs",
+  {key: "pnl", label: "Result", cls: "n",
+   title: "Capital today against capital at the start of the run",
    text: t => money(t.pnl), cell: t => sign(t.pnl)},
-  {key: "pnlPct", label: "%", cls: "n", title: "Dasselbe als Rendite",
+  {key: "pnlPct", label: "%", cls: "n", title: "The same as a return",
    text: t => t.pnlPct === null ? "–" : pct(t.pnlPct, 1), cell: t => sign(t.pnlPct)},
-  {key: "liquidations", label: "Zwangs-verkäufe", cls: "n",
-   title: "Wie oft dieser Fonds liquidiert wurde",
-   text: t => t.liquidations ? thin(t.liquidations) : "–",
+  {key: "liquidations", label: "Forced sales", cls: "n",
+   title: "How often this fund has been liquidated",
+   text: t => t.liquidations ? count(t.liquidations) : "–",
    cell: t => t.liquidations ? "down" : "dim"},
-  {key: null, label: "letzte Order", cls: "",
-   title: "Nur wenn sie aus diesem oder dem letzten Schritt stammt",
+  {key: null, label: "last order", cls: "",
+   title: "Only if it comes from this step or the previous one",
    text: t => !t.order ? "—"
-     : (t.order.open ? "" : "vor " + thin(DATA.step - t.order.step) + " Schr. ")
-       + (t.order.side > 0 ? "kauft " : "verkauft ")
-       + thin(t.order.qty) + " " + t.order.symbol + " @ " + de(t.order.price),
+     : (t.order.open ? "" : count(DATA.step - t.order.step) + " steps ago: ")
+       + (t.order.side > 0 ? "buys " : "sells ")
+       + count(t.order.qty) + " " + t.order.symbol + " @ " + fmt(t.order.price),
    cell: t => !t.order ? "dim" : t.order.open
      ? (t.order.side > 0 ? "up" : "down") : "dim"},
 ];
@@ -382,7 +404,7 @@ function renderHead() {
       column.label + (query.sort === column.key
         ? (query.order === "asc" ? " ▲" : " ▼") : ""));
     th.title = column.key
-      ? column.title + " — Klick sortiert"
+      ? column.title + ". Click to sort"
       : column.title;
     if (column.key) th.onclick = () => {
       if (query.sort === column.key) query.order = query.order === "asc" ? "desc" : "asc";
@@ -445,14 +467,14 @@ async function loadDetail() {
   const host = $("#detail");
   if (selected === null) {
     host.innerHTML = "";
-    host.append(el("p", "hint", "Eine Zeile anklicken."));
+    host.append(el("p", "hint", "Click a row."));
     return;
   }
   let trader;
   try { trader = await api("/api/traders/" + selected); }
   catch (e) {
     host.innerHTML = "";
-    host.append(el("p", "err", "Trader nicht geladen: " + e.message));
+    host.append(el("p", "err", "Trader not loaded: " + e.message));
     return;
   }
   host.innerHTML = "";
@@ -465,14 +487,14 @@ async function loadDetail() {
   host.append(el("p", "hint", trader.note));
 
   const facts = [
-    ["Kapital", money(trader.equity) + " €", ""],
-    ["Bargeld", money(trader.cash) + " €", trader.cash < 0 ? "down" : ""],
-    ["Position", money(trader.exposure) + " €", ""],
-    ["Hebel", trader.leverage === null ? "–" : de(trader.leverage, 2) + "×", ""],
-    ["Ergebnis", money(trader.pnl) + " €", sign(trader.pnl)],
-    ["Rendite", trader.pnlPct === null ? "–" : pct(trader.pnlPct, 2), sign(trader.pnlPct)],
-    ["Erfolgs-EMA", de(trader.perf * 100, 3) + " %", sign(trader.perf)],
-    ["Zwangsverkäufe", thin(trader.liquidations), trader.liquidations ? "down" : "dim"],
+    ["Capital", euro(trader.equity), ""],
+    ["Cash", euro(trader.cash), trader.cash < 0 ? "down" : ""],
+    ["Position", euro(trader.exposure), ""],
+    ["Leverage", trader.leverage === null ? "–" : fmt(trader.leverage, 2) + "×", ""],
+    ["Result", euro(trader.pnl), sign(trader.pnl)],
+    ["Return", trader.pnlPct === null ? "–" : pct(trader.pnlPct, 2), sign(trader.pnlPct)],
+    ["Performance EMA", fmt(trader.perf * 100, 3) + "%", sign(trader.perf)],
+    ["Forced sales", count(trader.liquidations), trader.liquidations ? "down" : "dim"],
   ];
   const table = el("table");
   for (const [label, value, cls] of facts) {
@@ -484,44 +506,44 @@ async function loadDetail() {
   host.append(table);
 
   if (trader.book.length) {
-    host.append(el("p", "hint", "Depot, zu den Kursen dieses Schritts"));
+    host.append(el("p", "hint", "Holdings, at this step's prices"));
     const book = el("table");
     const head2 = el("tr");
-    ["Instrument", "Stück", "Kurs", "Wert"].forEach((t, i) =>
+    ["Instrument", "Shares", "Price", "Value"].forEach((t, i) =>
       head2.append(el("th", i ? "n" : "", t)));
     book.append(head2);
     for (const line of trader.book) {
       const tr = el("tr");
       tr.append(el("td", "", line.symbol));
-      tr.append(el("td", "n num " + (line.qty < 0 ? "down" : ""), thin(line.qty)));
-      tr.append(el("td", "n num dim", de(line.price)));
+      tr.append(el("td", "n num " + (line.qty < 0 ? "down" : ""), count(line.qty)));
+      tr.append(el("td", "n num dim", fmt(line.price)));
       tr.append(el("td", "n num", money(line.value)));
-      tr.title = `fairer Wert ${de(line.fair)} · `
-        + `${pct((line.price / line.fair - 1) * 100, 1)} Abweichung`;
+      tr.title = `fair value ${fmt(line.fair)} · `
+        + `${pct((line.price / line.fair - 1) * 100, 1)} gap`;
       book.append(tr);
     }
     host.append(book);
   } else {
-    host.append(el("p", "hint", "Hält gerade keine Position."));
+    host.append(el("p", "hint", "Holds no position right now."));
   }
 
   if (trader.order) {
     host.append(el("p", "hint",
-      `Letzte Order in Schritt ${thin(trader.order.step)}: `
-      + `${trader.order.side > 0 ? "kauft" : "verkauft"} ${thin(trader.order.qty)} `
-      + `${trader.order.symbol} zu ${de(trader.order.price)}`
-      + (trader.order.open ? " — noch offen" : "")));
+      `Last order in step ${count(trader.order.step)}: `
+      + `${trader.order.side > 0 ? "buys" : "sells"} ${count(trader.order.qty)} `
+      + `${trader.order.symbol} at ${fmt(trader.order.price)}`
+      + (trader.order.open ? ", still open" : "")));
   }
 
-  const link = el("a", "", "in der Stadt ansehen ›");
+  const link = el("a", "", "view in the town ›");
   link.href = "/?agent=" + trader.aid;
-  link.title = "Öffnet die Stadtansicht mit genau diesem Agenten in der Einheitenkarte";
+  link.title = "Opens the town view with exactly this agent on the unit card";
   host.append(link);
 }
 
 /* ---------------------------------------------------------------- controls */
 /* No repaint guard is needed for these: the poll never rebuilds the search box or the
-   two pickers — they are static markup, and the pickers are filled exactly once. The
+   two pickers. They are static markup, and the pickers are filled exactly once. The
    analysis page needs one because it rebuilds its sliders on every poll. */
 const search = $("#search");
 search.value = query.q;
@@ -543,13 +565,13 @@ $("#next").onclick = () => {
 async function drive(button, body, label) {
   button.disabled = true;
   try { await post("/api/control", body); }
-  catch (e) { $("#foot").textContent = `${label} fehlgeschlagen: ${e.message}`; }
+  catch (e) { $("#foot").textContent = `${label} failed: ${e.message}`; }
   finally { button.disabled = false; refresh(); }
 }
 $("#play").onclick = e =>
-  drive(e.currentTarget, {action: paused ? "play" : "pause"}, paused ? "Weiter" : "Pause");
+  drive(e.currentTarget, {action: paused ? "play" : "pause"}, paused ? "Resume" : "Pause");
 document.querySelectorAll(".spd").forEach(b => b.onclick = () =>
-  drive(b, {action: "speed", speed: b.dataset.speed}, "Tempo " + b.dataset.speed));
+  drive(b, {action: "speed", speed: b.dataset.speed}, "Speed " + b.dataset.speed));
 
 /* -------------------------------------------------------------------- loop */
 function url() {
@@ -570,10 +592,10 @@ async function refresh() {
     const [state, data] = await Promise.all([api("/api/state"), api(url())]);
     DATA = data;
 
-    $("#step").textContent = thin(data.step);
+    $("#step").textContent = count(data.step);
     $("#day").textContent = data.day;
     paused = !state.running;
-    $("#play").textContent = paused ? "Weiter" : "Pause";
+    $("#play").textContent = paused ? "Resume" : "Pause";
     document.querySelectorAll(".spd").forEach(b =>
       b.classList.toggle("on", b.dataset.speed === state.speed));
 
@@ -603,31 +625,31 @@ async function refresh() {
     renderRows(data.traders);
 
     const from = data.summary.matched ? data.offset + 1 : 0;
-    $("#page").textContent = `${from}–${data.offset + data.summary.shown} / `
-      + `${data.summary.matched}`;
+    $("#page").textContent = `${count(from)}–${count(data.offset + data.summary.shown)} / `
+      + `${count(data.summary.matched)}`;
     $("#prev").disabled = data.offset <= 0;
     $("#next").disabled = data.offset + data.limit >= data.summary.matched;
 
     const kindLabel = (data.kinds.find(k => k.key === query.kind) || {}).label;
     const filters = [
-      query.kind && "Typ " + (kindLabel || query.kind),
-      query.strategy && "Viertel " + query.strategy,
-      query.symbol && "Instrument " + query.symbol,
-      query.q && "Suche " + query.q,
+      query.kind && "type " + (kindLabel || query.kind),
+      query.strategy && "district " + query.strategy,
+      query.symbol && "instrument " + query.symbol,
+      query.q && "search " + query.q,
     ].filter(Boolean);
     $("#tablenote").textContent =
-      (filters.length ? "Gefiltert: " + filters.join(" · ") + ". " : "")
-      + "Sortiert nach " + query.sort + " " + (query.order === "asc" ? "aufsteigend" : "absteigend")
-      + ". Sortierung und Filter laufen im Backend — bei 600 Zeilen mit einer Position "
-      + "je Instrument ist die ganze Liste eine Nutzlast, die niemand braucht, um den "
-      + "größten Fonds zu finden.";
+      (filters.length ? "Filtered: " + filters.join(" · ") + ". " : "")
+      + "Sorted by " + query.sort + " " + (query.order === "asc" ? "ascending" : "descending")
+      + ". Sorting and filtering run in the backend. With 600 rows and a position per "
+      + "instrument, the whole list is a payload nobody needs in order to find the "
+      + "largest fund.";
 
-    $("#foot").textContent = `${data.summary.count} Agenten · `
-      + `${money(data.summary.equity)} € Kapital · Gini ${de(data.summary.gini, 3)} · `
-      + `${data.summary.margin_calls} Margin Calls · Tag ${data.day}`;
+    $("#foot").textContent = `${count(data.summary.count)} agents · `
+      + `${euro(data.summary.equity)} capital · Gini ${fmt(data.summary.gini, 3)} · `
+      + `${count(data.summary.margin_calls)} margin calls · Day ${data.day}`;
     $("#stale").style.display = "none";
   } catch (e) {
-    $("#foot").textContent = "Backend nicht erreichbar: " + e.message;
+    $("#foot").textContent = "Backend not reachable: " + e.message;
     $("#stale").style.display = "";
     $("#stalewhy").textContent = e.message;
   }

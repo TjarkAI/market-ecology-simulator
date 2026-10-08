@@ -55,11 +55,11 @@ def test_catalogue_lists_saved_runs(tmp_path):
     for _ in range(30):
         sim.step()
         recorder.capture(sim)
-    recorder.save(sim, "eins", "20260101-000002", root=tmp_path)
-    recorder.save(sim, "zwei", "20260101-000003", root=tmp_path)
+    recorder.save(sim, "one", "20260101-000002", root=tmp_path)
+    recorder.save(sim, "two", "20260101-000003", root=tmp_path)
 
     entries = catalogue(root=tmp_path)
-    assert [e["name"] for e in entries] == ["zwei", "eins"]  # newest first
+    assert [e["name"] for e in entries] == ["two", "one"]  # newest first
     assert all(e["seed"] == 23 for e in entries)
 
 
@@ -72,7 +72,7 @@ def test_scenario_key_is_recorded(tmp_path):
     for _ in range(50):
         sim.step()
         recorder.capture(sim)
-    target = recorder.save(sim, "szenario", "20260101-000004", root=tmp_path)
+    target = recorder.save(sim, "scenario", "20260101-000004", root=tmp_path)
     assert load(target)["meta"]["scenario"] == "calm"
 
 

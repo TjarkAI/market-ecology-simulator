@@ -12,7 +12,7 @@ experiments come from their own catalogues — for the same reason the handbook 
 it: a guide quoting stale numbers is worse than none.
 
     python docs/build_quickstart.py
-    python docs/build_quickstart.py --druck   # druckfreundliche Titelseite
+    python docs/build_quickstart.py --print   # print-friendly title page
 """
 
 from __future__ import annotations
@@ -32,23 +32,24 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from docs.build_handbook import (  # noqa: E402
-    AMBER, DARK, FAINT, MONO, RED, RULE, S, SANS, SANS_B, TEAL,
-    bullets, callout, code, p, rule, table,
+    COVER_ACCENT, COVER_BG, COVER_INK, FAINT, HISTORICAL, MONO, RED, RULE, S, SANS,
+    SANS_B, TEAL,
+    bullets, callout, code, count_tests, p, rule, table,
 )
 from mes import lessons, scenarios  # noqa: E402
 from mes.config import PARAM_SPEC, Config  # noqa: E402
 from mes.instruments import SECTOR_SPEC  # noqa: E402
 from mes.simulation import Simulation  # noqa: E402
 
-OUT = ROOT / "docs" / "Market-Ecology-Simulator-Kurzanleitung.pdf"
-OUT_PRINT = ROOT / "docs" / "Market-Ecology-Simulator-Kurzanleitung-Druck.pdf"
+OUT = ROOT / "docs" / "Market-Ecology-Simulator-Quick-Start.pdf"
+OUT_PRINT = ROOT / "docs" / "Market-Ecology-Simulator-Quick-Start-Print.pdf"
 MAX_PAGES = 5
 
-# Druckfreundliche Fassung: identischer Inhalt, nur die Titelfläche auf Seite eins
-# kommt ohne den vollflächigen dunklen Kasten aus — der kostet auf einem Bürodrucker
-# eine halbe Tonerpatrone und sieht auf Papier grau-fleckig aus. Umgeschaltet über
-# `python docs/build_quickstart.py --druck`; die Geometrie bleibt Millimeter für
-# Millimeter gleich, damit der Umbruch und das Fünf-Seiten-Limit unberührt sind.
+# Print-friendly variant: identical content, only the title area on page one does
+# without the full-width dark box. On an office printer that box costs half a toner
+# cartridge and comes out grey and blotchy on paper. Switched with
+# `python docs/build_quickstart.py --print`; the geometry stays the same millimetre
+# for millimetre, so the page breaks and the five-page limit are not affected.
 PRINT_FRIENDLY = False
 
 
@@ -61,8 +62,7 @@ def facts() -> dict:
     for agent in sim.agents:
         kinds[agent.kind] = kinds.get(agent.kind, 0) + 1
 
-    tests = sum(len(re.findall(r"^def test_", path.read_text(encoding="utf-8"), re.M))
-                for path in sorted((ROOT / "tests").glob("test_*.py")))
+    tests = count_tests()
 
     return {
         "cfg": cfg,
@@ -71,6 +71,7 @@ def facts() -> dict:
         "instruments": len(sim.markets),
         "sectors": SECTOR_SPEC,
         "scenarios": len(scenarios.ALL),
+        "scenario_names": {key: s.name for key, s in scenarios.ALL.items()},
         "lessons": lessons.catalogue(),
         "params": len(PARAM_SPEC),
         "tests": tests,
@@ -86,9 +87,9 @@ def _footer(canvas):
     canvas.setFont(SANS, 6.8)
     canvas.setFillColor(FAINT)
     canvas.drawCentredString(A4[0] / 2, 10.5 * mm,
-                             "Erzeugt aus dem laufenden Code · "
+                             "Generated from the running code · "
                              "python docs/build_quickstart.py · "
-                             "ausführlich: Market-Ecology-Simulator-Handbuch.pdf")
+                             "in full: Market-Ecology-Simulator-Handbook.pdf")
 
 
 def on_page(canvas, doc):
@@ -99,9 +100,9 @@ def on_page(canvas, doc):
     canvas.setFont(SANS, 7)
     canvas.setFillColor(FAINT)
     canvas.drawString(20 * mm, A4[1] - 12.5 * mm,
-                      "MARKET ECOLOGY SIMULATOR · KURZANLEITUNG")
+                      "MARKET ECOLOGY SIMULATOR · QUICK START GUIDE")
     canvas.drawRightString(A4[0] - 20 * mm, A4[1] - 12.5 * mm,
-                           f"Seite {doc.page} von {MAX_PAGES}")
+                           f"Page {doc.page} of {MAX_PAGES}")
     _footer(canvas)
     canvas.restoreState()
 
@@ -123,45 +124,47 @@ def on_first_page(canvas, doc):
 
 
 def _first_page_band_screen(canvas):
-    canvas.setFillColor(DARK)
+    # The handbook cover's light palette: the town is a bright diorama, and the
+    # guide should look like the thing it describes.
+    canvas.setFillColor(COVER_BG)
     canvas.rect(0, A4[1] - 42 * mm, A4[0], 42 * mm, stroke=0, fill=1)
-    canvas.setFillColor(AMBER)
+    canvas.setFillColor(COVER_ACCENT)
     canvas.rect(0, A4[1] - 4 * mm, A4[0], 4 * mm, stroke=0, fill=1)
     canvas.setFont(SANS_B, 7.4)
-    canvas.drawString(20 * mm, A4[1] - 16 * mm, "AGENTENBASIERTE FINANZMARKTSIMULATION")
-    canvas.setFillColor(colors.HexColor("#8d949d"))
-    canvas.drawRightString(A4[0] - 20 * mm, A4[1] - 16 * mm, f"SEITE 1 VON {MAX_PAGES}")
-    canvas.setFillColor(colors.white)
+    canvas.drawString(20 * mm, A4[1] - 16 * mm, "AGENT-BASED FINANCIAL MARKET SIMULATION")
+    canvas.setFillColor(FAINT)
+    canvas.drawRightString(A4[0] - 20 * mm, A4[1] - 16 * mm, f"PAGE 1 OF {MAX_PAGES}")
+    canvas.setFillColor(COVER_INK)
     canvas.setFont(SANS_B, 23)
     canvas.drawString(20 * mm, A4[1] - 27 * mm, "Market Ecology Simulator")
-    canvas.setFillColor(colors.HexColor("#c9ced6"))
+    canvas.setFillColor(colors.HexColor("#4a5670"))
     canvas.setFont(SANS, 10)
     canvas.drawString(20 * mm, A4[1] - 35 * mm,
-                      "Kurzanleitung — was das Projekt ist und wie man damit arbeitet")
+                      "Quick Start Guide: what the project is and how to work with it")
 
 
 def _first_page_band_print(canvas):
-    """Dieselbe Typografie auf weißem Papier: die Fläche wird zur Linie.
+    """The same typography on white paper: the filled area becomes a line.
 
-    Statt des Kastens trägt ein schmaler Amber-Strich oben und eine Haarlinie unter
-    dem Untertitel die Kopfzone; die Schrift wechselt von weiß auf dunkel. Die
-    Grundlinien liegen auf denselben Höhen wie in der Bildschirmfassung, damit sich
-    an Umbruch und Rahmen nichts verschiebt.
+    Instead of the box, a narrow accent bar at the top and a hairline under the
+    subtitle carry the header zone; the type switches from white to dark. The
+    baselines sit at the same heights as in the screen version, so nothing shifts in
+    the page breaks or the frame.
     """
-    canvas.setFillColor(AMBER)
+    canvas.setFillColor(COVER_ACCENT)
     canvas.rect(20 * mm, A4[1] - 4 * mm, A4[0] - 40 * mm, 1.6 * mm, stroke=0, fill=1)
-    canvas.setFillColor(DARK)
+    canvas.setFillColor(COVER_ACCENT)
     canvas.setFont(SANS_B, 7.4)
-    canvas.drawString(20 * mm, A4[1] - 16 * mm, "AGENTENBASIERTE FINANZMARKTSIMULATION")
+    canvas.drawString(20 * mm, A4[1] - 16 * mm, "AGENT-BASED FINANCIAL MARKET SIMULATION")
     canvas.setFillColor(FAINT)
-    canvas.drawRightString(A4[0] - 20 * mm, A4[1] - 16 * mm, f"SEITE 1 VON {MAX_PAGES}")
-    canvas.setFillColor(DARK)
+    canvas.drawRightString(A4[0] - 20 * mm, A4[1] - 16 * mm, f"PAGE 1 OF {MAX_PAGES}")
+    canvas.setFillColor(COVER_INK)
     canvas.setFont(SANS_B, 23)
     canvas.drawString(20 * mm, A4[1] - 27 * mm, "Market Ecology Simulator")
     canvas.setFillColor(colors.HexColor("#4a5058"))
     canvas.setFont(SANS, 10)
     canvas.drawString(20 * mm, A4[1] - 35 * mm,
-                      "Kurzanleitung — was das Projekt ist und wie man damit arbeitet")
+                      "Quick Start Guide: what the project is and how to work with it")
     canvas.setStrokeColor(RULE)
     canvas.setLineWidth(0.5)
     canvas.line(20 * mm, A4[1] - 40 * mm, A4[0] - 20 * mm, A4[1] - 40 * mm)
@@ -170,7 +173,7 @@ def _first_page_band_print(canvas):
 def build() -> Path:
     out = OUT_PRINT if PRINT_FRIENDLY else OUT
     doc = BaseDocTemplate(
-        str(out), pagesize=A4, title="Market Ecology Simulator — Kurzanleitung",
+        str(out), pagesize=A4, title="Market Ecology Simulator — Quick Start Guide",
         author="Market Ecology Simulator", leftMargin=20 * mm, rightMargin=20 * mm,
         topMargin=20 * mm, bottomMargin=18 * mm)
     doc.addPageTemplates([
@@ -188,8 +191,8 @@ def build() -> Path:
     pages = count_pages(out)
     if pages > MAX_PAGES:
         raise SystemExit(
-            f"{out.name} ist {pages} Seiten lang, erlaubt sind {MAX_PAGES}. "
-            "Kürzen, nicht das Limit erhöhen — dafür gibt es das Handbuch.")
+            f"{out.name} is {pages} pages long, {MAX_PAGES} are allowed. "
+            "Cut it, do not raise the limit. That is what the handbook is for.")
     return out
 
 
@@ -209,339 +212,342 @@ def story(f_: dict) -> list:
     # heading is reprinted five times over a gap it does not need.
     f: list = [NextPageTemplate("body")]
 
-    # =================================================== 1 · was das Projekt ist
-    f += [Spacer(1, 6), p("1 · Was das Projekt ist", "h1")]
-    f += [p("Ein agentenbasiertes Modell eines Aktienmarktes. Es sagt keine Kurse "
-            "vorher — es fragt, <b>woher Marktverhalten kommt</b>.", "lead")]
-    f += [p(f"{f_['agents']} Agenten folgen je einer einfachen Regel. Keiner kennt den "
-            "wahren Wert eines Papiers, keiner weiß, was die anderen als Nächstes tun, "
-            "und <b>nirgends im Code steht eine Formel für den Kurs</b>. Jeder Handel ist "
-            "eine Order, die auf eine andere trifft — ein fortlaufendes Doppelauktions-"
-            "Orderbuch mit Preis-Zeit-Priorität, Teilausführungen und Verfall. Blasen, "
-            "Crashs, Volatilitätscluster und Zwangsverkaufs-Kaskaden entstehen aus diesem "
-            "Zusammenspiel, oder sie sind nicht da.")]
+    # =================================================== 1 · what the project is
+    f += [Spacer(1, 6), p("1 · What the project is", "h1")]
+    f += [p("An agent-based model of an equity market. It does not forecast prices. "
+            "It asks <b>where market behaviour comes from</b>.", "lead")]
+    f += [p(f"{f_['agents']} agents each follow a simple rule. None knows the true value "
+            "of an asset, none knows what the others will do next, and <b>nowhere in the "
+            "code is there an equation for the price</b>. Every trade is one order meeting "
+            "another: a continuous double-auction order book with price-time priority, "
+            "partial fills and expiry. Bubbles, crashes, volatility clusters and "
+            "forced-selling cascades emerge from this interaction, or they are not there.")]
 
-    f += [p("Die Frage", "h2")]
-    f += [p("Echte Renditereihen teilen eine Handvoll statistischer Eigenschaften, die "
-            "über Anlageklassen und Jahrhunderte hinweg gelten. <b>Keine davon ist in "
-            "dieses Modell eingebaut.</b> Erfüllt ein Markt aus lauter einfachen, "
-            "unterschiedlichen Regeln sie trotzdem? Die Kriterien stehen als ausführbare "
-            "Prüfungen in <font name='Courier' size='8'>mes/metrics.py</font> — "
-            "festgelegt, <i>bevor</i> gemessen wurde. Das ist der Unterschied zwischen "
-            "einem Ergebnis und einer nachträglichen Erzählung.")]
+    f += [p("The question", "h2")]
+    f += [p("Real return series share a handful of statistical properties that hold "
+            "across asset classes and centuries. <b>None of them is built into this "
+            "model.</b> Does a market made only of simple, heterogeneous rules meet them "
+            "anyway? The criteria are executable checks in "
+            "<font name='Courier' size='8'>mes/metrics.py</font>, fixed <i>before</i> "
+            "anything was measured. That is the difference between a result and a story "
+            "told afterwards.")]
 
-    rows = [["Kriterium", "Anforderung", "Gemessen", "Erfüllt"],
-            ["Volatilitäts-Cluster", "mittlere ACF der |Renditen| &gt; 0,05", "0,217", "25 / 25"],
-            ["Nicht-Normalität", "Jarque-Bera p &lt; 0,05", "0,0002", "25 / 25"],
-            ["Fat Tails", "Überschuss-Kurtosis &gt; 1", "5,39", "24 / 25"],
-            ["Tail-Index", "Hill-Schätzer zwischen 2 und 6", "4,38", "22 / 25"],
-            ["Keine Autokorrelation", "|ACF(1)| &lt; 0,1", "−0,223", "8 / 25"],
-            ["Volumen-Kopplung", "Korr(Volumen, |Rendite|) &gt; 0,1", "−0,072", "3 / 25"]]
+    rows = [["Criterion", "Requirement", "Measured", "Met"],
+            ["Volatility clustering", "mean ACF of |returns| &gt; 0.05", "0.217", "25 / 25"],
+            ["Non-normality", "Jarque-Bera p &lt; 0.05", "0.0002", "25 / 25"],
+            ["Fat tails", "excess kurtosis &gt; 1", "5.39", "24 / 25"],
+            ["Tail index", "Hill estimator between 2 and 6", "4.38", "22 / 25"],
+            ["No autocorrelation", "|ACF(1)| &lt; 0.1", "−0.223", "8 / 25"],
+            ["Volume coupling", "corr(volume, |return|) &gt; 0.1", "−0.072", "3 / 25"]]
     f += [table(rows, [40 * mm, 63 * mm, 27 * mm, 40 * mm],
                 align_right=(2, 3), highlight=(5, 6)), Spacer(1, 8)]
 
     f += callout(
-        "Vier von sechs erfüllt — und die zwei offenen stehen mit im Dokument",
-        "Fünf Seeds × fünf Instrumente = 25 Messungen über je 90.000 Schritte. Ein "
-        "Ergebnis, das nur für einen Seed gilt, ist keins; deshalb wird über Seeds "
-        "gemessen und die Streuung mitgeführt. Die beiden hervorgehobenen Zeilen sind "
-        "<b>nicht</b> erfüllt, und das steht hier, weil ein Projekt, das seine eigenen "
-        "Kriterien nachträglich weichzeichnet, nichts mehr misst. Warum sie nicht zu "
-        "lösen waren, erklärt das Handbuch: die Kraft, die einen Kurs am fairen Wert "
-        "hält, ist dieselbe, die seine Renditen vorhersagbar macht.")
+        "Four of six met, and the two open ones are in the document too",
+        "Five seeds × five instruments = 25 measurements of 90,000 steps each. A result "
+        "that holds for only one seed is not a result; that is why it is measured across "
+        "seeds and the scatter is reported with it. The two highlighted rows are "
+        "<b>not</b> met, and that is stated here, because a project that softens its own "
+        "criteria after the fact no longer measures anything. Why they could not be "
+        "solved is explained in the handbook: the force that keeps a price at fair value "
+        "is the same one that makes its returns predictable.")
 
-    f += [p("Diese fünf Seiten", "h2")]
-    rows = [["Seite", "Worum es geht"],
-            ["2", "Starten, und was die vier Ansichten voneinander unterscheidet"],
-            ["3", "Wer handelt, und wie aus Orders ein Kurs wird"],
-            ["4", "Die fünf Arbeitsweisen — von „einmal zusehen“ bis „eine Behauptung prüfen“"],
-            ["5", "Befehle, wo im Code was steht, und was am Modell offen ist"]]
+    f += [p("These five pages", "h2")]
+    rows = [["Page", "What it covers"],
+            ["2", "Starting up, and how the four views differ from each other"],
+            ["3", "Who trades, and how orders become a price"],
+            ["4", "The five ways of working, from “watch it once” to “test a claim”"],
+            ["5", "Commands, where things are in the code, and what is open in the model"]]
     f += [table(rows, [14 * mm, 156 * mm], align_right=(0,))]
 
     f += [PageBreak()]
 
-    # ============================================== 2 · starten und die ansichten
-    f += [p("2 · Starten und die vier Ansichten", "h1")]
+    # ============================================== 2 · starting and the views
+    f += [p("2 · Starting up and the four views", "h1")]
     # Plain ASCII inside the monospace block: Courier has no arrow glyph, and
     # reportlab silently substitutes a ligature for the missing one.
     f += [code(["./start.sh   ->   http://127.0.0.1:8000",
-                "oder Marktstadt.app doppelklicken, oeffnet den Browser von selbst"])]
-    f += [p("Der erste Start legt die virtuelle Umgebung an und installiert die "
-            f"Abhängigkeiten. Danach spult der Server im Hintergrund auf 110 Handelstage "
-            "vor — das Validierungspanel braucht 100 Tage Tagesdaten, bevor seine Zahlen "
-            "etwas bedeuten. Der Balken oben sagt, wie weit er ist. Pause und Tempo "
-            "greifen sofort.", "small")]
+                "or double-click Market Town.app, which opens the browser by itself"])]
+    f += [p("The first start creates the virtual environment and installs the "
+            "dependencies. After that the server fast-forwards to 110 trading days in the "
+            "background. The validation panel needs 100 days of daily data before its "
+            "figures mean anything. The bar at the top shows how far it has got. Pause "
+            "and speed take effect immediately.", "small")]
 
-    f += [p("Vier Blickwinkel auf denselben Lauf", "h2")]
-    f += [p("Es läuft <b>eine</b> Simulation. Alle vier Seiten zeigen sie, beantworten "
-            "aber verschiedene Fragen, und jede ist von jeder anderen aus erreichbar.")]
-    rows = [["Seite", "Beantwortet", "Dafür ist sie da"],
-            ["<b>/</b> — die Stadt",
-             "Was passiert gerade, und warum?",
-             "Eine isometrische Stadt: jedes Viertel eine Agentengruppe, jede Blockhöhe "
-             "Kapital, jede Straßenbreite Orderfluss. Nichts daran ist Dekoration. Links "
-             "Kurs, Kerzen und Orderbuch, rechts ein einzelner Agent mit der Rechnung "
-             "hinter seiner letzten Entscheidung."],
-            ["<b>/sectors</b> — Analyse",
-             "Stimmen die Zahlen?",
-             "Sektorvergleich, gemessene Korrelationen, Zentralbank mit Duration je "
-             "Sektor, das Validierungspanel, A/B-Vergleiche über mehrere Seeds und die "
-             "aufgezeichneten Läufe."],
-            ["<b>/indices</b> — Indizes",
-             "Wer ist gelaufen, wann, und gegen was?",
-             "Alle Indizes live auf einer Achse, auf den Fensterstart normiert. Dazu je "
-             "Index Stand, Fair-Wert-Index, Volatilität, Drawdown, Breite — und das "
-             "<i>gemessene</i> Beta gegen das im Modell gesetzte."],
-            ["<b>/traders</b> — Trader",
-             "Wer handelt, und wie geht es ihm?",
-             f"Alle {f_['agents']} Agenten nebeneinander statt einer nach dem anderen: "
-             "Kapital, Bargeld, Positionen, Hebel, Ergebnis seit Laufbeginn, "
-             "Zwangsverkäufe. Sortier- und filterbar, mit Sprung zurück in die Stadt."]]
+    f += [p("Four angles on the same run", "h2")]
+    f += [p("<b>One</b> simulation runs. All four pages show it, but they answer "
+            "different questions, and each can be reached from every other.")]
+    rows = [["Page", "Answers", "What it is for"],
+            ["<b>/</b> — the town",
+             "What is happening, and why?",
+             "A bright 3D diorama under white glass panels: every district a group of "
+             "agents, every block height its capital, every road width this step's order "
+             "flow, five blue towers the exchanges. None of it is decoration. On the left "
+             "price, candles and order book; on the right a single agent with the "
+             "calculation behind its last decision."],
+            ["<b>/sectors</b> — analysis",
+             "Are the figures right?",
+             "Sector comparison, measured correlations, Central Bank with duration per "
+             "sector, the validation panel, A/B comparisons across several seeds and the "
+             "recorded runs."],
+            ["<b>/indices</b> — indices",
+             "Who ran, when, and against what?",
+             "All indices live on one axis, normalised to the start of the window. For "
+             "each index its level, fair-value index, volatility, drawdown, breadth, and "
+             "the <i>measured</i> beta against the one set in the model."],
+            ["<b>/traders</b> — traders",
+             "Who is trading, and how are they doing?",
+             f"All {f_['agents']} agents side by side instead of one after another: "
+             "capital, cash, positions, leverage, result since the start of the run, "
+             "forced sales. Sortable and filterable, with a jump back into the town."]]
     f += [table(rows, [30 * mm, 42 * mm, 98 * mm]), Spacer(1, 8)]
 
-    f += [p("Der erste Blick — worauf man in den ersten zwei Minuten achtet", "h2")]
+    f += [p("The first look: what to watch in the first two minutes", "h2")]
     f += bullets([
-        "<b>Der Kurs gegen den fairen Wert</b> (Panel links oben). Die beiden Linien "
-        "laufen selten zusammen. Wie weit sie auseinanderstehen, ist die interessanteste "
-        "Einzelzahl des Modells — und sie schließt sich nicht von allein.",
-        "<b>Das Verhältnis Momentum zu Value</b> im adaptiven Viertel. Es kippt in Wellen "
-        "und bleibt dann eine Weile stehen. Genau diese Beharrlichkeit ist es, die "
-        "Volatilität clustern lässt.",
-        "<b>Der rote Ring am Hebel-Turm.</b> Er bedeutet, dass ein Fonds verkauft, weil "
-        "er <i>muss</i> — nicht, weil er sich dafür entschieden hat. Das ist der einzige "
-        "Ort, an dem ein Agent handelt, ohne zu entscheiden.",
-        "<b>Das Orderbuch</b> (dritte Ansicht im Marktpanel). Fast die gesamte Tiefe "
-        "liegt direkt am Kurs, dahinter stehen nur noch einzelne Stücke. Genau deshalb "
-        "kann hier ein Liquiditätsloch entstehen — ein Modell mit einer Preisformel "
-        "hätte keins, weil es nichts hätte, das ausgehen kann.",
+        "<b>The price against fair value</b> (market panel, left). The two lines "
+        "rarely meet. How far apart they are is the most interesting single figure in "
+        "the model, and the gap does not close by itself.",
+        "<b>The ratio of momentum to value</b> in the Adaptive Quarter. It tips over in "
+        "waves and then stays put for a while. That persistence is exactly what makes "
+        "volatility cluster.",
+        "<b>The red beacon and ring at the Leverage Tower.</b> They mean a fund is "
+        "selling because it "
+        "<i>must</i>, not because it chose to. This is the only place where an agent "
+        "trades without deciding.",
+        "<b>The order book</b> (third view in the market panel). Almost all of the depth "
+        "sits right at the price; behind it there are only a few shares. That is exactly "
+        "why a liquidity hole can open here. A model with a price equation would have "
+        "none, because it would have nothing that could run out.",
     ])
 
-    f += [p("Tasten in der Stadt", "h2")]
-    rows = [["Taste", "Wirkung", "Taste", "Wirkung"],
-            ["Leertaste", "Pause / weiter", "1 2 3", "Tempo 1× / 4× / 16×"],
-            ["]", "ein einzelner Schritt", "+ − 0", "Kamera näher / weiter / zurück"],
-            ["R B C", "Schock: ruhig, boom, crash", "?", "Erklärung öffnen"]]
+    f += [p("Keys and mouse in the town", "h2")]
+    rows = [["Key", "Effect", "Key", "Effect"],
+            ["Space", "pause / resume", "1 2 3", "speed 1× / 4× / 16×"],
+            ["]", "a single step", "+ − 0", "camera closer / further / reset"],
+            ["R B C", "shock: calm, boom, crash", "?", "open the explanation"],
+            ["click", "select a district (a tower: its market)", "drag",
+             "turn; scroll zooms, right-drag pans"]]
     f += [table(rows, [20 * mm, 58 * mm, 20 * mm, 72 * mm]), Spacer(1, 7)]
-    f += [p("Das Tempo ist der wichtigste Regler: bei 1× ist ein Handelstag etwa zwei "
-            "Minuten Echtzeit, bei 16× wenige Sekunden. Für alles, was Handelstage "
-            "sammeln muss — Validierung, Experimente — gehört die Uhr auf 16×.", "small")]
+    f += [p("Speed is the most important control: at 1× a trading day takes about two "
+            "minutes of real time, at 16× a few seconds. For anything that has to collect "
+            "trading days, such as validation and experiments, set the clock to 16×.",
+            "small")]
 
     f += [PageBreak()]
 
-    # ================================================ 3 · wer handelt, wie ein kurs entsteht
-    f += [p("3 · Wer handelt — und wie ein Kurs entsteht", "h1")]
-    f += [p("Sieben Regeln. Jede existiert, weil das Modell ohne sie sichtbar falsch "
-            "war — nicht, weil sie die Liste vollständig macht.", "lead")]
+    # ================================================ 3 · who trades, how a price is made
+    f += [p("3 · Who trades, and how a price is made", "h1")]
+    f += [p("Seven rules. Each exists because the model was visibly wrong without it, "
+            "not because it completes the list.", "lead")]
     k = f_["kinds"]
-    rows = [["Typ", "Anzahl", "Regel", "Warum sie im Modell ist"],
-            ["Value-Investor", str(k.get("adaptive", 0)),
-             "kauft unter der eigenen Schätzung des fairen Werts",
-             "die einzige Kraft, die den Kurs zum Wert zieht"],
-            ["Trendfolger", "dieselben",
-             "extrapoliert die letzte Bewegung, ignoriert die Bewertung",
-             "die Rückkopplung, aus der Blasen entstehen"],
-            ["Noise-Trader", str(k.get("noise", 0)),
-             "handelt aus Gründen, die das Modell nicht abbildet",
-             "Grundliquidität — sonst gibt es keine Gegenseite"],
-            ["ETF / Sparplan", str(k.get("passive", 0)),
-             "bekommt nach Plan Geld und kauft zu jedem Preis",
-             "preisunabhängige Nachfrage"],
-            ["Hebel-Fonds", str(k.get("leveraged", 0)),
-             "handelt auf Kredit, wird bei Unterdeckung zwangsverkauft",
-             "die Kaskade; überträgt Stress zwischen Sektoren"],
-            ["Market Maker", str(k.get("maker", 0)),
-             "stellt dauerhaft beide Seiten, lehnt sich gegen den Bestand",
-             "die einzige stehende Liquidität"],
-            ["Emittent", str(k.get("company", 0)),
-             "gibt Aktien aus, wenn sie teuer sind, kauft zurück, wenn billig",
-             "die einzige Quelle neuen Angebots"]]
+    rows = [["Type", "Count", "Rule", "Why it is in the model"],
+            ["Value investor", str(k.get("adaptive", 0)),
+             "buys below its own estimate of fair value",
+             "the only force pulling the price towards value"],
+            ["Trend follower", "the same",
+             "extrapolates the recent move, ignores valuation",
+             "the feedback loop that produces bubbles"],
+            ["Noise trader", str(k.get("noise", 0)),
+             "trades for reasons the model does not represent",
+             "background liquidity; otherwise there is no other side"],
+            ["ETF / savings plan", str(k.get("passive", 0)),
+             "receives money on a schedule and buys at any price",
+             "price-insensitive demand"],
+            ["Leveraged fund", str(k.get("leveraged", 0)),
+             "trades on credit, is forced to sell when under-collateralised",
+             "the cascade; carries stress between sectors"],
+            ["Market maker", str(k.get("maker", 0)),
+             "quotes both sides at all times, leans against its inventory",
+             "the only standing liquidity"],
+            ["Issuer", str(k.get("company", 0)),
+             "sells new shares when they are expensive, buys back when cheap",
+             "the only source of new supply"]]
     f += [table(rows, [26 * mm, 22 * mm, 54 * mm, 68 * mm], align_right=(1,)),
           Spacer(1, 7)]
-    f += [p("Value-Investoren und Trendfolger sind <b>dieselben</b> Agenten. Sie wechseln "
-            f"alle {cfg.switch_interval} Schritte zwischen beiden Regeln — danach, was "
-            "zuletzt funktioniert hat, und danach, was die Mehrheit tut. Dieses Wechseln "
-            "ist der Motor: die Population kippt in ein Trend- oder ein Wert-Regime und "
-            "bleibt eine Weile dort.", "small")]
+    f += [p("Value investors and trend followers are the <b>same</b> agents. Every "
+            f"{cfg.switch_interval} steps they reconsider which of the two rules to run, "
+            "based on what has worked lately and on what the majority is doing. This "
+            "switching is the engine: the population tips into a trend regime or a value "
+            "regime and stays there for a while.", "small")]
 
-    f += [p("Wie ein Kurs zustande kommt", "h2")]
+    f += [p("How a price comes about", "h2")]
     f += bullets([
-        f"<b>Ein Schritt ist keine Sekunde und kein Tag.</b> {cfg.steps_per_day} Schritte "
-        "ergeben einen Handelstag mit einer Tageskerze. Die statistischen Eigenschaften "
-        "gelten für <i>Tages</i>renditen; auf Schrittebene dominiert Mikrostruktur.",
-        f"<b>{f_['instruments']} Instrumente handeln gleichzeitig</b>, jedes mit eigenem "
-        "Orderbuch: Technologie, Energie, Finanzen, Gesundheit, Konsum. Ihre fairen Werte "
-        "teilen einen gemeinsamen Marktfaktor — Korrelation <i>entsteht</i> daraus, sie "
-        "ist nicht als Matrix vorgegeben.",
-        "<b>Nachrichten bewegen nie den Kurs.</b> Sie bewegen den fairen Wert und die "
-        "Stimmung. Ob der Kurs folgt, entscheiden die Agenten — der Value-Investor sieht "
-        "ein billigeres Papier, der Trendfolger sieht andere verkaufen, der ETF liest gar "
-        "keine Nachrichten.",
-        "<b>Die Zentralbank handelt nicht.</b> Sie setzt einen Zins, der über drei Kanäle "
-        "ankommt: Bewertung (Duration je Sektor), Finanzierungskosten der Hebel-Fonds und "
-        "Zuflüsse in die Sparpläne.",
+        f"<b>A step is neither a second nor a day.</b> {cfg.steps_per_day} steps make one "
+        "trading day with one daily candle. The statistical properties apply to "
+        "<i>daily</i> returns; at step level microstructure dominates.",
+        f"<b>{f_['instruments']} instruments trade at once</b>, each with its own order "
+        "book: technology, energy, financials, health care, consumer. Their fair values "
+        "share a common market factor. Correlation <i>emerges</i> from that; it is not "
+        "set as a matrix.",
+        "<b>News never moves the price.</b> It moves fair value and sentiment. Whether "
+        "the price follows is up to the agents: the value investor sees a cheaper asset, "
+        "the trend follower sees others selling, the ETF does not read the news at all.",
+        "<b>The Central Bank does not trade.</b> It sets a rate that arrives through three "
+        "channels: valuation (duration per sector), the leveraged funds' financing costs, "
+        "and inflows into the savings plans.",
     ])
 
-    f += [p("Die fünf Sektoren sind bewusst verschiedene Charaktere", "h2")]
+    f += [p("The five sectors are deliberately different characters", "h2")]
     character = {
-        "TECH": "hohes Beta, blasenanfällig — reagiert am stärksten auf Marktnachrichten",
-        "ENRG": "niedriges Beta, aber die höchste Eigenvolatilität",
-        "FINL": "zinsempfindlich: ein Zinsschritt bewegt hier den fairen Wert am meisten",
-        "HLTH": "defensiv, ruhig, wenig Eigenbewegung",
-        "CONS": "defensiv, dicht am Gesamtmarkt",
+        "TECH": "high beta, bubble-prone; reacts most strongly to market news",
+        "ENRG": "low beta, but the highest idiosyncratic volatility",
+        "FINL": "rate-sensitive: a rate step moves fair value most here",
+        "HLTH": "defensive, calm, little movement of its own",
+        "CONS": "defensive, close to the overall market",
     }
-    rows = [["Sektor", "Beta", "Charakter"]]
+    rows = [["Sector", "Beta", "Character"]]
     for spec in f_["sectors"]:
         rows.append([f"<b>{spec['symbol']}</b> {spec['name']}",
-                     f"{spec['beta']:.2f}".replace(".", ","),
+                     f"{spec['beta']:.2f}",
                      character.get(spec["symbol"], "")])
     f += [table(rows, [32 * mm, 14 * mm, 124 * mm], align_right=(1,)), Spacer(1, 5)]
-    f += [p("Wären sie fünf Kopien voneinander, wäre die gemessene Korrelation zwischen "
-            "ihnen kein Ergebnis, sondern eine Tautologie.", "small")]
+    f += [p("If they were five copies of each other, the measured correlation between "
+            "them would not be a result but a tautology.", "small")]
 
     f += [PageBreak()]
 
-    # ================================================== 4 · wie man damit arbeitet
-    f += [p("4 · Wie man damit arbeitet", "h1")]
-    f += [p("Fünf Arbeitsweisen, von „einmal zusehen“ bis „eine Behauptung prüfen“. "
-            "Sie bauen aufeinander auf.", "lead")]
+    # ================================================== 4 · how to work with it
+    f += [p("4 · How to work with it", "h1")]
+    f += [p("Five ways of working, from “watch it once” to “test a claim”. Each builds "
+            "on the one before.", "lead")]
 
-    rows = [["Weg", "Beantwortet", "So geht es"],
-            ["<b>1 · Szenario laden</b>",
-             f"Was macht dieses Modell unter diesen Bedingungen? ({f_['scenarios']} Presets)",
-             "Stadt → Fußzeile <b>SZENARIO</b>. Ruhiger Markt, Blase, Hebel-Crash, "
-             "ETF-Dominanz, Nachrichtenschock — dazu Dotcom 2000, Finanzkrise 2008, "
-             "Corona 2020, Meme-Aktien 2021, Zinswende 2022. Ein Szenario setzt "
-             "Bedingungen und liefert Schlagzeilen; <b>es schreibt keinen Kursverlauf "
-             "vor</b>. Ob der Kurs 5 % oder 40 % fällt, ist die Antwort des Modells."],
-            ["<b>2 · Geführtes Experiment</b>",
-             f"Zeigt sich der Mechanismus wirklich? ({len(f_['lessons'])} Stück)",
-             "Analyse → <b>Geführte Experimente</b>. Jedes stellt den Markt ein, sagt "
-             "vorher worauf zu achten ist — und prüft danach <i>gemessen</i>, ob es "
-             "geklappt hat, auch wenn nicht. Der Start schaltet auf 16×; empfohlen sind "
+    names = f_["scenario_names"]
+    basic = ", ".join(n for key, n in names.items() if key not in HISTORICAL)
+    historical = ", ".join(n for key, n in names.items() if key in HISTORICAL)
+    rows = [["Way", "Answers", "How it works"],
+            ["<b>1 · Load a scenario</b>",
+             f"What does this model do under these conditions? ({f_['scenarios']} presets)",
+             f"Town → footer <b>SCENARIO</b>. {basic}, plus {historical}. A scenario sets "
+             "conditions and supplies headlines; <b>it does not prescribe a price "
+             "path</b>. Whether the price falls 5% or 40% is the model's answer."],
+            ["<b>2 · Guided experiment</b>",
+             f"Does the mechanism really show? ({len(f_['lessons'])} of them)",
+             "Analysis → <b>Guided experiments</b>. Each one sets up the market, says in "
+             "advance what to watch for, and afterwards checks by <i>measurement</i> "
+             "whether it worked, even when it did not. Starting one switches to 16×; "
              f"{min(l['days'] for l in f_['lessons'])}–"
-             f"{max(l['days'] for l in f_['lessons'])} Handelstage, und das Panel sagt, "
-             "wie viele Minuten das noch sind."],
-            ["<b>3 · Parameter drehen</b>",
-             f"Woran hängt das? ({f_['params']} Regler)",
-             "Analyse → rechte Spalte, oder Stadt → <b>PARAMETER</b>. Ein Punkt hinter "
-             "dem Namen heißt: wirkt erst nach einem Neustart. Abweichungen vom "
-             "kalibrierten Standard werden orange markiert, <b>Standardwerte</b> holt "
-             "alles zurück — nur dort bedeuten die Validierungszahlen das, was das README "
-             "über sie sagt."],
-            ["<b>4 · A/B über Seeds</b>",
-             "Ist der Unterschied größer als der Zufall?",
-             "Analyse → <b>A/B-Vergleich</b>. Zwei Konfigurationen aus demselben Seed, "
-             "mit Differenztabelle. Wichtig ist <b>über 3 Seeds</b>: die Spalte "
-             "Signal/Rauschen sagt, ob der Unterschied sich von der Streuung zwischen "
-             "Seeds abhebt. Unter 1 tut er das nicht — egal wie deutlich ein einzelnes "
-             "Diagramm aussieht."],
-            ["<b>5 · Aufzeichnen und abspielen</b>",
-             "Was genau ist damals passiert?",
+             f"{max(l['days'] for l in f_['lessons'])} trading days are recommended, and "
+             "the panel says how many minutes that still is."],
+            ["<b>3 · Turn parameters</b>",
+             f"What does it depend on? ({f_['params']} controls)",
+             "Analysis → right-hand column, or town → <b>CONTROLS</b>. A dot after the "
+             "name means it only takes effect after a restart. Departures from the "
+             "calibrated default are marked orange, and <b>defaults</b> brings everything "
+             "back. Only there do the validation figures mean what the README says about "
+             "them."],
+            ["<b>4 · A/B across seeds</b>",
+             "Is the difference larger than chance?",
+             "Analysis → <b>A/B comparison</b>. Two configurations from the same seed, "
+             "with a table of differences. What matters is <b>across 3 seeds</b>: the "
+             "signal/noise column says whether the difference stands out from the "
+             "scatter between seeds. Below 1 it does not, however clear a single chart "
+             "looks."],
+            ["<b>5 · Record and replay</b>",
+             "What exactly happened back then?",
              "<font name='Courier' size='8'>python scripts/run.py --steps 60000 --name "
-             "basis</font>, dann in der Stadt <b>AUFZEICHNUNG</b>. Ein Replay wird aus "
-             "dem Seed <i>nachgerechnet</i>, nicht aus Kurven gelesen — deshalb steht an "
-             "jeder Position der ganze Zustand zur Verfügung: Orderbuch, Viertel, "
-             "Agenten. Der Regler bewegt die komplette Karte."]]
+             "baseline</font>, then <b>REPLAY</b> in the town. A replay is <i>recomputed</i> "
+             "from the seed, not read from curves. That is why the whole state is "
+             "available at every position: order book, districts, agents. The slider "
+             "moves the complete map."]]
     f += [table(rows, [30 * mm, 40 * mm, 100 * mm]), Spacer(1, 8)]
 
     f += callout(
-        "Die eine Regel, die alles andere trägt",
-        "<b>Eine Zahl aus einem Lauf ist kein Ergebnis.</b> Einmal produzierte ein Seed "
-        "hier eine Autokorrelation von −0,002 bei allen sechs erfüllten Kriterien — und "
-        "es ließ sich nicht wiederholen; der Mittelwert über vier Seeds lag bei −0,19 mit "
-        "einer Streuung von 0,11. Diesen Lauf als Erfolg zu melden wäre genau die Falle "
-        "gewesen, vor der die Methode dieses Projekts warnt. Deshalb: über Seeds messen, "
-        "Streuung mitschreiben, und im Zweifel <font name='Courier' size='8'>"
-        "scripts/calibrate.py</font> zitieren statt das Live-Panel.", TEAL)
+        "The one rule that carries everything else",
+        "<b>A figure from one run is not a result.</b> Once, one seed here produced an "
+        "autocorrelation of −0.002 with all six criteria met, and it could not be "
+        "repeated; the mean across four seeds was −0.19 with a scatter of 0.11. Reporting "
+        "that run as a success would have been exactly the trap this project's method "
+        "warns against. So: measure across seeds, write the scatter down, and when in "
+        "doubt quote <font name='Courier' size='8'>scripts/calibrate.py</font> rather "
+        "than the live panel.", TEAL)
 
-    f += [p("Ein typischer Ablauf", "h2")]
+    f += [p("A typical session", "h2")]
     f += bullets([
-        "<b>Zusehen.</b> Starten, Tempo auf 4×, ein paar Minuten die Stadt laufen lassen "
-        "und das Panel „Was passiert gerade“ mitlesen — jede seiner Aussagen kommt aus "
-        "einer Zahl, die die Simulation in diesem Moment hält.",
-        "<b>Eine Vermutung fassen.</b> Etwa: „Ohne Market Maker ist die Volatilität "
-        "höher.“ Auf <b>/indices</b> und <b>/traders</b> nachsehen, ob die Vermutung "
-        "überhaupt an den Zahlen hängt, die man dafür braucht.",
-        "<b>Prüfen lassen.</b> Gibt es ein geführtes Experiment dazu, dieses nehmen — es "
-        "prüft sich selbst und sagt auch, wenn es <i>nicht</i> funktioniert hat.",
-        "<b>Sonst selbst messen.</b> A/B über drei Seeds, und nur den Zeilen glauben, "
-        "deren Signal/Rauschen über 1 liegt.",
-        "<b>Festhalten.</b> <font name='Courier' size='8'>scripts/run.py</font> zeichnet "
-        "den Lauf auf, mit Seed und Zeitleiste — er lässt sich später Schritt für Schritt "
-        "wieder durchgehen statt nur als Kurve ansehen.",
+        "<b>Watch.</b> Start, set the speed to 4×, let the town run for a few minutes and "
+        "read the “What is happening” panel alongside. Every statement in it comes from a "
+        "figure the simulation holds at that moment.",
+        "<b>Form a hunch.</b> For example: “Without market makers volatility is higher.” "
+        "Check on <b>/indices</b> and <b>/traders</b> whether the hunch depends on figures "
+        "you can actually get at.",
+        "<b>Have it checked.</b> If there is a guided experiment for it, use that. It "
+        "checks itself and also says when it did <i>not</i> work.",
+        "<b>Otherwise measure it yourself.</b> A/B across three seeds, and only believe "
+        "the rows whose signal/noise is above 1.",
+        "<b>Keep it.</b> <font name='Courier' size='8'>scripts/run.py</font> records the "
+        "run, with seed and timeline. It can be stepped through again later instead of "
+        "only being looked at as a curve.",
     ])
 
     f += [PageBreak()]
 
-    # ============================================ 5 · befehle, code, offene punkte
-    f += [p("5 · Befehle, Code und was offen ist", "h1")]
+    # ============================================ 5 · commands, code, open points
+    f += [p("5 · Commands, code and what is open", "h1")]
     # A table, not aligned columns inside one code block: reportlab collapses runs of
     # spaces, so hand-set columns arrive as a single run-on line.
-    rows = [["Befehl", "Wofür"],
-            ["./start.sh", "die Oberfläche starten"],
+    rows = [["Command", "What for"],
+            ["./start.sh", "start the interface"],
             ["python scripts/calibrate.py --runs 5 --steps 90000",
-             "die Validierung — die Zahlen von Seite 1"],
+             "the validation: the figures on page 1"],
             ["python scripts/sweep.py ablate --steps 80000",
-             "jeden Mechanismus einzeln abschalten und messen, was fehlt"],
+             "switch off each mechanism in turn and measure what is missing"],
             ["python scripts/sweep.py param --name n_passive --values 0,50,100",
-             "einen Parameter über einen Wertebereich abfahren"],
-            ["python scripts/run.py --steps 120000 --name basis",
-             "ein Lauf ohne Oberfläche, exportiert und aufgezeichnet"],
+             "sweep one parameter across a range of values"],
+            ["python scripts/run.py --steps 120000 --name baseline",
+             "a run without the interface, exported and recorded"],
             ["python docs/build_handbook.py",
-             "das ausführliche Handbuch neu erzeugen"],
+             "regenerate the full handbook"],
             ["python -m pytest -q",
-             f"{f_['tests']} Testfunktionen — Invarianten, keine Kursprognosen"]]
+             f"{f_['tests']} test functions: invariants, not price forecasts"]]
     f += [table(rows, [96 * mm, 74 * mm], align_right=(0,)), Spacer(1, 8)]
 
-    f += [p("Wo im Code was steht", "h2")]
-    rows = [["Datei", "Inhalt"],
+    f += [p("Where things are in the code", "h2")]
+    rows = [["File", "Contents"],
             ["<font name='Courier' size='8'>mes/orderbook.py</font>",
-             "Matching Engine, Preis-Zeit-Priorität — das Fundament"],
+             "matching engine, price-time priority: the foundation"],
             ["<font name='Courier' size='8'>mes/agents.py</font>",
-             "die sieben Entscheidungsregeln; hier steht das ganze Verhalten"],
+             "the seven decision rules; all of the behaviour is here"],
             ["<font name='Courier' size='8'>mes/simulation.py</font>",
-             "die Schleife: ein <font name='Courier' size='8'>step()</font> ist eine "
-             "Marktperiode"],
+             "the loop: one <font name='Courier' size='8'>step()</font> is one market "
+             "period"],
             ["<font name='Courier' size='8'>mes/instruments.py</font>",
-             "die fünf Sektoren und das Faktormodell hinter ihren fairen Werten"],
+             "the five sectors and the factor model behind their fair values"],
             ["<font name='Courier' size='8'>mes/indices.py</font>",
-             "die Indexkonstruktion — verkettet, mit den Gewichten des ETF"],
+             "the index construction: chain-linked, with the ETF's weights"],
             ["<font name='Courier' size='8'>mes/metrics.py</font>",
-             "die Kriterien aus Abschnitt 1, als ausführbare Prüfungen"],
+             "the criteria from section 1, as executable checks"],
             ["<font name='Courier' size='8'>mes/config.py</font>",
-             f"alle {f_['params']} Parameter, einmal deklariert — das Bedienfeld wird "
-             "daraus erzeugt"],
+             f"all {f_['params']} parameters, declared once; the control panel is "
+             "generated from them"],
             ["<font name='Courier' size='8'>mes/city.py</font> · "
              "<font name='Courier' size='8'>traders.py</font>",
-             "die beiden Stellen, an denen Zustand zu Anzeigezahlen wird"]]
+             "the two places where state becomes display figures"]]
     f += [table(rows, [45 * mm, 125 * mm]), Spacer(1, 8)]
 
-    f += [p("Was offen ist", "h2")]
-    f += [p("Kein Modell ist fertig, und dieses schreibt auf, wo es steht:", "small")]
+    f += [p("What is open", "h2")]
+    f += [p("No model is finished, and this one writes down where it stands:", "small")]
     f += bullets([
-        "<b>Zwei der sechs Kriterien sind nicht erfüllt</b> (Seite 1). Vier Runden Arbeit "
-        "haben die anderen vier robust gemacht und diese beiden nicht bewegt — sie hängen "
-        "an derselben Abwägung.",
-        "<b>Die Bestandsgrenze der Market Maker ist doppelt definiert</b>: der Agent "
-        "rechnet mit dem Fünffachen dessen, was die Engine durchlässt. Welche der beiden "
-        "Zahlen gilt, verändert die Buchtiefe und damit jede Zahl der Validierung. "
-        "Dokumentiert in <font name='Courier' size='8'>INTEGRATION.md</font>.",
-        "<b>Die Barmittelprüfung nimmt den besten Angebotspreis</b>, eine große Order "
-        "läuft aber durch mehrere Preisstufen — Agenten, die keinen Kredit aufnehmen "
-        "dürfen, können es kurz doch.",
-        "<b>Keine Dividenden, keine Gewinne.</b> Der faire Wert ist ein exogener Prozess, "
-        "kein erwirtschaftetes Ergebnis; Rückkäufe zahlt eine Kasse, die sich nie füllt.",
+        "<b>Two of the six criteria are not met</b> (page 1). Four rounds of work made "
+        "the other four robust and did not move these two. They hinge on the same "
+        "trade-off.",
+        "<b>The market makers' inventory limit is defined twice</b>: the agent works with "
+        "five times what the engine lets through. Which of the two figures applies "
+        "changes the book depth and with it every figure in the validation. Documented "
+        "in <font name='Courier' size='8'>INTEGRATION.md</font>.",
+        "<b>The cash check uses the best ask</b>, but a large order runs through several "
+        "price levels. Agents that are not allowed to borrow can briefly do so anyway.",
+        "<b>No dividends, no earnings.</b> Fair value is an exogenous process, not an "
+        "earned result; buybacks are paid from a cash pile that never fills.",
     ])
     f += rule()
-    f += [p("Ausführlich — sieben geführte Experimente, die Herleitung der Ergebnisse, "
-            "was alles versucht wurde und nicht funktioniert hat — steht im Handbuch: "
-            "<font name='Courier' size='8'>docs/Market-Ecology-Simulator-Handbuch.pdf</font>. "
-            "Die Methode und die Zahlen im Detail: "
+    f += [p("In full, with seven guided experiments, how the results were derived, and "
+            "everything that was tried and did not work, in the handbook: "
+            "<font name='Courier' size='8'>docs/Market-Ecology-Simulator-Handbook.pdf</font>. "
+            "The method and the figures in detail: "
             "<font name='Courier' size='8'>README.md</font>.", "small")]
 
     return f
 
 
 if __name__ == "__main__":
-    PRINT_FRIENDLY = "--druck" in sys.argv[1:] or "--print" in sys.argv[1:]
-    print("geschrieben:", build())
+    PRINT_FRIENDLY = "--print" in sys.argv[1:]
+    print("written:", build())

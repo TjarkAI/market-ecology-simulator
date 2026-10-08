@@ -2,7 +2,7 @@
 
 A scenario never dictates what the price does. It sets the conditions — how
 strongly agents chase trends, how much leverage is allowed, what the news says —
-and then the model answers. Whether "Finanzkrise 2008" produces a 12 % or a 45 %
+and then the model answers. Whether "Financial crisis 2008" produces a 12% or a 45%
 drawdown is a result, and a different seed gives a different number.
 
 That distinction matters most for the historical episodes. They are not attempts
@@ -42,31 +42,31 @@ class Scenario:
 BASIC = [
     Scenario(
         key="calm",
-        name="Ruhiger Markt",
-        description="Wenig Trendfolge, viel Liquidität, kaum Hebel. Der Kurs "
-                    "folgt dem Fundamentalwert ohne große Ausschläge.",
-        question="Wie sieht der Markt aus, wenn keine Rückkopplung wirkt?",
+        name="Calm market",
+        description="Little trend following, plenty of liquidity, hardly any leverage. "
+                    "The price follows the fundamental value without large swings.",
+        question="What does the market look like when no feedback loop is at work?",
         overrides={"chartist_aggression": 30.0, "herd_strength": 0.5,
                    "max_leverage": 1.5, "n_makers": 20, "news_intensity": 0.1},
     ),
     Scenario(
         key="bubble",
-        name="Blasenbildung",
-        description="Starke Trendfolge und hoher Herdentrieb. Niemand gibt eine "
-                    "Kaufempfehlung — die Blase entsteht aus der Rückkopplung.",
-        question="Kann aus reiner Trendfolge eine Preisblase entstehen?",
+        name="Bubble formation",
+        description="Strong trend following and a strong herd instinct. Nobody issues "
+                    "a buy recommendation. The bubble arises from the feedback loop.",
+        question="Can a price bubble arise from trend following alone?",
         overrides={"chartist_aggression": 140.0, "herd_strength": 4.0,
                    "switch_rate": 0.35, "fundamental_aggression": 0.15,
                    "issue_threshold": 0.5},
     ),
     Scenario(
         key="leverage_crash",
-        name="Hebel-Crash",
-        description="Hoher Hebel und knappe Margin-Schwelle. Ein normaler "
-                    "Kursrückgang genügt, um Zwangsverkäufe auszulösen, die den "
-                    "nächsten Rückgang erzeugen.",
-        question="Wie viel eines Crashs stammt aus dem Auslöser und wie viel aus "
-                 "der Zwangsliquidation?",
+        name="Leverage crash",
+        description="High leverage and a tight margin threshold. An ordinary price "
+                    "decline is enough to trigger forced sales, which produce the "
+                    "next decline.",
+        question="How much of a crash comes from the trigger and how much from the "
+                 "forced liquidation?",
         # Three things have to line up for a cascade, and getting them wrong is
         # instructive. The trend followers are turned *down*, not up: with them
         # loud the price runs far above fair value, the funds read that as a
@@ -81,34 +81,34 @@ BASIC = [
                    "value_price_pull": 0.06, "fundamental_aggression": 0.30,
                    "activity_elasticity": 0.0},
         timeline=[
-            (8, {"note": "Hebel ist aufgebaut. Noch ist alles ruhig."}),
+            (8, {"note": "Leverage has built up. Everything is still calm."}),
             # A trigger, because the point of the scenario is the cascade and not
             # the wait for one. How far the price falls afterwards is still the
             # model's answer: the first forced sale pushes the price down, which
             # puts the next fund below its margin.
-            (12, {"news": ["Großinvestor steigt aus", -0.12]}),
+            (12, {"news": ["Major investor pulls out", -0.12]}),
         ],
     ),
     Scenario(
         key="etf_dominance",
-        name="ETF-Dominanz",
-        description="Der größte Teil des Kapitals fließt preisunempfindlich in "
-                    "den Markt. Niemand prüft mehr, was etwas wert ist.",
-        question="Machen passive Zuflüsse den Markt stabiler oder instabiler?",
+        name="ETF dominance",
+        description="Most of the capital flows into the market without regard to "
+                    "price. Nobody checks any more what something is worth.",
+        question="Do passive inflows make the market more stable or less stable?",
         overrides={"n_passive": 200, "passive_inflow": 220.0,
                    "n_adaptive": 150, "issue_threshold": 0.3},
     ),
     Scenario(
         key="news_shock",
-        name="Nachrichtenschock",
-        description="Ein großer negativer Schock auf den Fundamentalwert. Jede "
-                    "Gruppe liest ihn anders — der ETF liest ihn gar nicht.",
-        question="Wie verarbeitet ein heterogener Markt dieselbe Nachricht?",
+        name="News shock",
+        description="A large negative shock to the fundamental value. Each group "
+                    "reads it differently. The ETF does not read it at all.",
+        question="How does a heterogeneous market process the same headline?",
         overrides={"news_intensity": 0.4},
         timeline=[
-            (5, {"news": ["Geopolitische Spannungen eskalieren", -0.25]}),
-            (6, {"note": "Der Schock traf nur den fairen Wert. Was der Kurs macht, "
-                         "entscheiden die Agenten."}),
+            (5, {"news": ["Geopolitical tensions escalate", -0.25]}),
+            (6, {"note": "The shock hit only fair value. What the price does is up "
+                         "to the agents."}),
         ],
     ),
 ]
@@ -119,81 +119,81 @@ BASIC = [
 HISTORY = [
     Scenario(
         key="dotcom",
-        name="Dotcom-Blase 1998–2000",
-        description="Eine Phase hoher Fundamentalerwartungen trifft auf starke "
-                    "Trendfolge. Nach zwei Jahren dreht die Erwartung — der "
-                    "Herdentrieb bleibt.",
-        question="Genügt eine Erwartungsumkehr bei unverändertem Herdenverhalten, "
-                 "um einen mehrjährigen Anstieg in einen Absturz zu drehen?",
+        name="Dotcom bubble 1998–2000",
+        description="A phase of high fundamental expectations meets strong trend "
+                    "following. After two years the expectations turn. The herd "
+                    "instinct stays.",
+        question="Is a reversal in expectations, with herd behaviour unchanged, enough "
+                 "to turn a rise lasting several years into a crash?",
         overrides={"fundamental_drift": 0.40 / (252 * 240), "chartist_aggression": 135.0,
                    "herd_strength": 3.5, "fundamental_aggression": 0.15,
                    "issue_threshold": 0.45, "n_leveraged": 35},
         timeline=[
-            (10, {"note": "Wachstumsphase: die Erwartungen tragen den Kurs."}),
+            (10, {"note": "Growth phase: expectations carry the price."}),
             (500, {"params": {"fundamental_drift": -0.25 / (252 * 240)}}),
-            (500, {"news": ["Analysten senken Wachstumserwartungen deutlich", -0.06]}),
-            (502, {"note": "Die Erwartung ist gedreht. Der Herdentrieb ist unverändert."}),
+            (500, {"news": ["Analysts sharply cut growth expectations", -0.06]}),
+            (502, {"note": "Expectations have turned. The herd instinct is unchanged."}),
         ],
     ),
     Scenario(
         key="gfc2008",
-        name="Finanzkrise 2008",
-        description="Hoher Hebel im System, dann ein Schock. Die Zwangsverkäufe "
-                    "der Fonds erzeugen den nächsten Margin Call.",
-        question="Wie viel eines Crashs stammt aus der Nachricht und wie viel aus "
-                 "der Zwangsliquidation?",
+        name="Financial crisis 2008",
+        description="High leverage in the system, then a shock. The funds' forced "
+                    "sales produce the next margin call.",
+        question="How much of a crash comes from the news and how much from the "
+                 "forced liquidation?",
         overrides={"max_leverage": 7.0, "maintenance_margin": 0.32,
                    "n_leveraged": 70, "chartist_aggression": 110.0,
                    "issue_threshold": 0.35},
         timeline=[
-            (200, {"note": "Hebel ist aufgebaut. Noch ist alles ruhig."}),
-            (260, {"news": ["Großinvestor steigt aus", -0.10]}),
-            (263, {"news": ["Regulierer eröffnet Verfahren", -0.08]}),
-            (266, {"note": "Ab hier verkaufen die Fonds, weil sie müssen, nicht "
-                           "weil sie wollen."}),
+            (200, {"note": "Leverage has built up. Everything is still calm."}),
+            (260, {"news": ["Major investor pulls out", -0.10]}),
+            (263, {"news": ["Regulator opens proceedings", -0.08]}),
+            (266, {"note": "From here on the funds sell because they have to, not "
+                           "because they want to."}),
         ],
     ),
     Scenario(
         key="covid",
-        name="COVID-Crash 2020",
-        description="Ein sehr schneller, sehr großer Schock, gefolgt von "
-                    "massiver Liquiditätszufuhr.",
-        question="Kann eine Liquiditätsflut einen fundamentalen Schock "
-                 "überkompensieren?",
+        name="COVID crash 2020",
+        description="A very fast, very large shock, followed by a massive injection "
+                    "of liquidity.",
+        question="Can a flood of liquidity more than make up for a fundamental "
+                 "shock?",
         overrides={"chartist_aggression": 115.0, "n_leveraged": 45,
                    "maintenance_margin": 0.30},
         timeline=[
-            (120, {"news": ["Weltweite Produktionsstopps angekündigt", -0.30]}),
-            (122, {"news": ["Nachfrageeinbruch in allen Branchen", -0.12]}),
-            (128, {"news": ["Zentralbank kündigt unbegrenzte Ankäufe an", 0.10]}),
+            (120, {"news": ["Worldwide production halts announced", -0.30]}),
+            (122, {"news": ["Demand collapses across all industries", -0.12]}),
+            (128, {"news": ["Central Bank announces unlimited asset purchases", 0.10]}),
             (130, {"params": {"passive_inflow": 260.0}}),
-            (132, {"note": "Der faire Wert ist weiter unten als vor dem Schock. "
-                           "Der Kurs muss dem nicht folgen."}),
+            (132, {"note": "Fair value is still lower than before the shock. "
+                           "The price does not have to follow it."}),
         ],
     ),
     Scenario(
         key="memestock",
-        name="Meme-Aktie 2021",
-        description="Sehr viele kleine, unkoordinierte Händler, extremer "
-                    "Herdentrieb, dünne Liquidität und wenig Angebot.",
-        question="Wie weit kann sich ein Kurs vom Wert lösen, wenn Liquidität "
-                 "und Angebot knapp sind?",
+        name="Meme stock 2021",
+        description="A great many small, uncoordinated traders, an extreme herd "
+                    "instinct, thin liquidity and little supply.",
+        question="How far can a price detach from value when liquidity and supply "
+                 "are scarce?",
         overrides={"n_noise": 700, "n_adaptive": 400, "herd_strength": 5.0,
                    "switch_rate": 0.5, "chartist_aggression": 150.0,
                    "n_makers": 4, "mm_quote_size": 60,
                    "issue_threshold": 0.9, "fundamental_aggression": 0.1},
         timeline=[
-            (30, {"note": "Enge Liquidität, kaum Angebot, maximaler Herdentrieb."}),
+            (30, {"note": "Tight liquidity, hardly any supply, maximum herd instinct."}),
         ],
     ),
     Scenario(
         key="rates2022",
-        name="Zinswende 2022",
-        description="Die Zentralbank hebt die Zinsen, weil die Inflation läuft. "
-                    "Bewertungen fallen, Hebelkosten steigen, Zuflüsse versiegen — "
-                    "drei Kanäle, unterschiedlich schnell.",
-        question="Wirkt eine Zinserhöhung über die Bewertung, über die "
-                 "Finanzierungskosten oder über die Zuflüsse?",
+        name="Rate turn 2022",
+        description="The Central Bank raises rates because inflation is running. "
+                    "Valuations fall, leverage costs rise, inflows dry up: three "
+                    "channels, at different speeds.",
+        question="Does a rate hike work through valuation, through financing costs "
+                 "or through inflows?",
         # Inflation is pushed up and the bank is left to react on its own. The rate
         # path is not scripted: it comes out of the Taylor rule meeting an economy
         # that reacts with a lag, which is what produces the overshoot.
@@ -201,12 +201,12 @@ HISTORY = [
                    "max_leverage": 4.0, "maintenance_margin": 0.40,
                    "macro_shock": 0.05, "rate_adjust_days": 15.0},
         timeline=[
-            (5, {"note": "Inflation zieht an. Die Zentralbank hat noch nicht reagiert."}),
+            (5, {"note": "Inflation is picking up. The Central Bank has not reacted yet."}),
             (6, {"inflation": 0.075}),
-            (40, {"note": "Der Zins steigt der Inflation nach — mit Verzögerung."}),
-            (120, {"note": "Bewertungen sind gefallen, Hebelkosten gestiegen, "
-                           "Zuflüsse versiegt. Was davon den Kurs bewegt hat, "
-                           "zeigt das Zentralbank-Panel."}),
+            (40, {"note": "The rate follows inflation up, with a lag."}),
+            (120, {"note": "Valuations have fallen, leverage costs have risen, "
+                           "inflows have dried up. Which of these moved the price "
+                           "is shown in the Central Bank panel."}),
         ],
     ),
 ]
@@ -217,8 +217,8 @@ ALL = {s.key: s for s in BASIC + HISTORY}
 def catalogue() -> list[dict]:
     """What the UI shows in the scenario picker."""
     return [
-        {"group": "Grundszenarien", "items": [s.to_dict() for s in BASIC]},
-        {"group": "Historische Episoden", "items": [s.to_dict() for s in HISTORY]},
+        {"group": "Basic scenarios", "items": [s.to_dict() for s in BASIC]},
+        {"group": "Historical episodes", "items": [s.to_dict() for s in HISTORY]},
     ]
 
 

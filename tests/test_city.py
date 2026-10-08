@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from mes.city import THIN, de, de_int, millions, snapshot
+from mes.city import _ROADS, eur, millions, num, num_int, snapshot
 from mes.config import Config
 from mes.simulation import Simulation
 
@@ -31,7 +31,7 @@ def test_snapshot_covers_every_binding_in_the_page(sim):
     # data-fp holds a CSS property name, not a field — exclude that attribute.
     snap = snapshot(sim)
     missing = sorted(name for name in bound if name not in snap)
-    assert not missing, f"Felder fehlen im Snapshot: {missing}"
+    assert not missing, f"fields missing from the snapshot: {missing}"
 
 
 DISTRICTS = ("mom", "val", "noi", "etf", "lev", "mkr", "cmp")
@@ -68,14 +68,62 @@ def test_margin_call_alarm_follows_the_simulation(sim):
 def test_quiet_market_still_fills_the_log(sim):
     sim.events.clear()
     rows = snapshot(sim)["log"]
-    assert rows, "das Stadt-Protokoll darf nie leer sein"
+    assert rows, "the town log must never be empty"
     assert all(len(row) == 3 for row in rows)
 
 
-def test_german_number_format():
-    assert de(1234.5) == f"1{THIN}234,50"
-    assert de_int(9380) == f"9{THIN}380"
-    assert millions(11_000_000) == "11,0 M"
+def test_number_format():
+    assert num(1234.5) == "1,234.50"
+    assert num(63.19, 1) == "63.2"
+    assert num_int(9380) == "9,380"
+    assert num_int(49_296.4) == "49,296"
+    assert millions(11_000_000) == "11.0M"
+    assert millions(240_150_000) == "240.2M"
+    assert eur(171_727) == "€171,727"
+    assert eur(900, sign=True) == "+€900"
+    assert eur(-5) == "-€5"
+
+
+def test_percentages_carry_no_space(sim):
+    snap = snapshot(sim)
+    assert snap["bankRate"].endswith("%") and " %" not in snap["bankRate"]
+    for row in snap["markets"]:
+        assert " %" not in row["chg"] and " %" not in row["gap"]
+
+
+# ------------------------------------------------------------ crate colours
+def test_buy_share_is_a_fraction_or_null_for_every_road(sim):
+    """The crates the figures carry are coloured from this, so it has to be the
+    real side of the orders: a share in [0, 1], and null for a road with no order,
+    which is not the same as a road that only sold."""
+    snap = snapshot(sim)
+    assert set(snap["buyShare"]) == set(_ROADS)
+    for key, group in _ROADS.items():
+        share = snap["buyShare"][key]
+        if sim.step_orders_by_group.get(group, 0) == 0:
+            assert share is None, f"{key}: no orders this step, so no share"
+        else:
+            assert share is not None and 0.0 <= share <= 1.0, f"{key}: {share}"
+
+
+def test_a_group_that_only_buys_reports_one():
+    """The ETF depot only ever buys — `PassiveInvestor.act` returns BUY orders and
+    nothing else — so every step it trades its share must be exactly 1.0."""
+    sim = Simulation(Config(seed=11, passive_interval=5))
+    seen = 0
+    for _ in range(200):
+        sim.step()
+        snap = snapshot(sim)
+        if sim.step_orders_by_group.get("passive", 0):
+            seen += 1
+            assert snap["buyShare"]["etf"] == 1.0
+        else:
+            assert snap["buyShare"]["etf"] is None
+        # Market makers quote both sides, so whenever they trade the share is a
+        # proper fraction of their orders and never claims more buys than orders.
+        buys = sim.step_buys_by_group.get("maker", 0)
+        assert buys <= sim.step_orders_by_group.get("maker", 0)
+    assert seen, "the ETF depot never traded, so the test proved nothing"
 
 
 def test_selected_agent_can_be_pinned(sim):
@@ -109,7 +157,7 @@ def test_the_read_outs_follow_the_selected_market(sim):
         assert snap["focus"] == symbol
         assert snap["tick"].startswith(symbol)
         assert snap["book"].startswith(symbol)
-        assert snap["px"] == de(sim.markets[symbol].price)
+        assert snap["px"] == num(sim.markets[symbol].price)
         assert [m["sym"] for m in snap["markets"] if m["sel"]] == [symbol]
 
 
@@ -139,10 +187,10 @@ def test_the_book_is_sorted_outwards_from_the_touch(sim):
     ladder = snapshot(sim)["ladder"]
     bids = [price for price, _ in ladder["bids"]]
     asks = [price for price, _ in ladder["asks"]]
-    assert bids == sorted(bids, reverse=True), "Kaufseite muss absteigen"
-    assert asks == sorted(asks), "Verkaufsseite muss aufsteigen"
+    assert bids == sorted(bids, reverse=True), "the bid side must descend"
+    assert asks == sorted(asks), "the ask side must ascend"
     if bids and asks:
-        assert bids[0] < asks[0], "Bestes Gebot darf nicht über der besten Forderung liegen"
+        assert bids[0] < asks[0], "the best bid must not sit above the best ask"
 
 
 def test_the_book_follows_the_selected_market(sim):

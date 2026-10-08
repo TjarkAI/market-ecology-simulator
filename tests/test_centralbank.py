@@ -91,8 +91,8 @@ def test_the_economy_reacts_to_policy_with_a_lag():
         sim.step()
         if i == 40:
             short.append(sim.bank.output_gap)
-    assert abs(short[0]) < 0.5, "Wirkung trat sofort ein, ohne Verzögerung"
-    assert sim.bank.output_gap < -0.5, f"Output-Gap {sim.bank.output_gap}"
+    assert abs(short[0]) < 0.5, "the effect arrived at once, without a lag"
+    assert sim.bank.output_gap < -0.5, f"output gap {sim.bank.output_gap}"
 
 
 # ------------------------------------------------------- channel: valuation
@@ -162,7 +162,7 @@ def test_borrowed_money_costs_interest():
     before = fund.cash
     for _ in range(200):
         sim.step()
-    assert fund.cash < before, "Kredit kostet nichts"
+    assert fund.cash < before, "credit costs nothing"
 
 
 def test_a_higher_rate_costs_more():
@@ -230,7 +230,7 @@ def test_the_report_is_json_friendly_and_in_per_cent():
     assert report["manual"] is True
     assert isinstance(report["history"], list)
     for key, value in report.items():
-        assert not isinstance(value, (np.floating, np.integer)), f"{key} ist kein Python-Typ"
+        assert not isinstance(value, (np.floating, np.integer)), f"{key} is not a Python type"
 
 
 def test_a_reporting_cadence_of_zero_does_not_kill_the_clock():
@@ -244,4 +244,4 @@ def test_a_reporting_cadence_of_zero_does_not_kill_the_clock():
     for _ in range(60):
         sim.step()
     assert sim.t == 60
-    assert sim.bank.history, "ohne Takt wird jeder Schritt berichtet"
+    assert sim.bank.history, "without a cadence every step is reported"

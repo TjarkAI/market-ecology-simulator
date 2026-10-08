@@ -49,7 +49,7 @@ def test_there_is_one_market_index_and_one_per_sector(sim):
 
 
 def test_a_sector_index_carries_the_sector_name(sim):
-    assert sim.indices.by_key["TECH"].name == "Technologie"
+    assert sim.indices.by_key["TECH"].name == "Technology"
 
 
 def test_the_level_series_grows_one_point_per_step(sim):
@@ -188,7 +188,7 @@ def test_sample_never_exceeds_the_cap_and_keeps_the_last_point():
             out = ix.sample(series, cap)
             assert len(out) <= cap, (length, cap, len(out))
             assert out[-1] == series[-1], (length, cap)
-            assert out == sorted(out), "die Reihenfolge muss erhalten bleiben"
+            assert out == sorted(out), "the order must be preserved"
 
 
 def test_sample_returns_the_series_when_it_is_short_enough():

@@ -141,11 +141,11 @@ class Comparison:
             "difference": difference,
             "series": [self.a.series(), self.b.series()],
             "caveat": (
-                "Jeder Agent zieht aus seinem eigenen Zufallsstrom, deshalb bleiben beide "
-                "Läufe auf demselben Pfad, solange der Parameter nichts bewirkt — ein "
-                "Unterschied ist also seine Wirkung, nicht Zufall. Was ein einzelnes "
-                "Seed-Paar trotzdem nicht sagen kann: ob der Unterschied größer ist als "
-                "die Variation zwischen Seeds. Dafür der Vergleich über mehrere Seeds."
+                "Every agent draws from its own random stream, so both runs stay on the "
+                "same path for as long as the parameter has no effect. A difference is "
+                "therefore its effect, not chance. What a single seed pair still cannot "
+                "tell you is whether the difference is larger than the variation "
+                "between seeds. That is what the comparison across several seeds is for."
             ),
         }
 
